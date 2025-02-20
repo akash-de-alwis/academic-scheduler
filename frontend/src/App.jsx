@@ -1,8 +1,8 @@
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-import Sidebar from "./component/Sidebar";
-import HomePage from "./pages/HomePage";
-import LecturerList from "./pages/LecturersList"
-import BatchList from "./pages/BatchList";
+import Sidebar from "./StudentAndLecturers/component/Sidebar";
+import HomePage from "./StudentAndLecturers/pages/HomePage";
+import LecturerList from "./StudentAndLecturers/pages/LecturersList"
+import BatchList from "./StudentAndLecturers/pages/BatchList";
 
 function App() {
   return (
