@@ -1,10 +1,12 @@
-import mongoose from "mongoose";
+const mongoose = require("mongoose");
 
 const LecturerSchema = new mongoose.Schema({
   name: { type: String, required: true },
-  id: { type: String, required: true, unique: true },
+  lecturerId: { type: String, required: true, unique: true },
   department: { type: String, required: true },
-  availability: { type: String, enum: ["weekdays", "weekend"], required: true },
+  scheduleType: { type: String, enum: ["Weekdays", "Weekend"], required: true },
 });
 
-export default mongoose.model("Lecturer", LecturerSchema);
+const Lecturer = mongoose.model("Lecturer", LecturerSchema);
+
+module.exports = Lecturer;
