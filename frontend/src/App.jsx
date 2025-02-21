@@ -10,6 +10,7 @@ import BatchList from "./StudentAndLecturers/pages/BatchList";
 import HallHome from "./LectureHallAllocation/pages/HallHome"
 import TimeHome from "./TimetableManagement/pages/TimeHome";
 import SubHome from "./CourseAllocation/pages/SubHome";
+import Allocations from "./StudentAndLecturers/pages/Allocations";
 
 
 /** Layout wrapper for pages with Sidebar */
@@ -54,6 +55,7 @@ function App() {
         <Route path="/" element={<MainLayout><HomePage /></MainLayout>} />
         <Route path="/lecturers" element={<MainLayout><LecturerList /></MainLayout>} />
         <Route path="/batches" element={<MainLayout><BatchList /></MainLayout>} />
+        <Route path="/allocations" element={<MainLayout><Allocations /></MainLayout>} />
 
         {/* Routes with Hall Sidebar */}
         <Route path="/HallHome" element={<HallLayout><HallHome /></HallLayout>} />

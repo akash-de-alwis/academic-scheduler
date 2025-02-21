@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import axios from "axios";
 
 export default function BatchList() {
-  // ... State and handlers remain the same ...
   const [batches, setBatches] = useState([]);
   const [showForm, setShowForm] = useState(false);
   const [editingBatch, setEditingBatch] = useState(null);
@@ -27,6 +26,12 @@ export default function BatchList() {
     if (!dateString) return "";
     const date = new Date(dateString);
     return date.toLocaleDateString("en-GB");
+  };
+
+  const formatDateForInput = (dateString) => {
+    if (!dateString) return "";
+    const date = new Date(dateString);
+    return date.toISOString().split('T')[0];
   };
 
   const handleSaveBatch = async () => {
@@ -69,9 +74,19 @@ export default function BatchList() {
     }
   };
 
+  const handleEdit = (batch) => {
+    setNewBatch({
+      ...batch,
+      startDate: formatDateForInput(batch.startDate),
+      endDate: formatDateForInput(batch.endDate),
+      year: batch.year.toString()
+    });
+    setEditingBatch(batch);
+    setShowForm(true);
+  };
+
   return (
     <div className="min-h-screen p-8 bg-[#FFFFFF]">
-      {/* Header and search sections remain the same */}
       <div className="flex justify-between items-center mb-8">
         <h2 className="text-2xl font-bold text-[#1B365D]">Batch Management</h2>
         <button
@@ -99,10 +114,8 @@ export default function BatchList() {
         </button>
       </div>
 
-      {/* Table section */}
       <div className="bg-[#F5F7FA] rounded-lg">
         <table className="w-full">
-          {/* Table header and body remain the same */}
           <thead>
             <tr className="border-b border-[#FFFFFF]">
               <th className="text-left p-4 font-medium text-[#1B365D]">Name</th>
@@ -126,11 +139,7 @@ export default function BatchList() {
                 <td className="p-4">
                   <div className="flex gap-4">
                     <button
-                      onClick={() => {
-                        setNewBatch(batch);
-                        setEditingBatch(batch);
-                        setShowForm(true);
-                      }}
+                      onClick={() => handleEdit(batch)}
                       className="text-[#1B365D] hover:text-[#1B365D]/70"
                     >
                       <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -155,7 +164,6 @@ export default function BatchList() {
         </table>
       </div>
 
-      {/* Updated Modal with scrollable form */}
       {showForm && (
         <div className="fixed inset-0 bg-[#1B365D]/30 backdrop-blur-sm flex justify-center items-center">
           <div className="bg-[#FFFFFF] rounded-lg w-[480px] max-h-[90vh] flex flex-col">
@@ -172,7 +180,6 @@ export default function BatchList() {
             
             <div className="p-6 overflow-y-auto">
               <div className="space-y-4">
-                {/* Form fields remain the same */}
                 <div>
                   <label className="block text-sm font-medium mb-2 text-[#1B365D]">Batch Name</label>
                   <input
