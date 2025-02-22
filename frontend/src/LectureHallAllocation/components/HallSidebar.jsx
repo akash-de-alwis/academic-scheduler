@@ -25,7 +25,7 @@ export default function HallSidebar() {
     },
     {
       path: "/schedule",
-      name: "Schedule",
+      name: "Bookings",
       icon: <Calendar className="h-5 w-5 mr-3" />
     },
     {

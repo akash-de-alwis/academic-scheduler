@@ -37,7 +37,7 @@ const ActionButtons = () => (
   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mt-6">
     {[
       { title: "Add Venues", icon: Building },
-      { title: "Schedule Sessions", icon: Calendar },
+      { title: "Bookings", icon: Calendar },
       { title: "Book Meetings", icon: Users },
       { title: "Report Issues", icon: AlertTriangle }
     ].map((action) => (
