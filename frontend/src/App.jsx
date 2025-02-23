@@ -7,10 +7,16 @@ import SubSidebar from "./CourseAllocation/components/SubSidebar";
 import HomePage from "./StudentAndLecturers/pages/HomePage";
 import LecturerList from "./StudentAndLecturers/pages/LecturersList";
 import BatchList from "./StudentAndLecturers/pages/BatchList";
-import HallHome from "./LectureHallAllocation/pages/HallHome"
-import TimeHome from "./TimetableManagement/pages/TimeHome";
-import SubHome from "./CourseAllocation/pages/SubHome";
 import Allocations from "./StudentAndLecturers/pages/Allocations";
+
+import HallHome from "./LectureHallAllocation/pages/HallHome";
+
+import TimeHome from "./TimetableManagement/pages/TimeHome";
+
+import SubHome from "./CourseAllocation/pages/SubHome";
+
+
+
 
 
 /** Layout wrapper for pages with Sidebar */
@@ -63,7 +69,7 @@ function App() {
         {/* Routes with Time Sidebar */}
         <Route path="/TimeHome" element={<TimeLayout><TimeHome /></TimeLayout>} />
 
-        {/* Routes with Time Sidebar */}
+        {/* Routes with course Sidebar */}
         <Route path="/SubjectHome" element={<SubjectLayout>< SubHome /></SubjectLayout>} />
       </Routes>
     </Router>
