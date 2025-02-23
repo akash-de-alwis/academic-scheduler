@@ -10,6 +10,7 @@ import BatchList from "./StudentAndLecturers/pages/BatchList";
 import Allocations from "./StudentAndLecturers/pages/Allocations";
 
 import HallHome from "./LectureHallAllocation/pages/HallHome";
+import RoomList from "./LectureHallAllocation/pages/RoomList";
 
 import TimeHome from "./TimetableManagement/pages/TimeHome";
 
@@ -65,6 +66,7 @@ function App() {
 
         {/* Routes with Hall Sidebar */}
         <Route path="/HallHome" element={<HallLayout><HallHome /></HallLayout>} />
+        <Route path="/RoomList" element={<HallLayout><RoomList/></HallLayout>}/>
 
         {/* Routes with Time Sidebar */}
         <Route path="/TimeHome" element={<TimeLayout><TimeHome /></TimeLayout>} />

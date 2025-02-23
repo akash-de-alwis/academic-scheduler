@@ -4,6 +4,8 @@ const cors = require("cors");
 const dotenv = require("dotenv");
 const batchRoutes = require("./routes/batchRoutes");
 const lecturerRoutes = require("./routes/lecturers"); 
+const roomRoutes = require("./routes/roomRoutes");
+
 
 dotenv.config();
 
@@ -23,5 +25,6 @@ mongoose
 
 app.use("/api/batches", batchRoutes);
 app.use("/api/lecturers", lecturerRoutes);
+app.use("/api/rooms", roomRoutes);
 
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
