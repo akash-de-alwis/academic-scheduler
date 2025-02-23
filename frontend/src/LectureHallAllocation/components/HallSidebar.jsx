@@ -19,7 +19,7 @@ export default function HallSidebar() {
       )
     },
     {
-      path: "/venues",
+      path: "/RoomList",
       name: "Venues",
       icon: <Building className="h-5 w-5 mr-3" />
     },
