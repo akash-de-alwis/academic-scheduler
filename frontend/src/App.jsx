@@ -4,6 +4,7 @@ import HallSidebar from "./LectureHallAllocation/components/HallSidebar";
 import TimeSidebar from "./TimetableManagement/component/TimeSidebar";
 import SubSidebar from "./CourseAllocation/components/SubSidebar";
 
+import AcSHomepage from "./Home/AcSHomepage"
 import HomePage from "./StudentAndLecturers/pages/HomePage";
 import LecturerList from "./StudentAndLecturers/pages/LecturersList";
 import BatchList from "./StudentAndLecturers/pages/BatchList";
@@ -58,8 +59,11 @@ function App() {
   return (
     <Router>
       <Routes>
+
+      <Route path="/" element={<AcSHomepage />} />
+
         {/* Routes with Main Sidebar */}
-        <Route path="/" element={<MainLayout><HomePage /></MainLayout>} />
+        <Route path="/lecHome" element={<MainLayout><HomePage /></MainLayout>} />
         <Route path="/lecturers" element={<MainLayout><LecturerList /></MainLayout>} />
         <Route path="/batches" element={<MainLayout><BatchList /></MainLayout>} />
         <Route path="/allocations" element={<MainLayout><Allocations /></MainLayout>} />
@@ -73,6 +77,7 @@ function App() {
 
         {/* Routes with course Sidebar */}
         <Route path="/SubjectHome" element={<SubjectLayout>< SubHome /></SubjectLayout>} />
+
       </Routes>
     </Router>
   );
