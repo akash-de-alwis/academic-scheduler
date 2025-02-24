@@ -37,7 +37,7 @@ export default function TimeSidebar() {
           </Link>
          
           <Link
-            to="/timetable"
+            to="/TimetableList"
             className={`flex items-center py-2 text-gray-700 hover:text-[#1B365D] transition-colors ${
               isActive("/timetable") ? "font-medium text-[#1B365D]" : ""
             }`}
