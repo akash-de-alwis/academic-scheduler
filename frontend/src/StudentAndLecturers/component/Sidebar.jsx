@@ -14,7 +14,7 @@ export default function Sidebar() {
         
         <nav className="space-y-3">
           <Link
-            to="/"
+            to="/lecHome"
             className={`flex items-center py-2 text-gray-700 hover:text-black ${
               isActive("/") ? "font-medium" : ""
             }`}
