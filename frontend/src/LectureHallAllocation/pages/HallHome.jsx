@@ -1,5 +1,6 @@
 import React from 'react';
 import { Calendar, Users, BookOpen, AlertTriangle, Building } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 const DashboardStats = ({ icon: Icon, title, value, subtitle }) => (
   <div className="bg-[#F5F7FA] p-6 rounded-lg shadow-sm relative">
@@ -33,24 +34,31 @@ const ResourceAllocation = () => (
   </div>
 );
 
-const ActionButtons = () => (
-  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mt-6">
-    {[
-      { title: "Add Venues", icon: Building },
-      { title: "Bookings", icon: Calendar },
-      { title: "Book Meetings", icon: Users },
-      { title: "Report Issues", icon: AlertTriangle }
-    ].map((action) => (
-      <button
-        key={action.title}
-        className="flex items-center justify-center space-x-2 bg-[#1B365D] text-white p-4 rounded-lg hover:bg-opacity-90 transition-all"
-      >
-        <action.icon className="w-5 h-5" />
-        <span>{action.title}</span>
-      </button>
-    ))}
-  </div>
-);
+const ActionButtons = () => {
+  const navigate = useNavigate();
+  
+  const actions = [
+    { title: "Add Venues", icon: Building, path: "/RoomList" },
+    { title: "Bookings", icon: Calendar, path: "/bookings" },
+    { title: "Book Meetings", icon: Users, path: "/book-meetings" },
+    { title: "Report Issues", icon: AlertTriangle, path: "/report-issues" }
+  ];
+
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mt-6">
+      {actions.map((action) => (
+        <button
+          key={action.title}
+          onClick={() => navigate(action.path)}
+          className="flex items-center justify-center space-x-2 bg-[#1B365D] text-white p-4 rounded-lg hover:bg-opacity-90 transition-all"
+        >
+          <action.icon className="w-5 h-5" />
+          <span>{action.title}</span>
+        </button>
+      ))}
+    </div>
+  );
+};
 
 const HallHome = () => {
   return (
@@ -91,4 +99,4 @@ const HallHome = () => {
   );
 };
 
-export default HallHome;
+export default HallHome;
