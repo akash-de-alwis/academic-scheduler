@@ -16,6 +16,7 @@ import RoomList from "./LectureHallAllocation/pages/RoomList";
 import TimeHome from "./TimetableManagement/pages/TimeHome";
 
 import SubHome from "./CourseAllocation/pages/SubHome";
+import SubjectList from "./CourseAllocation/pages/SubjectList";
 
 
 
@@ -77,6 +78,7 @@ function App() {
 
         {/* Routes with course Sidebar */}
         <Route path="/SubjectHome" element={<SubjectLayout>< SubHome /></SubjectLayout>} />
+        <Route path="/SubjectList" element={<SubjectLayout>< SubjectList /></SubjectLayout>} />
 
       </Routes>
     </Router>
