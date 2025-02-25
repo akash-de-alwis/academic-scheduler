@@ -9,6 +9,8 @@ import HomePage from "./StudentAndLecturers/pages/HomePage";
 import LecturerList from "./StudentAndLecturers/pages/LecturersList";
 import BatchList from "./StudentAndLecturers/pages/BatchList";
 import Allocations from "./StudentAndLecturers/pages/Allocations";
+import LecturerWorkload from "./StudentAndLecturers/pages/LecturerWorkload";
+import PrintableReports from "./StudentAndLecturers/pages/PrintableReports";
 
 import HallHome from "./LectureHallAllocation/pages/HallHome";
 import RoomList from "./LectureHallAllocation/pages/RoomList";
@@ -68,6 +70,8 @@ function App() {
         <Route path="/lecturers" element={<MainLayout><LecturerList /></MainLayout>} />
         <Route path="/batches" element={<MainLayout><BatchList /></MainLayout>} />
         <Route path="/allocations" element={<MainLayout><Allocations /></MainLayout>} />
+        <Route path="/LecturerWorkload" element={<MainLayout><LecturerWorkload /></MainLayout>} />
+        <Route path="/PrintableReports" element={<MainLayout><PrintableReports /></MainLayout>} />
 
         {/* Routes with Hall Sidebar */}
         <Route path="/HallHome" element={<HallLayout><HallHome /></HallLayout>} />
