@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
-import { Search, ChevronDown } from "lucide-react";
+import { Search, ChevronDown, Upload, User, BookOpen } from "lucide-react";
 
 export default function TimetableList() {
   const [schedules, setSchedules] = useState([]);
@@ -8,6 +8,7 @@ export default function TimetableList() {
   const [editingSchedule, setEditingSchedule] = useState(null);
   const [selectedBatch, setSelectedBatch] = useState("All");
   const [searchTerm, setSearchTerm] = useState("");
+  const [userType, setUserType] = useState(null); // "student" or "lecturer"
   const [newSchedule, setNewSchedule] = useState({
     subject: "",
     date: "",
@@ -66,6 +67,18 @@ export default function TimetableList() {
     }
   };
 
+  const handleUploadTimetable = () => {
+    // This is where you would implement the upload functionality
+    console.log("Upload timetable functionality");
+    alert("Timetable ready to be uploaded!");
+  };
+
+  const handleUserTypeSelect = (type) => {
+    setUserType(type);
+    console.log(`Timetable identified for: ${type}`);
+    alert(`Timetable identified for: ${type}`);
+  };
+
   // Time slots from 8 AM to 5 PM in 1-hour increments
   const timeSlots = Array.from({ length: 10 }, (_, i) => {
     const hour = i + 8;
@@ -80,70 +93,106 @@ export default function TimetableList() {
     return hours;
   };
 
-  // Find schedules that start at the given time slot
-  const getSchedulesStartingAt = (day, timeSlot) => {
-    const dayIndex = weekDays.indexOf(day) + 1;
+  // Process schedules for the timetable grid
+  const processSchedulesForGrid = () => {
+    // Create a grid data structure to keep track of cell occupancy
+    const grid = {};
     
-    return schedules.filter(schedule => {
-      const scheduleDay = new Date(schedule.date).getDay();
-      const scheduleHour = timeToHour(schedule.time);
-      const slotHour = timeToHour(timeSlot);
+    weekDays.forEach(day => {
+      const dayIndex = weekDays.indexOf(day) + 1;
+      grid[day] = {};
       
-      return scheduleDay === dayIndex && scheduleHour === slotHour;
+      timeSlots.forEach(timeSlot => {
+        grid[day][timeSlot] = {
+          isOccupied: false,
+          schedule: null,
+          isStart: false,
+          rowSpan: 0
+        };
+      });
     });
-  };
-
-  // Check if a time slot is occupied by a schedule that started earlier
-  const isOccupiedByEarlierSchedule = (day, timeSlot) => {
-    const dayIndex = weekDays.indexOf(day) + 1;
-    const slotHour = timeToHour(timeSlot);
     
-    return schedules.some(schedule => {
-      const scheduleDay = new Date(schedule.date).getDay();
-      const scheduleHour = timeToHour(schedule.time);
-      const scheduleDuration = parseInt(schedule.duration || "1");
+    // Fill the grid with schedule information
+    schedules.forEach(schedule => {
+      const scheduleDate = new Date(schedule.date);
+      const scheduleDay = scheduleDate.getDay();
       
-      return scheduleDay === dayIndex && 
-             scheduleHour < slotHour && 
-             scheduleHour + scheduleDuration > slotHour;
-    });
-  };
-
-  // Get the spanning schedule that occupies this slot
-  const getSpanningSchedule = (day, timeSlot) => {
-    const dayIndex = weekDays.indexOf(day) + 1;
-    const slotHour = timeToHour(timeSlot);
-    
-    return schedules.find(schedule => {
-      const scheduleDay = new Date(schedule.date).getDay();
+      // Skip weekends (0 = Sunday, 6 = Saturday)
+      if (scheduleDay === 0 || scheduleDay === 6) return;
+      
+      const day = weekDays[scheduleDay - 1]; // Convert from getDay() to our weekDays array index
       const scheduleHour = timeToHour(schedule.time);
       const scheduleDuration = parseInt(schedule.duration || "1");
       
-      return scheduleDay === dayIndex && 
-             scheduleHour < slotHour && 
-             scheduleHour + scheduleDuration > slotHour;
+      // Find the corresponding time slot
+      const timeSlot = timeSlots.find(ts => timeToHour(ts) === scheduleHour);
+      if (!timeSlot) return; // Time slot not in our grid
+      
+      // Mark the starting cell
+      if (grid[day] && grid[day][timeSlot]) {
+        grid[day][timeSlot].isOccupied = true;
+        grid[day][timeSlot].schedule = schedule;
+        grid[day][timeSlot].isStart = true;
+        grid[day][timeSlot].rowSpan = scheduleDuration;
+        
+        // Mark subsequent cells as occupied
+        for (let i = 1; i < scheduleDuration; i++) {
+          const nextHour = scheduleHour + i;
+          if (nextHour > 17) break; // Don't go beyond 5 PM
+          
+          const nextTimeSlot = `${nextHour.toString().padStart(2, '0')}:00`;
+          if (grid[day][nextTimeSlot]) {
+            grid[day][nextTimeSlot].isOccupied = true;
+            grid[day][nextTimeSlot].schedule = schedule;
+            grid[day][nextTimeSlot].isStart = false;
+          }
+        }
+      }
     });
+    
+    return grid;
   };
 
-  // Calculate grid span based on duration
-  const calculateGridSpan = (duration) => {
-    const durationInt = parseInt(duration || "1");
-    return durationInt > 0 ? durationInt : 1;
-  };
+  const grid = processSchedulesForGrid();
 
   return (
     <div className="min-h-screen p-8 bg-white">
       <div className="flex justify-between items-center mb-8">
         <h2 className="text-2xl font-bold text-[#1B365D]">Timetable Management</h2>
-        <button
-          onClick={() => {
-            setShowForm(true);
-            setEditingSchedule(null);
-          }}
-          className="bg-[#1B365D] text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-[#1B365D]/90"
-        >
-          + Add New Schedule
-        </button>
+        <div className="flex space-x-3">
+          {/* User Type Selection Buttons */}
+          <button
+            onClick={() => handleUserTypeSelect("student")}
+            className={`px-4 py-2 rounded-lg flex items-center gap-2 transition-colors ${
+              userType === "student" 
+                ? "bg-[#1B365D] text-white" 
+                : "bg-[#F5F7FA] text-[#1B365D] hover:bg-[#1B365D]/10"
+            }`}
+          >
+            <BookOpen className="w-4 h-4" />
+            Student
+          </button>
+          <button
+            onClick={() => handleUserTypeSelect("lecturer")}
+            className={`px-4 py-2 rounded-lg flex items-center gap-2 transition-colors ${
+              userType === "lecturer" 
+                ? "bg-[#1B365D] text-white" 
+                : "bg-[#F5F7FA] text-[#1B365D] hover:bg-[#1B365D]/10"
+            }`}
+          >
+            <User className="w-4 h-4" />
+            Lecturer
+          </button>
+          <button
+            onClick={() => {
+              setShowForm(true);
+              setEditingSchedule(null);
+            }}
+            className="bg-[#1B365D] text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-[#1B365D]/90"
+          >
+            + Add New Schedule
+          </button>
+        </div>
       </div>
 
       {/* Enhanced Search and Filter Section */}
@@ -175,114 +224,110 @@ export default function TimetableList() {
       {/* Timetable Grid */}
       <div className="overflow-x-auto">
         <div className="min-w-[1000px]">
-          <div className="grid grid-cols-[100px_repeat(5,1fr)] bg-[#F5F7FA] rounded-lg border-2 border-gray-300">
-            {/* Header */}
-            <div className="p-4 font-medium text-[#1B365D] border-b-2 border-r-2 border-gray-300">Time</div>
-            {weekDays.map((day, index) => (
-              <div 
-                key={day} 
-                className={`p-4 font-medium text-[#1B365D] text-center border-b-2 ${
-                  index < weekDays.length - 1 ? 'border-r-2' : ''
-                } border-gray-300`}
-              >
-                {day}
-              </div>
-            ))}
-
-            {/* Time slots */}
-            {timeSlots.map((time, timeIndex) => (
-              <>
-                <div 
-                  key={`time-${time}`} 
-                  className={`p-4 text-[#1B365D] border-r-2 ${
+          <table className="w-full border-collapse bg-[#F5F7FA] rounded-lg border-2 border-gray-300">
+            <thead>
+              <tr>
+                <th className="p-4 font-medium text-[#1B365D] border-b-2 border-r-2 border-gray-300 text-left">Time</th>
+                {weekDays.map((day, index) => (
+                  <th 
+                    key={day} 
+                    className={`p-4 font-medium text-[#1B365D] text-center border-b-2 ${
+                      index < weekDays.length - 1 ? 'border-r-2' : ''
+                    } border-gray-300`}
+                  >
+                    {day}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {timeSlots.map((time, timeIndex) => (
+                <tr key={`time-${time}`}>
+                  <td className={`p-4 text-[#1B365D] border-r-2 ${
                     timeIndex < timeSlots.length - 1 ? 'border-b-2' : ''
-                  } border-gray-300`}
-                >
-                  {time}
-                </div>
-                {weekDays.map((day, dayIndex) => {
-                  const schedulesAtSlot = getSchedulesStartingAt(day, time);
-                  const isOccupied = isOccupiedByEarlierSchedule(day, time);
-                  const spanningSchedule = isOccupied ? getSpanningSchedule(day, time) : null;
-                  
-                  // Skip rendering if this slot is part of a multi-hour schedule that started earlier
-                  if (isOccupied) return (
-                    <div 
-                      key={`${day}-${time}-occupied`}
-                      className={`bg-[#F5F7FA] ${
-                        dayIndex < weekDays.length - 1 ? 'border-r-2' : ''
-                      } ${
-                        timeIndex < timeSlots.length - 1 ? 'border-b-2' : ''
-                      } border-gray-300`}
-                    >
-                      {/* This cell is part of a spanning schedule */}
-                    </div>
-                  );
-                  
-                  return (
-                    <div 
-                      key={`${day}-${time}`} 
-                      className={`p-2 ${
-                        dayIndex < weekDays.length - 1 ? 'border-r-2' : ''
-                      } ${
-                        timeIndex < timeSlots.length - 1 ? 'border-b-2' : ''
-                      } border-gray-300`}
-                      style={{
-                        gridRow: schedulesAtSlot.length > 0 ? 
-                          `span ${calculateGridSpan(schedulesAtSlot[0].duration)}` : 'auto'
-                      }}
-                    >
-                      {schedulesAtSlot.map(schedule => (
-                        <div 
-                          key={schedule._id} 
-                          className="bg-white rounded-lg p-3 h-full shadow-md border-l-4 border-[#1B365D]"
-                        >
-                          <div className="font-medium text-[#1B365D] mb-1">{schedule.subject}</div>
-                          <div className="text-sm text-gray-600 mb-1">
-                            <span className="font-medium">Lecturer:</span> {schedule.lecturer}
+                  } border-gray-300`}>
+                    {time}
+                  </td>
+                  {weekDays.map((day, dayIndex) => {
+                    const cell = grid[day][time];
+                    
+                    // If this cell is occupied but not a starting cell, return null
+                    if (cell.isOccupied && !cell.isStart) {
+                      return null;
+                    }
+                    
+                    return (
+                      <td 
+                        key={`${day}-${time}`} 
+                        className={`p-2 ${
+                          dayIndex < weekDays.length - 1 ? 'border-r-2' : ''
+                        } ${
+                          timeIndex < timeSlots.length - 1 ? 'border-b-2' : ''
+                        } border-gray-300 align-top`}
+                        rowSpan={cell.isStart ? cell.rowSpan : 1}
+                      >
+                        {cell.isStart && cell.schedule && (
+                          <div 
+                            className="bg-white rounded-lg p-3 h-full shadow-md border-l-4 border-[#1B365D]"
+                          >
+                            <div className="font-medium text-[#1B365D] mb-1">{cell.schedule.subject}</div>
+                            <div className="text-sm text-gray-600 mb-1">
+                              <span className="font-medium">Lecturer:</span> {cell.schedule.lecturer}
+                            </div>
+                            <div className="text-sm text-gray-600 mb-1">
+                              <span className="font-medium">Room:</span> {cell.schedule.room}
+                            </div>
+                            <div className="text-sm text-gray-600 mb-2">
+                              <span className="font-medium">Duration:</span> {cell.schedule.duration} hr(s)
+                            </div>
+                            <div className="flex gap-2 mt-1 justify-end">
+                              <button
+                                onClick={() => {
+                                  setNewSchedule({
+                                    ...cell.schedule,
+                                    duration: cell.schedule.duration || "1" // Ensure duration has a default
+                                  });
+                                  setEditingSchedule(cell.schedule);
+                                  setShowForm(true);
+                                }}
+                                className="text-[#1B365D] hover:text-[#1B365D]/70 bg-gray-100 p-1 rounded"
+                              >
+                                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                  <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
+                                  <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
+                                </svg>
+                              </button>
+                              <button
+                                onClick={() => handleDeleteSchedule(cell.schedule._id)}
+                                className="text-red-500 hover:text-red-600 bg-gray-100 p-1 rounded"
+                              >
+                                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                  <path d="M3 6h18"/>
+                                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                                </svg>
+                              </button>
+                            </div>
                           </div>
-                          <div className="text-sm text-gray-600 mb-1">
-                            <span className="font-medium">Room:</span> {schedule.room}
-                          </div>
-                          <div className="text-sm text-gray-600 mb-2">
-                            <span className="font-medium">Duration:</span> {schedule.duration} hr(s)
-                          </div>
-                          <div className="flex gap-2 mt-1 justify-end">
-                            <button
-                             onClick={() => {
-                              setNewSchedule({
-                                ...schedule,
-                                duration: schedule.duration || "1" // Ensure duration has a default
-                              });
-                              setEditingSchedule(schedule);
-                              setShowForm(true);
-                            }}
-                              className="text-[#1B365D] hover:text-[#1B365D]/70 bg-gray-100 p-1 rounded"
-                            >
-                              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
-                                <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
-                              </svg>
-                            </button>
-                            <button
-                              onClick={() => handleDeleteSchedule(schedule._id)}
-                              className="text-red-500 hover:text-red-600 bg-gray-100 p-1 rounded"
-                            >
-                              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <path d="M3 6h18"/>
-                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
-                              </svg>
-                            </button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  );
-                })}
-              </>
-            ))}
-          </div>
+                        )}
+                      </td>
+                    );
+                  })}
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
+      </div>
+
+      {/* Upload button */}
+      <div className="flex justify-end mt-6">
+        <button
+          onClick={handleUploadTimetable}
+          className="bg-[#1B365D] text-white px-6 py-2 rounded-lg flex items-center gap-2 hover:bg-[#1B365D]/90"
+        >
+          <Upload className="w-5 h-5" />
+          Upload Timetable
+        </button>
       </div>
 
       {/* Modal - Updated to include duration */}

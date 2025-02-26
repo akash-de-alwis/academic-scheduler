@@ -9,13 +9,6 @@ const roomRoutes = require('./routes/roomRoutes');
 const subjectRoutes = require('./routes/subjectRoutes');
 const allocationRoutes = require('./routes/allocations');
 const authRoutes = require('./routes/auth');
-const express = require("express");
-const mongoose = require("mongoose");
-const cors = require("cors");
-const dotenv = require("dotenv");
-const batchRoutes = require("./routes/batchRoutes");
-const lecturerRoutes = require("./routes/lecturers"); 
-const roomRoutes = require("./routes/roomRoutes");
 
 const timetableRoutes = require("./routes/timetableRoutes");
 
