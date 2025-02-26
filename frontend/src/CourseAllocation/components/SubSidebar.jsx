@@ -26,7 +26,7 @@ export default function SubSidebar() {
           </Link>
           
           <Link
-            to="/subjects"
+            to="/SubjectList"
             className={`flex items-center py-2 text-gray-700 hover:text-black ${
               isActive("/subjects") ? "font-medium" : ""
             }`}
