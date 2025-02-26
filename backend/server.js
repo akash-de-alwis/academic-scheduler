@@ -8,6 +8,7 @@ const lecturerRoutes = require('./routes/lecturers');
 const roomRoutes = require('./routes/roomRoutes');
 const subjectRoutes = require('./routes/subjectRoutes');
 const allocationRoutes = require('./routes/allocations');
+const authRoutes = require('./routes/auth');
 
 dotenv.config();
 
@@ -29,5 +30,6 @@ app.use('/api/lecturers', lecturerRoutes);
 app.use('/api/rooms', roomRoutes);
 app.use('/api/subjects', subjectRoutes);
 app.use('/api/allocations', allocationRoutes);
+app.use('/api/auth', authRoutes);
 
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
