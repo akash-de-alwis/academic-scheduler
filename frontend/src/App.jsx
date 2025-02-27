@@ -79,6 +79,11 @@ function App() {
         {/* Routes with course Sidebar */}
         <Route path="/SubjectHome" element={<SubjectLayout>< SubHome /></SubjectLayout>} />
         <Route path="/SubjectList" element={<SubjectLayout>< SubjectList /></SubjectLayout>} />
+        <Route path="/SubjectHome" element={<SubjectLayout><SubHome /></SubjectLayout>} />
+        <Route path="/SubjectList" element={<SubjectLayout><SubjectList /></SubjectLayout>} />
+        {/* Routes with course Sidebar */}
+        
+
 
       </Routes>
     </Router>
