@@ -102,7 +102,7 @@ const AboutPage = () => {
           <h3 className="text-3xl font-bold mb-4">Ready to Get Started?</h3>
           <p className="text-lg mb-6">Join us in making academic planning effortless and efficient.</p>
           <Link
-            to="/login"
+            to="/LoginPage"
             className="inline-block bg-white text-[#1B365D] font-semibold py-3 px-8 rounded-full hover:bg-gray-100 transition-all duration-300 shadow-md"
           >
             Log In Now

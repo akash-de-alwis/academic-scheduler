@@ -110,7 +110,7 @@ const FAQPage = () => {
         <section className="text-center mt-12">
           <p className="text-gray-700 mb-4">Still have questions?</p>
           <Link
-            to="/login"
+            to="/LoginPage"
             className="inline-block bg-[#1B365D] text-white font-semibold py-4 px-10 rounded-full hover:bg-[#2A4A7A] transition-all duration-300 shadow-lg animate-bounce-slow"
           >
             Get in Touch

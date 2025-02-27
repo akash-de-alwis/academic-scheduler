@@ -113,7 +113,7 @@ const LoginPage = () => {
 
         <div className="mt-12 text-center text-gray-600">
           <p className="mb-4">
-            Need help? Check out our <Link to="/faq" className="text-[#1B365D] hover:underline">FAQs</Link> or contact support.
+            Need help? Check out our <Link to="/FAQPage" className="text-[#1B365D] hover:underline">FAQs</Link> or contact support.
           </p>
         </div>
       </div>
