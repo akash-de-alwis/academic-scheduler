@@ -10,6 +10,8 @@ const subjectRoutes = require('./routes/subjectRoutes');
 const allocationRoutes = require('./routes/allocations');
 const authRoutes = require('./routes/auth');
 
+const timetableRoutes = require("./routes/timetableRoutes");
+
 dotenv.config();
 
 const app = express();
@@ -31,5 +33,9 @@ app.use('/api/rooms', roomRoutes);
 app.use('/api/subjects', subjectRoutes);
 app.use('/api/allocations', allocationRoutes);
 app.use('/api/auth', authRoutes);
+app.use("/api/batches", batchRoutes);
+app.use("/api/lecturers", lecturerRoutes);
+app.use("/api/rooms", roomRoutes);
+app.use("/api/timetable", timetableRoutes);
 
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
