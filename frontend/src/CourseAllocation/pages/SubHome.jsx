@@ -18,7 +18,6 @@ const SubjectManagementDashboard = () => {
       .catch((err) => console.error("Error fetching subjects:", err));
   }, []);
 
-  // Function to count subjects per department
   const countDepartments = (data) => {
     const departmentMap = {};
     data.forEach((subject) => {
@@ -26,7 +25,6 @@ const SubjectManagementDashboard = () => {
     });
     setDepartmentCounts(departmentMap);
 
-    // Find Most Assigned Subject
     const mostFrequent = data.reduce((acc, subject) => {
       acc[subject.subjectName] = (acc[subject.subjectName] || 0) + 1;
       return acc;
@@ -35,29 +33,27 @@ const SubjectManagementDashboard = () => {
     setMostAssignedSubject(mostAssigned || "N/A");
   };
 
-  // Navigation handler for subject list page
   const navigateToSubjectList = () => {
     navigate("/SubjectList");
   };
 
-  // Navigation handler for adding a new subject
   const navigateToAddSubject = () => {
     navigate("/SubjectList", { state: { showForm: true } });
   };
 
+  const navigateToReportGeneration = () => {
+    navigate("/ReportGeneration");
+  };
+
   return (
     <div className="bg-[#FFFFFF] min-h-screen p-6">
-      {/* Main Content */}
       <div className="max-w-7xl mx-auto">
-        {/* Header */}
         <div className="mb-8">
           <h1 className="text-2xl font-bold text-[#1B365D]">Subject Management Dashboard</h1>
           <p className="text-gray-600">Overview of academic subjects and resource allocation</p>
         </div>
 
-        {/* Metrics Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
-          {/* Total Subjects Card */}
           <div className="bg-[#F5F7FA] rounded-lg shadow-sm p-6 flex items-start justify-between">
             <div>
               <h2 className="text-4xl font-bold text-[#1B365D]">{subjects.length}</h2>
@@ -66,7 +62,6 @@ const SubjectManagementDashboard = () => {
             <BookOpen size={24} className="text-[#1B365D]" />
           </div>
 
-          {/* Departments Card */}
           <div className="bg-[#F5F7FA] rounded-lg shadow-sm p-6 flex items-start justify-between">
             <div>
               <h2 className="text-4xl font-bold text-[#1B365D]">{Object.keys(departmentCounts).length}</h2>
@@ -75,7 +70,6 @@ const SubjectManagementDashboard = () => {
             <Users size={24} className="text-[#1B365D]" />
           </div>
 
-          {/* Subjects Per Semester */}
           <div className="bg-[#F5F7FA] rounded-lg shadow-sm p-6 flex items-start justify-between">
             <div>
               <h2 className="text-4xl font-bold text-[#1B365D]">{(subjects.length / 8).toFixed(1)}</h2>
@@ -84,7 +78,6 @@ const SubjectManagementDashboard = () => {
             <Calendar size={24} className="text-[#1B365D]" />
           </div>
 
-          {/* Most Assigned Subject */}
           <div className="bg-[#F5F7FA] rounded-lg shadow-sm p-6 flex items-start justify-between">
             <div>
               <h2 className="text-lg font-bold text-[#1B365D]">{mostAssignedSubject}</h2>
@@ -94,10 +87,8 @@ const SubjectManagementDashboard = () => {
           </div>
         </div>
 
-        {/* Department Distribution Section */}
         <div className="bg-[#F5F7FA] rounded-lg shadow-sm p-6 mb-10">
           <h2 className="text-xl font-bold text-[#1B365D] mb-6">Department Distribution</h2>
-
           <div className="space-y-6">
             {Object.entries(departmentCounts).map(([dept, count]) => (
               <div key={dept}>
@@ -113,7 +104,6 @@ const SubjectManagementDashboard = () => {
           </div>
         </div>
 
-        {/* Quick Actions Section */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <button 
             onClick={navigateToAddSubject}
@@ -131,7 +121,10 @@ const SubjectManagementDashboard = () => {
             <span>View All Subjects</span>
           </button>
 
-          <button className="bg-[#1B365D] text-white py-4 px-6 rounded-lg flex items-center justify-center space-x-2 hover:bg-opacity-90 transition">
+          <button 
+            onClick={navigateToReportGeneration}
+            className="bg-[#1B365D] text-white py-4 px-6 rounded-lg flex items-center justify-center space-x-2 hover:bg-opacity-90 transition"
+          >
             <FileText size={20} />
             <span>Generate Reports</span>
           </button>

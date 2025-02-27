@@ -17,7 +17,7 @@ import TimeHome from "./TimetableManagement/pages/TimeHome";
 
 import SubHome from "./CourseAllocation/pages/SubHome";
 import SubjectList from "./CourseAllocation/pages/SubjectList";
-
+import ReportGeneration from "./CourseAllocation/pages/ReportGeneration";
 
 
 
@@ -81,6 +81,7 @@ function App() {
         <Route path="/SubjectList" element={<SubjectLayout>< SubjectList /></SubjectLayout>} />
         <Route path="/SubjectHome" element={<SubjectLayout><SubHome /></SubjectLayout>} />
         <Route path="/SubjectList" element={<SubjectLayout><SubjectList /></SubjectLayout>} />
+        <Route path="/ReportGeneration" element={<SubjectLayout><ReportGeneration /></SubjectLayout>} />
         {/* Routes with course Sidebar */}
         
 
