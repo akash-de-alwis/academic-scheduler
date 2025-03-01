@@ -18,6 +18,7 @@ import Allocations from "./StudentAndLecturers/pages/Allocations";
 import LecturerWorkload from "./StudentAndLecturers/pages/LecturerWorkload";
 import PrintableReports from "./StudentAndLecturers/pages/PrintableReports";
 import BatchOverviewReport from "./StudentAndLecturers/pages/BatchOverviewReport";
+import LecturerAllocations from "./StudentAndLecturers/pages/LecturerAllocations";
 
 
 import HallHome from "./LectureHallAllocation/pages/HallHome";
@@ -89,6 +90,7 @@ function App() {
         <Route path="/LecturerWorkload" element={<MainLayout><LecturerWorkload /></MainLayout>} />
         <Route path="/PrintableReports" element={<MainLayout><PrintableReports /></MainLayout>} />
         <Route path="/BatchOverviewReport" element={<MainLayout><BatchOverviewReport /></MainLayout>} />
+        <Route path="/LecturerAllocations" element={<LecturerAllocations />} />
 
         {/* Routes with Hall Sidebar */}
         <Route path="/HallHome" element={<HallLayout><HallHome /></HallLayout>} />
