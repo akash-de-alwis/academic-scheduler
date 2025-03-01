@@ -24,12 +24,12 @@ export default function HallSidebar() {
       icon: <Building className="h-5 w-5 mr-3" />
     },
     {
-      path: "/schedule",
+      path: "/BookingReview",
       name: "Bookings",
       icon: <Calendar className="h-5 w-5 mr-3" />
     },
     {
-      path: "/meetings",
+      path: "/MeetingRoomList",
       name: "Meetings",
       icon: <Users className="h-5 w-5 mr-3" />
     },

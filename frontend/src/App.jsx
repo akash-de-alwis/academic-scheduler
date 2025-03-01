@@ -22,6 +22,10 @@ import BatchOverviewReport from "./StudentAndLecturers/pages/BatchOverviewReport
 
 import HallHome from "./LectureHallAllocation/pages/HallHome";
 import RoomList from "./LectureHallAllocation/pages/RoomList";
+import MeetingRoomList from "./LectureHallAllocation/pages/MeetingRoomList";
+import MeetingRoomBooking from "./LectureHallAllocation/pages/MeetingRoomBooking";
+import BookingManagement from "./LectureHallAllocation/pages/BookingManagement";
+import BookingReview from "./LectureHallAllocation/pages/BookingReview";
 
 import TimeHome from "./TimetableManagement/pages/TimeHome";
 import TimetableList from "./TimetableManagement/pages/TimetableList";
@@ -93,6 +97,11 @@ function App() {
         {/* Routes with Hall Sidebar */}
         <Route path="/HallHome" element={<HallLayout><HallHome /></HallLayout>} />
         <Route path="/RoomList" element={<HallLayout><RoomList/></HallLayout>}/>
+        <Route path="/MeetingRoomList" element={<HallLayout><MeetingRoomList/></HallLayout>}/>
+        <Route path="/MeetingRoomBooking" element={<MeetingRoomBooking/>}/>
+        <Route path="/BookingReview" element={<HallLayout><BookingReview/></HallLayout>}/>
+        <Route path="/BookingManagement" element={<BookingManagement/>}/>
+        
 
         {/* Routes with Time Sidebar */}
         <Route path="/TimeHome" element={<TimeLayout><TimeHome /></TimeLayout>} />
