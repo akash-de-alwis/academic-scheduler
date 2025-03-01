@@ -10,6 +10,8 @@ const subjectRoutes = require('./routes/subjectRoutes');
 const allocationRoutes = require('./routes/allocations');
 const authRoutes = require('./routes/auth');
 
+const bookingRoutes = require("./routes/bookings");
+
 const timetableRoutes = require("./routes/timetableRoutes");
 
 dotenv.config();
@@ -37,5 +39,7 @@ app.use("/api/batches", batchRoutes);
 app.use("/api/lecturers", lecturerRoutes);
 app.use("/api/rooms", roomRoutes);
 app.use("/api/timetable", timetableRoutes);
+
+app.use("/api/bookings", bookingRoutes);
 
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
