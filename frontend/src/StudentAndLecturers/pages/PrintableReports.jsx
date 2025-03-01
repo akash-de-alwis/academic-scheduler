@@ -221,7 +221,7 @@ export default function PrintableReports() {
     };
 
     return (
-        <div className="min-h-screen p-8 bg-gray-50">
+        <div className="min-h-screen p-8">
             {/* Header */}
             <div className="flex justify-between items-center mb-8">
                 <h2 className="text-2xl font-bold text-[#1B365D]">Workload Reports</h2>

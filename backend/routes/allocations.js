@@ -1,15 +1,11 @@
 const express = require('express');
 const router = express.Router();
 const Allocation = require('../models/Allocation');
-const { v4: uuidv4 } = require('uuid');
 
 // Create allocation
 router.post('/', async (req, res) => {
     try {
-        const allocation = new Allocation({
-            allocationId: uuidv4(), // Auto-generate ID
-            ...req.body
-        });
+        const allocation = new Allocation(req.body);
         await allocation.save();
         res.status(201).json(allocation);
     } catch (err) {
@@ -31,6 +27,9 @@ router.get('/', async (req, res) => {
 router.put('/:id', async (req, res) => {
     try {
         const updatedAllocation = await Allocation.findByIdAndUpdate(req.params.id, req.body, { new: true });
+        if (!updatedAllocation) {
+            return res.status(404).json({ error: 'Allocation not found' });
+        }
         res.json(updatedAllocation);
     } catch (err) {
         res.status(400).json({ error: err.message });
@@ -40,7 +39,10 @@ router.put('/:id', async (req, res) => {
 // Delete allocation
 router.delete('/:id', async (req, res) => {
     try {
-        await Allocation.findByIdAndDelete(req.params.id);
+        const deletedAllocation = await Allocation.findByIdAndDelete(req.params.id);
+        if (!deletedAllocation) {
+            return res.status(404).json({ error: 'Allocation not found' });
+        }
         res.json({ message: 'Allocation deleted' });
     } catch (err) {
         res.status(500).json({ error: err.message });
