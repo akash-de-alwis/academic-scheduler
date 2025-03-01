@@ -8,6 +8,7 @@ export default function LecturerList() {
   const [newLecturer, setNewLecturer] = useState({
     name: "",
     lecturerId: "",
+    email: "", // Added email to initial state
     department: "Faculty of Computing",
     scheduleType: "Weekdays",
   });
@@ -33,7 +34,13 @@ export default function LecturerList() {
         setLecturers((prevLecturers) => [...prevLecturers, res.data]);
       }
       setShowForm(false);
-      setNewLecturer({ name: "", lecturerId: "", department: "Faculty of Computing", scheduleType: "Weekdays" });
+      setNewLecturer({
+        name: "",
+        lecturerId: "",
+        email: "",
+        department: "Faculty of Computing",
+        scheduleType: "Weekdays",
+      });
       setEditingLecturer(null);
     } catch (err) {
       console.log(err.response ? err.response.data : err);
@@ -49,13 +56,23 @@ export default function LecturerList() {
     }
   };
 
+  // Calculate stats for stat cards
+  const totalLecturers = lecturers.length;
+  const deptCounts = {
+    "Faculty of Computing": lecturers.filter((lect) => lect.department === "Faculty of Computing").length,
+    "Faculty of Engineering": lecturers.filter((lect) => lect.department === "Faculty of Engineering").length,
+    "Faculty of Business Studies": lecturers.filter((lect) => lect.department === "Faculty of Business Studies").length,
+  };
+  const weekdaysCount = lecturers.filter((lect) => lect.scheduleType === "Weekdays").length;
+  const weekendCount = lecturers.filter((lect) => lect.scheduleType === "Weekend").length;
+
   return (
     <div className="min-h-screen p-8 bg-[#FFFFFF]">
       <div className="flex justify-between items-center mb-8">
-  <h2 className="text-2xl font-bold text-[#1B365D]">Lecturer Management</h2>
+        <h2 className="text-2xl font-bold text-[#1B365D]">Lecturer Management</h2>
         <div className="flex gap-3">
           <button
-            onClick={() => window.location.href = '/LecturerWorkload'}
+            onClick={() => window.location.href = "/LecturerWorkload"}
             className="bg-[#1B365D] text-[#FFFFFF] px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-[#1B365D]/90"
           >
             <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -75,7 +92,71 @@ export default function LecturerList() {
         </div>
       </div>
 
-      {/* Search Bar */}
+      {/* Stat Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        {/* Total Lecturers */}
+        <div className="bg-white rounded-xl shadow-md p-6 border border-[#E2E8F0] flex items-center gap-4 hover:shadow-lg transition-all duration-300">
+          <div className="bg-[#1B365D]/10 p-3 rounded-full">
+            <svg className="w-6 h-6 text-[#1B365D]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
+            </svg>
+          </div>
+          <div>
+            <p className="text-sm font-medium text-gray-500">Total Lecturers</p>
+            <p className="text-2xl font-bold text-[#1B365D]">{totalLecturers}</p>
+          </div>
+        </div>
+
+        {/* Lecturers by Department */}
+        <div className="bg-white rounded-xl shadow-md p-6 border border-[#E2E8F0] flex items-center gap-4 hover:shadow-lg transition-all duration-300">
+          <div className="bg-[#1B365D]/10 p-3 rounded-full">
+            <svg className="w-6 h-6 text-[#1B365D]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M3 21v-6a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v6" />
+              <path d="M7 13V7a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v6" />
+            </svg>
+          </div>
+          <div>
+            <p className="text-sm font-medium text-gray-500">By Department</p>
+            <p className="text-lg font-semibold text-[#1B365D]">
+              {deptCounts["Faculty of Computing"]} Computing
+            </p>
+            <p className="text-sm text-gray-600">
+              {deptCounts["Faculty of Engineering"]} Eng | {deptCounts["Faculty of Business Studies"]} Bus
+            </p>
+          </div>
+        </div>
+
+        {/* Availability */}
+        <div className="bg-white rounded-xl shadow-md p-6 border border-[#E2E8F0] flex items-center gap-4 hover:shadow-lg transition-all duration-300">
+          <div className="bg-[#1B365D]/10 p-3 rounded-full">
+            <svg className="w-6 h-6 text-[#1B365D]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M12 2v2m0 16v2m-8-10H2m20 0h-2m-4.14-5.86l-1.42 1.42m-5.66 5.66L7.34 9.8m11.32 0l-1.42-1.42M9.8 16.46l-1.42 1.42" />
+              <circle cx="12" cy="12" r="4" />
+            </svg>
+          </div>
+          <div>
+            <p className="text-sm font-medium text-gray-500">Availability</p>
+            <p className="text-lg font-semibold text-[#1B365D]">{weekdaysCount} Weekdays</p>
+            <p className="text-sm text-gray-600">{weekendCount} Weekends</p>
+          </div>
+        </div>
+
+        {/* Placeholder for Average Workload (if data available) */}
+        <div className="bg-white rounded-xl shadow-md p-6 border border-[#E2E8F0] flex items-center gap-4 hover:shadow-lg transition-all duration-300">
+          <div className="bg-[#1B365D]/10 p-3 rounded-full">
+            <svg className="w-6 h-6 text-[#1B365D]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M3 3h18v18H3z" />
+              <path d="M9 9h6v6H9z" />
+            </svg>
+          </div>
+          <div>
+            <p className="text-sm font-medium text-gray-500">Avg. Workload</p>
+            <p className="text-2xl font-bold text-[#1B365D]">N/A</p>
+            <p className="text-sm text-gray-600">Pending Data</p>
+          </div>
+        </div>
+      </div>
+
       <div className="flex justify-between gap-4 mb-8">
         <input
           type="text"
@@ -90,7 +171,6 @@ export default function LecturerList() {
         </button>
       </div>
 
-      {/* Table */}
       <div className="bg-[#F5F7FA] rounded-lg">
         <table className="w-full">
           <thead>
@@ -106,7 +186,9 @@ export default function LecturerList() {
             {lecturers.map((lecturer) => (
               <tr key={lecturer._id} className="border-b border-[#FFFFFF]">
                 <td className="p-4 text-[#1B365D]">{lecturer.name}</td>
-                <td className="p-4"><span className="text-[#1B365D] font-medium">{lecturer.lecturerId}</span></td>
+                <td className="p-4">
+                  <span className="text-[#1B365D] font-medium">{lecturer.lecturerId}</span>
+                </td>
                 <td className="p-4 text-[#1B365D]">{lecturer.department}</td>
                 <td className="p-4 text-[#1B365D]">{lecturer.scheduleType}</td>
                 <td className="p-4">
@@ -128,9 +210,19 @@ export default function LecturerList() {
                       onClick={() => handleDeleteLecturer(lecturer._id)}
                       className="text-red-500 hover:text-red-600"
                     >
-                      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M3 6h18"/>
-                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="20"
+                        height="20"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <path d="M3 6h18" />
+                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
                       </svg>
                     </button>
                   </div>
@@ -141,7 +233,6 @@ export default function LecturerList() {
         </table>
       </div>
 
-      {/* Modal */}
       {showForm && (
         <div className="fixed inset-0 bg-[#1B365D]/30 backdrop-blur-sm flex justify-center items-center">
           <div className="bg-[#FFFFFF] p-6 rounded-lg w-[480px]">
@@ -153,10 +244,12 @@ export default function LecturerList() {
                 ✕
               </button>
             </div>
-            
+
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium mb-2 text-[#1B365D]">Lecturer Name</label>
+                <label className="block text-sm font-medium mb-2 text-[#1B365D]">
+                  Lecturer Name
+                </label>
                 <input
                   type="text"
                   value={newLecturer.name}
@@ -164,9 +257,11 @@ export default function LecturerList() {
                   className="w-full p-2 border border-[#F5F7FA] rounded-lg bg-[#F5F7FA] text-[#1B365D]"
                 />
               </div>
-              
+
               <div>
-                <label className="block text-sm font-medium mb-2 text-[#1B365D]">Lecturer ID</label>
+                <label className="block text-sm font-medium mb-2 text-[#1B365D]">
+                  Lecturer ID
+                </label>
                 <input
                   type="text"
                   value={newLecturer.lecturerId}
@@ -176,7 +271,9 @@ export default function LecturerList() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-2 text-[#1B365D]">Email</label>
+                <label className="block text-sm font-medium mb-2 text-[#1B365D]">
+                  Email
+                </label>
                 <input
                   type="email"
                   value={newLecturer.email}
@@ -184,9 +281,11 @@ export default function LecturerList() {
                   className="w-full p-2 border border-[#F5F7FA] rounded-lg bg-[#F5F7FA] text-[#1B365D]"
                 />
               </div>
-              
+
               <div>
-                <label className="block text-sm font-medium mb-2 text-[#1B365D]">Department</label>
+                <label className="block text-sm font-medium mb-2 text-[#1B365D]">
+                  Department
+                </label>
                 <select
                   value={newLecturer.department}
                   onChange={(e) => setNewLecturer({ ...newLecturer, department: e.target.value })}
@@ -197,9 +296,11 @@ export default function LecturerList() {
                   <option>Faculty of Business Studies</option>
                 </select>
               </div>
-              
+
               <div>
-                <label className="block text-sm font-medium mb-2 text-[#1B365D]">Availability</label>
+                <label className="block text-sm font-medium mb-2 text-[#1B365D]">
+                  Availability
+                </label>
                 <div className="flex gap-6">
                   <label className="flex items-center gap-2 text-[#1B365D]">
                     <input
@@ -226,7 +327,7 @@ export default function LecturerList() {
                 </div>
               </div>
             </div>
-            
+
             <button
               onClick={handleSaveLecturer}
               className="w-full mt-6 bg-[#1B365D] text-[#FFFFFF] py-2 rounded-lg hover:bg-[#1B365D]/90"
