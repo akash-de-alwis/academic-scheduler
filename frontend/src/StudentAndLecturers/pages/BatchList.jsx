@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom"; // Import useNavigate
+import { useNavigate } from "react-router-dom";
 import axios from "axios";
 
 export default function BatchList() {
@@ -12,6 +12,7 @@ export default function BatchList() {
     batchName: "",
     batchNo: "",
     year: "",
+    semester: "Semester1",
     department: "Information Technology",
     studentCount: "",
     startDate: "",
@@ -26,7 +27,7 @@ export default function BatchList() {
   const [searchQuery, setSearchQuery] = useState("");
   const [sortOrder, setSortOrder] = useState("asc");
 
-  const navigate = useNavigate(); // Initialize navigate
+  const navigate = useNavigate();
 
   useEffect(() => {
     axios.get("http://localhost:5000/api/batches").then((res) => {
@@ -70,6 +71,7 @@ export default function BatchList() {
         batchName: "",
         batchNo: "",
         year: "",
+        semester: "Semester1",
         department: "Information Technology",
         studentCount: "",
         startDate: "",
@@ -97,6 +99,7 @@ export default function BatchList() {
       startDate: formatDateForInput(batch.startDate),
       endDate: formatDateForInput(batch.endDate),
       year: batch.year.toString(),
+      semester: batch.semester,
     });
     setEditingBatch(batch);
     setShowForm(true);
@@ -111,12 +114,11 @@ export default function BatchList() {
   };
 
   const handleQuickAllocate = (batch) => {
-    // Navigate to Allocations and pass batch data
     navigate("/allocations", {
       state: {
         batchName: batch.batchName,
         batchId: batch.batchNo,
-        quickAllocate: true, // Flag to trigger form popup
+        quickAllocate: true,
       },
     });
   };
@@ -246,8 +248,21 @@ export default function BatchList() {
               onClick={() => toggleExpand(batch._id)}
             >
               <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-full bg-[#1B365D] flex items-center justify-center text-white text-lg font-semibold">
-                  {batch.batchName.charAt(0)}
+                <div className="w-12 h-12 flex items-center justify-center bg-[#1B365D]/10 rounded-lg">
+                  <svg
+                    className="w-6 h-6 text-[#1B365D]"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"
+                    />
+                  </svg>
                 </div>
                 <div>
                   <h3 className="text-lg font-semibold text-[#1B365D]">{batch.batchName}</h3>
@@ -298,11 +313,10 @@ export default function BatchList() {
                     </>
                   )}
                 </span>
-                {/* Quick Allocate Icon for Unallocated Batches */}
                 {!isBatchAllocated(batch.batchName) && (
                   <button
                     onClick={(e) => {
-                      e.stopPropagation(); // Prevent triggering toggleExpand
+                      e.stopPropagation();
                       handleQuickAllocate(batch);
                     }}
                     className="text-[#1B365D] hover:text-[#1B365D]/70"
@@ -337,46 +351,75 @@ export default function BatchList() {
                 expandedBatch === batch._id ? "max-h-96 opacity-100" : "max-h-0 opacity-0"
               }`}
             >
-              <div className="p-4 bg-[#F9FAFB] border-t border-[#E2E8F0]">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-sm font-medium text-gray-500">Department</p>
-                    <p className="text-[#1B365D]">{batch.department}</p>
+              <div className="p-6 bg-[#F9FAFB] border-t border-[#E2E8F0]">
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="flex items-center gap-3 bg-white p-3 rounded-lg border border-[#E2E8F0] hover:bg-[#F5F7FA] transition-all duration-200">
+                      <svg className="w-5 h-5 text-[#1B365D]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h-2m-2 0h-2m-2 0H7" />
+                      </svg>
+                      <div>
+                        <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Department</p>
+                        <p className="text-sm font-semibold text-[#1B365D]">{batch.department}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3 bg-white p-3 rounded-lg border border-[#E2E8F0] hover:bg-[#F5F7FA] transition-all duration-200">
+                      <svg className="w-5 h-5 text-[#1B365D]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 1.636v-2a3 3 0 013.288-2.979M12 4a4 4 0 110 8 4 4 0 010-8z" />
+                      </svg>
+                      <div>
+                        <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Students</p>
+                        <p className="text-sm font-semibold text-[#1B365D]">{batch.studentCount}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3 bg-white p-3 rounded-lg border border-[#E2E8F0] hover:bg-[#F5F7FA] transition-all duration-200">
+                      <svg className="w-5 h-5 text-[#1B365D]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      <div>
+                        <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Year/Semester</p>
+                        <p className="text-sm font-semibold text-[#1B365D]">{`${batch.year} - ${batch.semester}`}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3 bg-white p-3 rounded-lg border border-[#E2E8F0] hover:bg-[#F5F7FA] transition-all duration-200">
+                      <svg className="w-5 h-5 text-[#1B365D]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      </svg>
+                      <div>
+                        <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Schedule</p>
+                        <p className="text-sm font-semibold text-[#1B365D]">{batch.scheduleType}</p>
+                      </div>
+                    </div>
+                    <div className="sm:col-span-2 flex items-center gap-3 bg-white p-3 rounded-lg border border-[#E2E8F0] hover:bg-[#F5F7FA] transition-all duration-200">
+                      <svg className="w-5 h-5 text-[#1B365D]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      <div>
+                        <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Duration</p>
+                        <p className="text-sm font-semibold text-[#1B365D]">{`${formatDate(batch.startDate)} - ${formatDate(batch.endDate)}`}</p>
+                      </div>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-500">Students</p>
-                    <p className="text-[#1B365D]">{batch.studentCount}</p>
+                  <div className="flex justify-end gap-4 mt-4">
+                    <button
+                      onClick={() => handleEdit(batch)}
+                      className="text-[#1B365D] hover:text-[#1B365D]/70"
+                    >
+                      <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
+                        <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
+                      </svg>
+                    </button>
+                    <button
+                      onClick={() => handleDeleteBatch(batch._id)}
+                      className="text-red-500 hover:text-red-600"
+                    >
+                      <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M3 6h18" />
+                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                      </svg>
+                    </button>
                   </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-500">Schedule</p>
-                    <p className="text-[#1B365D]">{batch.scheduleType}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-500">Duration</p>
-                    <p className="text-[#1B365D]">{`${formatDate(batch.startDate)} - ${formatDate(
-                      batch.endDate
-                    )}`}</p>
-                  </div>
-                </div>
-                <div className="flex justify-end gap-4 mt-4">
-                  <button
-                    onClick={() => handleEdit(batch)}
-                    className="text-[#1B365D] hover:text-[#1B365D]/70"
-                  >
-                    <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
-                      <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
-                    </svg>
-                  </button>
-                  <button
-                    onClick={() => handleDeleteBatch(batch._id)}
-                    className="text-red-500 hover:text-red-600"
-                  >
-                    <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M3 6h18" />
-                      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                    </svg>
-                  </button>
                 </div>
               </div>
             </div>
@@ -428,18 +471,35 @@ export default function BatchList() {
                   />
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium mb-2 text-[#1B365D]">
-                    Year
-                  </label>
-                  <input
-                    type="number"
-                    value={newBatch.year}
-                    onChange={(e) =>
-                      setNewBatch({ ...newBatch, year: e.target.value })
-                    }
-                    className="w-full p-2 border border-[#F5F7FA] rounded-lg bg-[#F5F7FA] text-[#1B365D]"
-                  />
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-2 text-[#1B365D]">
+                      Year
+                    </label>
+                    <input
+                      type="number"
+                      value={newBatch.year}
+                      onChange={(e) =>
+                        setNewBatch({ ...newBatch, year: e.target.value })
+                      }
+                      className="w-full p-2 border border-[#F5F7FA] rounded-lg bg-[#F5F7FA] text-[#1B365D]"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-2 text-[#1B365D]">
+                      Semester
+                    </label>
+                    <select
+                      value={newBatch.semester}
+                      onChange={(e) =>
+                        setNewBatch({ ...newBatch, semester: e.target.value })
+                      }
+                      className="w-full p-2 border border-[#F5F7FA] rounded-lg bg-[#F5F7FA] text-[#1B365D]"
+                    >
+                      <option value="Semester1">Semester 1</option>
+                      <option value="Semester2">Semester 2</option>
+                    </select>
+                  </div>
                 </div>
 
                 <div>

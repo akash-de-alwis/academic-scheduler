@@ -4,7 +4,6 @@ import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
 
 export default function PrintableReports() {
-    // State for data and UI
     const [lecturers, setLecturers] = useState([]);
     const [allocations, setAllocations] = useState([]);
     const [workloadData, setWorkloadData] = useState([]);
@@ -16,12 +15,10 @@ export default function PrintableReports() {
     const [isGenerating, setIsGenerating] = useState(false);
     const [isDownloading, setIsDownloading] = useState(false);
     const [loading, setLoading] = useState(true);
-    const [maxAllowedCourses] = useState(5); // Maximum allowed courses per lecturer
+    const [maxAllowedCourses] = useState(5);
     
-    // Create a proper ref for the printable content
     const reportRef = useRef(null);
 
-    // Fetch necessary data on component mount
     useEffect(() => {
         const fetchData = async () => {
             try {
@@ -32,15 +29,12 @@ export default function PrintableReports() {
                 setLecturers(lecturersRes.data);
                 setAllocations(allocationsRes.data);
                 
-                // Process the data for workload calculations
                 const processedData = processWorkloadData(lecturersRes.data, allocationsRes.data);
                 setWorkloadData(processedData);
                 
-                // Extract departments
                 const uniqueDepartments = [...new Set(lecturersRes.data.map(lecturer => lecturer.department))];
                 setDepartments(uniqueDepartments);
                 
-                // Set default department
                 if (uniqueDepartments.length > 0) {
                     setSelectedDepartment(uniqueDepartments[0]);
                 }
@@ -55,22 +49,21 @@ export default function PrintableReports() {
         fetchData();
     }, []);
 
-    // Process workload data (copied from LecturerWorkload component)
     const processWorkloadData = (lecturersData, allocationsData) => {
         return lecturersData.map(lecturer => {
-            // Count allocations for this lecturer
             const lecturerAllocations = allocationsData.filter(
                 allocation => allocation.lecturerId === lecturer.lecturerId
             );
             
-            // Get the subject details for each allocation
-            const assignedCourses = lecturerAllocations.map(allocation => ({
-                subjectId: allocation.subjectId,
-                subjectName: allocation.subjectName,
-                batchName: allocation.batchName
-            }));
+            // Updated to handle multiple subjects per allocation
+            const assignedCourses = lecturerAllocations.flatMap(allocation => 
+                allocation.subjects.map(subject => ({
+                    subjectId: subject.subjectId,
+                    subjectName: subject.subjectName,
+                    batchName: allocation.batchName
+                }))
+            );
             
-            // Calculate workload percentage (based on max 5 courses)
             const workloadPercentage = (assignedCourses.length / maxAllowedCourses) * 100;
             
             return {
@@ -86,7 +79,6 @@ export default function PrintableReports() {
         });
     };
 
-    // Generate the report data based on selections
     const generateReport = () => {
         setIsGenerating(true);
         
@@ -139,40 +131,30 @@ export default function PrintableReports() {
         }
     };
 
-    // Function to handle PDF download
     const handleDownloadPDF = async () => {
         if (!reportRef.current) return;
         
         setIsDownloading(true);
         
         try {
-            // Get report title for the filename
             const fileName = reportData.title.replace(/[^a-z0-9]/gi, '_').toLowerCase() + '.pdf';
-            
-            // Create a new jsPDF instance (A4 paper, portrait)
             const pdf = new jsPDF('p', 'mm', 'a4');
-            
-            // Get the content to be converted to PDF
             const content = reportRef.current;
             
-            // Convert the HTML content to a canvas
             const canvas = await html2canvas(content, {
-                scale: 2, // Higher scale for better quality
+                scale: 2,
                 useCORS: true,
                 logging: false,
                 letterRendering: true,
             });
             
-            // Calculate the width and height of the PDF
-            const imgWidth = 210; // A4 width in mm
-            const pageHeight = 295; // A4 height in mm
+            const imgWidth = 210;
+            const pageHeight = 295;
             const imgHeight = (canvas.height * imgWidth) / canvas.width;
             
-            // Add image to PDF (converted from canvas)
             const imgData = canvas.toDataURL('image/png');
             pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
             
-            // If the content is longer than one page
             let heightLeft = imgHeight;
             let position = 0;
             
@@ -185,7 +167,6 @@ export default function PrintableReports() {
                 heightLeft -= pageHeight;
             }
             
-            // Save the PDF
             pdf.save(fileName);
         } catch (error) {
             console.error("Error generating PDF:", error);
@@ -197,11 +178,11 @@ export default function PrintableReports() {
 
     const renderWorkloadBar = (percentage) => {
         const getColor = (percent) => {
-            if (percent < 40) return '#10B981'; // green
-            if (percent < 60) return '#3B82F6'; // blue
-            if (percent < 80) return '#F59E0B'; // yellow
-            if (percent < 100) return '#F97316'; // orange
-            return '#EF4444'; // red
+            if (percent < 40) return '#10B981';
+            if (percent < 60) return '#3B82F6';
+            if (percent < 80) return '#F59E0B';
+            if (percent < 100) return '#F97316';
+            return '#EF4444';
         };
         
         return (
@@ -222,7 +203,6 @@ export default function PrintableReports() {
 
     return (
         <div className="min-h-screen p-8">
-            {/* Header */}
             <div className="flex justify-between items-center mb-8">
                 <h2 className="text-2xl font-bold text-[#1B365D]">Workload Reports</h2>
                 <div className="flex gap-3">
@@ -250,7 +230,6 @@ export default function PrintableReports() {
                 <div className="bg-white rounded-xl shadow-md p-6 mb-8">
                     <h3 className="text-xl font-bold text-[#1B365D] mb-6">Generate Printable Reports</h3>
                     
-                    {/* Report Configuration */}
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">Report Type</label>
@@ -258,7 +237,7 @@ export default function PrintableReports() {
                                 value={reportType}
                                 onChange={(e) => {
                                     setReportType(e.target.value);
-                                    setReportData(null); // Reset the report data
+                                    setReportData(null);
                                 }}
                                 className="w-full border border-gray-300 rounded-md py-2 px-3 focus:outline-none focus:ring-[#1B365D] focus:border-[#1B365D]"
                             >
@@ -351,12 +330,10 @@ export default function PrintableReports() {
                         )}
                     </div>
                     
-                    {/* Report Preview */}
                     {reportData && (
                         <div className="mt-8 border rounded-xl overflow-hidden shadow-lg">
                             <h4 className="bg-[#1B365D] text-white p-3 font-semibold">Report Preview</h4>
                             <div className="p-4 max-h-[600px] overflow-y-auto">
-                                {/* This div is the printable content */}
                                 <div ref={reportRef} className="p-8 bg-white">
                                     <div className="print-header">
                                         <div className="print-logo">
@@ -510,10 +487,8 @@ export default function PrintableReports() {
                         </div>
                     )}
                     
-                    {/* Add print styles outside of the print content */}
                     <style type="text/css">
                     {`
-                    /* Improved Styles for both screen and print */
                     .print-header {
                         display: flex;
                         align-items: center;
@@ -638,19 +613,24 @@ export default function PrintableReports() {
                         border-radius: 6px;
                         transition: width 0.5s ease;
                     }
+                    
                     .print-workload-percent {
-                            min-width: 50px;
-                            font-weight: bold;
-                        }
-                        .print-course-list {
-                            margin-top: 10px;
-                        }
-                        .print-course-item {
-                            margin: 5px 0;
-                            padding: 5px;
-                            background-color: #f8f9fa;
-                            border-radius: 3px;
-                        }
+                        min-width: 50px;
+                        font-weight: bold;
+                    }
+                    
+                    .print-no-courses {
+                        color: #6B7280;
+                        font-style: italic;
+                        padding: 12px;
+                    }
+                    
+                    .print-footer {
+                        margin-top: 25px;
+                        padding-top: 15px;
+                        border-top: 1px solid #E5E7EB;
+                        color: #6B7280;
+                        font-size: 12px;
                     }
                     `}
                     </style>

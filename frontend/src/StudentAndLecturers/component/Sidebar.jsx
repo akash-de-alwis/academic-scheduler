@@ -8,7 +8,7 @@ export default function Sidebar() {
   };
 
   return (
-    <div className="h-screen bg-[#FFFFFF] border-r border-[#E2E8F0] w-64 shadow-md">
+    <div className="fixed top-0 left-0 h-screen bg-[#FFFFFF] border-r border-[#E2E8F0] w-64 shadow-md overflow-y-auto z-10">
       <div className="p-6">
         {/* Title Section */}
         <h2 className="text-2xl font-bold text-[#1B365D] mb-8">

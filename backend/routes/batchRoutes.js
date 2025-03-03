@@ -1,5 +1,5 @@
 const express = require("express");
-const Batch = require("../models/Batch");  // Using require instead of import
+const Batch = require("../models/Batch");
 
 const router = express.Router();
 
@@ -44,4 +44,4 @@ router.delete("/:id", async (req, res) => {
   }
 });
 
-module.exports = router;  // Using module.exports to export the router
+module.exports = router;
