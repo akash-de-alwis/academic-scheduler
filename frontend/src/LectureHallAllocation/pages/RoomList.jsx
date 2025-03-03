@@ -3,6 +3,10 @@ import axios from "axios";
 
 export default function RoomList() {
   const [rooms, setRooms] = useState([]);
+  const [filteredRooms, setFilteredRooms] = useState([]);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [sortDirection, setSortDirection] = useState("asc");
+  const [hallTypeFilter, setHallTypeFilter] = useState("All");
   const [showForm, setShowForm] = useState(false);
   const [editingRoom, setEditingRoom] = useState(null);
   const [newRoom, setNewRoom] = useState({
@@ -16,19 +20,111 @@ export default function RoomList() {
     generalHall: false,
     miniHall: false,
   });
+  const [errors, setErrors] = useState({});
 
   useEffect(() => {
-    axios.get("http://localhost:5000/api/rooms").then((res) => setRooms(res.data));
+    axios.get("http://localhost:5000/api/rooms").then((res) => {
+      const nonMeetingRooms = res.data.filter(room => room.hallType !== "Meeting Room");
+      setRooms(nonMeetingRooms);
+      setFilteredRooms(nonMeetingRooms);
+    });
   }, []);
 
+  const applyFilters = (roomsList, search, hallType) => {
+    let filtered = [...roomsList];
+    
+    if (hallType !== "All") {
+      filtered = filtered.filter(room => room.hallType === hallType);
+    }
+
+    if (search) {
+      filtered = filtered.filter((room) =>
+        room.LID.toLowerCase().includes(search.toLowerCase()) ||
+        room.hallType.toLowerCase().includes(search.toLowerCase()) ||
+        room.department.toLowerCase().includes(search.toLowerCase())
+      );
+    }
+
+    return filtered;
+  };
+
+  const handleSearch = (term) => {
+    const filtered = applyFilters(rooms, term, hallTypeFilter);
+    setFilteredRooms(filtered);
+    setSearchTerm(term);
+  };
+
+  const handleFilterChange = (type) => {
+    setHallTypeFilter(type);
+    const filtered = applyFilters(rooms, searchTerm, type);
+    setFilteredRooms(filtered);
+  };
+
+  const handleSort = () => {
+    const sorted = [...filteredRooms].sort((a, b) => {
+      const comparison = a.LID.localeCompare(b.LID);
+      return sortDirection === "asc" ? comparison : -comparison;
+    });
+    setFilteredRooms(sorted);
+    setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+  };
+
+  const validateForm = () => {
+    const newErrors = {};
+
+    if (!newRoom.LID.trim()) {
+      newErrors.LID = "Room ID is required";
+    } else if (!/^[A-Za-z0-9-]+$/.test(newRoom.LID)) {
+      newErrors.LID = "Room ID can only contain letters, numbers, and hyphens";
+    }
+
+    if (!newRoom.floor.trim()) {
+      newErrors.floor = "Floor is required";
+    } else if (!/^[0-9]+$/.test(newRoom.floor)) {
+      newErrors.floor = "Floor must be a number";
+    }
+
+    if (!newRoom.totalSeats) {
+      newErrors.totalSeats = "Total Seats is required";
+    } else if (isNaN(newRoom.totalSeats) || newRoom.totalSeats <= 0) {
+      newErrors.totalSeats = "Total Seats must be a positive number";
+    }
+
+    if (newRoom.hallType === "Laboratory") {
+      if (!newRoom.totalComputers) {
+        newErrors.totalComputers = "Total Computers is required for Laboratories";
+      } else if (isNaN(newRoom.totalComputers) || newRoom.totalComputers <= 0) {
+        newErrors.totalComputers = "Total Computers must be a positive number";
+      }
+    }
+
+    if (newRoom.hallType === "Lecturer Hall" && 
+        !newRoom.massHall && 
+        !newRoom.generalHall && 
+        !newRoom.miniHall) {
+      newErrors.hallCategory = "Please select a hall category";
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
   const handleSaveRoom = async () => {
+    if (!validateForm()) {
+      return;
+    }
+
     try {
       if (editingRoom) {
         const res = await axios.put(`http://localhost:5000/api/rooms/${editingRoom._id}`, newRoom);
-        setRooms(rooms.map((room) => (room._id === editingRoom._id ? res.data : room)));
+        const updatedRooms = rooms.map((room) => (room._id === editingRoom._id ? res.data : room));
+        setRooms(updatedRooms);
+        setFilteredRooms(applyFilters(updatedRooms, searchTerm, hallTypeFilter));
       } else {
         const res = await axios.post("http://localhost:5000/api/rooms", newRoom);
-        setRooms([...rooms, res.data]);
+        const updatedRooms = [...rooms, res.data];
+        setRooms(updatedRooms);
+        setFilteredRooms(applyFilters(updatedRooms, searchTerm, hallTypeFilter));
       }
       resetForm();
     } catch (err) {
@@ -39,7 +135,9 @@ export default function RoomList() {
   const handleDeleteRoom = async (id) => {
     try {
       await axios.delete(`http://localhost:5000/api/rooms/${id}`);
-      setRooms(rooms.filter((room) => room._id !== id));
+      const updatedRooms = rooms.filter((room) => room._id !== id);
+      setRooms(updatedRooms);
+      setFilteredRooms(applyFilters(updatedRooms, searchTerm, hallTypeFilter));
     } catch (err) {
       console.error(err.response ? err.response.data : err);
     }
@@ -59,34 +157,58 @@ export default function RoomList() {
       miniHall: false,
     });
     setEditingRoom(null);
+    setErrors({});
+  };
+
+  const getHallCategory = (room) => {
+    if (room.massHall) return "Mass";
+    if (room.generalHall) return "General";
+    if (room.miniHall) return "Mini";
+    return "-";
   };
 
   return (
     <div className="min-h-screen p-8 bg-[#FFFFFF]">
       <div className="flex justify-between items-center mb-8">
         <h2 className="text-2xl font-bold text-[#1B365D]">Room & Facility Booking</h2>
-        <button
-          onClick={() => {
-            setShowForm(true);
-            setEditingRoom(null);
-          }}
-          className="bg-[#1B365D] text-[#FFFFFF] px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-[#1B365D]/90"
-        >
-          + Add New Hall
-        </button>
+        <div className="flex gap-4">
+          <select
+            value={hallTypeFilter}
+            onChange={(e) => handleFilterChange(e.target.value)}
+            className="p-2 border border-[#F5F7FA] rounded-lg bg-[#F5F7FA] text-[#1B365D]"
+          >
+            <option value="All">All</option>
+            <option value="Lecturer Hall">Lecturer Halls</option>
+            <option value="Laboratory">Laboratory</option>
+          </select>
+          <button
+            onClick={() => {
+              setShowForm(true);
+              setEditingRoom(null);
+            }}
+            className="bg-[#1B365D] text-[#FFFFFF] px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-[#1B365D]/90"
+          >
+            + Add New Hall
+          </button>
+        </div>
       </div>
 
       <div className="flex justify-between gap-4 mb-8">
         <input
           type="text"
           placeholder="Search rooms..."
+          value={searchTerm}
+          onChange={(e) => handleSearch(e.target.value)}
           className="flex-1 px-4 py-2 border border-[#F5F7FA] rounded-lg bg-[#F5F7FA] text-[#1B365D]"
         />
-        <button className="px-4 py-2 bg-[#F5F7FA] border border-[#F5F7FA] rounded-lg flex items-center gap-2 text-[#1B365D]">
+        <button
+          onClick={handleSort}
+          className="px-4 py-2 bg-[#F5F7FA] border border-[#F5F7FA] rounded-lg flex items-center gap-2 text-[#1B365D]"
+        >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
           </svg>
-          Sort by name
+          Sort by name {sortDirection === "asc" ? "↑" : "↓"}
         </button>
       </div>
 
@@ -98,18 +220,30 @@ export default function RoomList() {
               <th className="text-left p-4 font-medium text-[#1B365D]">Hall Type</th>
               <th className="text-left p-4 font-medium text-[#1B365D]">Department</th>
               <th className="text-left p-4 font-medium text-[#1B365D]">Floor</th>
+              {hallTypeFilter === "Lecturer Hall" && (
+                <th className="text-left p-4 font-medium text-[#1B365D]">Hall Category</th>
+              )}
               <th className="text-left p-4 font-medium text-[#1B365D]">Capacity</th>
+              {hallTypeFilter === "Laboratory" && (
+                <th className="text-left p-4 font-medium text-[#1B365D]">Computers</th>
+              )}
               <th className="text-left p-4 font-medium text-[#1B365D]">Actions</th>
             </tr>
           </thead>
           <tbody>
-            {rooms.map((room) => (
+            {filteredRooms.map((room) => (
               <tr key={room._id} className="border-b border-[#FFFFFF]">
                 <td className="p-4"><span className="text-[#1B365D] font-medium">{room.LID}</span></td>
                 <td className="p-4 text-[#1B365D]">{room.hallType}</td>
                 <td className="p-4 text-[#1B365D]">{room.department}</td>
                 <td className="p-4 text-[#1B365D]">{room.floor}</td>
+                {hallTypeFilter === "Lecturer Hall" && (
+                  <td className="p-4 text-[#1B365D]">{getHallCategory(room)}</td>
+                )}
                 <td className="p-4 text-[#1B365D]">{room.totalSeats || room.totalComputers}</td>
+                {hallTypeFilter === "Laboratory" && (
+                  <td className="p-4 text-[#1B365D]">{room.totalComputers || "-"}</td>
+                )}
                 <td className="p-4">
                   <div className="flex gap-4">
                     <button
@@ -156,17 +290,18 @@ export default function RoomList() {
 
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium mb-2 text-[#1B365D]">Room ID</label>
+                <label className="block text-sm font-medium mb-2 text-[#1B365D]">Room ID *</label>
                 <input
                   type="text"
                   value={newRoom.LID}
                   onChange={(e) => setNewRoom({ ...newRoom, LID: e.target.value })}
-                  className="w-full p-2 border border-[#F5F7FA] rounded-lg bg-[#F5F7FA] text-[#1B365D]"
+                  className={`w-full p-2 border rounded-lg ${errors.LID ? 'border-red-500' : 'border-[#F5F7FA]'} bg-[#F5F7FA] text-[#1B365D]`}
                 />
+                {errors.LID && <p className="text-red-500 text-xs mt-1">{errors.LID}</p>}
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-2 text-[#1B365D]">Hall Type</label>
+                <label className="block text-sm font-medium mb-2 text-[#1B365D]">Hall Type *</label>
                 <select
                   value={newRoom.hallType}
                   onChange={(e) => setNewRoom({ ...newRoom, hallType: e.target.value })}
@@ -179,7 +314,7 @@ export default function RoomList() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-2 text-[#1B365D]">Department</label>
+                <label className="block text-sm font-medium mb-2 text-[#1B365D]">Department *</label>
                 <select
                   value={newRoom.department}
                   onChange={(e) => setNewRoom({ ...newRoom, department: e.target.value })}
@@ -193,14 +328,14 @@ export default function RoomList() {
 
               {newRoom.hallType === "Lecturer Hall" && (
                 <div>
-                  <label className="block text-sm font-medium mb-2 text-[#1B365D]">Hall Category</label>
+                  <label className="block text-sm font-medium mb-2 text-[#1B365D]">Hall Category *</label>
                   <div className="flex gap-6">
                     <label className="flex items-center gap-2 text-[#1B365D]">
                       <input
                         type="radio"
                         name="hallType"
                         checked={newRoom.massHall}
-                        onChange={() => setNewRoom({ ...newRoom, massHall: !newRoom.massHall })}
+                        onChange={() => setNewRoom({ ...newRoom, massHall: !newRoom.massHall, generalHall: false, miniHall: false })}
                         className="w-4 h-4 accent-[#1B365D]"
                       />
                       Mass Hall
@@ -210,7 +345,7 @@ export default function RoomList() {
                         type="radio"
                         name="hallType"
                         checked={newRoom.generalHall}
-                        onChange={() => setNewRoom({ ...newRoom, generalHall: !newRoom.generalHall })}
+                        onChange={() => setNewRoom({ ...newRoom, generalHall: !newRoom.generalHall, massHall: false, miniHall: false })}
                         className="w-4 h-4 accent-[#1B365D]"
                       />
                       General Hall
@@ -220,44 +355,48 @@ export default function RoomList() {
                         type="radio"
                         name="hallType"
                         checked={newRoom.miniHall}
-                        onChange={() => setNewRoom({ ...newRoom, miniHall: !newRoom.miniHall })}
+                        onChange={() => setNewRoom({ ...newRoom, miniHall: !newRoom.miniHall, massHall: false, generalHall: false })}
                         className="w-4 h-4 accent-[#1B365D]"
                       />
                       Mini Hall
                     </label>
                   </div>
+                  {errors.hallCategory && <p className="text-red-500 text-xs mt-1">{errors.hallCategory}</p>}
                 </div>
               )}
 
               <div>
-                <label className="block text-sm font-medium mb-2 text-[#1B365D]">Floor</label>
+                <label className="block text-sm font-medium mb-2 text-[#1B365D]">Floor *</label>
                 <input
                   type="text"
                   value={newRoom.floor}
                   onChange={(e) => setNewRoom({ ...newRoom, floor: e.target.value })}
-                  className="w-full p-2 border border-[#F5F7FA] rounded-lg bg-[#F5F7FA] text-[#1B365D]"
+                  className={`w-full p-2 border rounded-lg ${errors.floor ? 'border-red-500' : 'border-[#F5F7FA]'} bg-[#F5F7FA] text-[#1B365D]`}
                 />
+                {errors.floor && <p className="text-red-500 text-xs mt-1">{errors.floor}</p>}
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-2 text-[#1B365D]">Total Seats</label>
+                <label className="block text-sm font-medium mb-2 text-[#1B365D]">Total Seats *</label>
                 <input
                   type="number"
                   value={newRoom.totalSeats}
                   onChange={(e) => setNewRoom({ ...newRoom, totalSeats: e.target.value })}
-                  className="w-full p-2 border border-[#F5F7FA] rounded-lg bg-[#F5F7FA] text-[#1B365D]"
+                  className={`w-full p-2 border rounded-lg ${errors.totalSeats ? 'border-red-500' : 'border-[#F5F7FA]'} bg-[#F5F7FA] text-[#1B365D]`}
                 />
+                {errors.totalSeats && <p className="text-red-500 text-xs mt-1">{errors.totalSeats}</p>}
               </div>
 
               {newRoom.hallType === "Laboratory" && (
                 <div>
-                  <label className="block text-sm font-medium mb-2 text-[#1B365D]">Total Computers</label>
+                  <label className="block text-sm font-medium mb-2 text-[#1B365D]">Total Computers *</label>
                   <input
                     type="number"
                     value={newRoom.totalComputers}
                     onChange={(e) => setNewRoom({ ...newRoom, totalComputers: e.target.value })}
-                    className="w-full p-2 border border-[#F5F7FA] rounded-lg bg-[#F5F7FA] text-[#1B365D]"
+                    className={`w-full p-2 border rounded-lg ${errors.totalComputers ? 'border-red-500' : 'border-[#F5F7FA]'} bg-[#F5F7FA] text-[#1B365D]`}
                   />
+                  {errors.totalComputers && <p className="text-red-500 text-xs mt-1">{errors.totalComputers}</p>}
                 </div>
               )}
             </div>
