@@ -9,6 +9,8 @@ import LoginPage from "./ClientsidePages/LoginPage";
 import AboutPage from "./ClientsidePages/AboutPage";
 import FAQPage from "./ClientsidePages/FAQPage";
 import SignupPage from "./ClientsidePages/SignupPage";
+import StudentDashboard from "./ClientsidePages/StudentDashboard";
+import StudentProfile from "./ClientsidePages/StudentProfile";
 
 import AcSHomepage from "./Home/AcSHomepage";
 import HomePage from "./StudentAndLecturers/pages/HomePage";
@@ -33,7 +35,7 @@ import TimetableList from "./TimetableManagement/pages/TimetableList";
 import SubHome from "./CourseAllocation/pages/SubHome";
 import SubjectList from "./CourseAllocation/pages/SubjectList";
 import ReportGeneration from "./CourseAllocation/pages/ReportGeneration";
-import StudentDashboard from "./CourseAllocation/pages/StudentDashboard";
+
 
 
 
@@ -84,6 +86,7 @@ function App() {
       <Route path="/FAQPage" element={<FAQPage />} />
       <Route path="/SignupPage" element={<SignupPage />} />
       <Route path="/StudentDashboard" element={<StudentDashboard />} />
+      <Route path="/StudentProfile" element={<StudentProfile />} />
 
         {/* Routes with Main Sidebar */}
         <Route path="/lecHome" element={<MainLayout><HomePage /></MainLayout>} />

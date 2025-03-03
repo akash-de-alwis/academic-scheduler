@@ -26,6 +26,31 @@ const userSchema = new mongoose.Schema({
     required: [true, 'Role is required'],
     default: 'Student'
   },
+  batch: {
+    type: String,
+    trim: true
+  },
+  currentYear: {
+    type: String,
+    enum: ['', '1', '2', '3', '4']
+  },
+  currentSemester: {
+    type: String,
+    enum: ['', 'Semester1', 'Semester2']
+  },
+  cgpa: {
+    type: Number,
+    min: 0,
+    max: 4
+  },
+  department: {
+    type: String,
+    enum: ['', 'Faculty of Computing', 'Faculty of Business Studies', 'Faculty of Engineering']
+  },
+  profilePhoto: { // Added field for profile image
+    type: String,
+    default: null
+  },
   createdAt: {
     type: Date,
     default: Date.now
