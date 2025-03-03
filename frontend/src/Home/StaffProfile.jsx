@@ -1,19 +1,17 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
-import { User, Edit2, Check, X, ArrowLeft, Calendar, BookOpen, Upload, Trash2, LogOut, Users, Mail, GraduationCap, Book, BarChart } from "lucide-react";
+import { User, Edit2, Check, X, ArrowLeft, Calendar, BookOpen, Upload, Trash2, LogOut, Users, Mail, Briefcase, Clock } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 
-export default function StudentProfile() {
+export default function StaffProfile() {
   const [userInfo, setUserInfo] = useState(null);
   const [editMode, setEditMode] = useState(false);
   const [formData, setFormData] = useState({
     fullName: "",
     email: "",
-    batch: "",
-    currentYear: "",
-    currentSemester: "",
-    cgpa: "",
+    designation: "",
     department: "",
+    officeHours: "",
     profilePhoto: null,
   });
   const [imagePreview, setImagePreview] = useState(null);
@@ -35,13 +33,11 @@ export default function StudentProfile() {
         const user = response.data;
         setUserInfo(user);
         setFormData({
-          fullName: user.fullName,
-          email: user.email,
-          batch: user.batch || "",
-          currentYear: user.currentYear || "",
-          currentSemester: user.currentSemester || "",
-          cgpa: user.cgpa || "",
+          fullName: user.fullName || "",
+          email: user.email || "",
+          designation: user.designation || "",
           department: user.department || "",
+          officeHours: user.officeHours || "",
           profilePhoto: null,
         });
         setImagePreview(user.profilePhoto ? `http://localhost:5000${user.profilePhoto}` : null);
@@ -74,9 +70,19 @@ export default function StudentProfile() {
   const handleSave = async () => {
     const token = localStorage.getItem("token");
     const data = new FormData();
-    Object.keys(formData).forEach((key) => {
-      if (formData[key] !== null && formData[key] !== undefined) {
-        data.append(key, formData[key]);
+
+    const editableFields = {
+      fullName: formData.fullName,
+      designation: formData.designation,
+      department: formData.department,
+      officeHours: formData.officeHours,
+    };
+    if (formData.profilePhoto) {
+      data.append("profilePhoto", formData.profilePhoto);
+    }
+    Object.keys(editableFields).forEach((key) => {
+      if (editableFields[key] !== null && editableFields[key] !== undefined) {
+        data.append(key, editableFields[key]);
       }
     });
 
@@ -94,21 +100,19 @@ export default function StudentProfile() {
       const updatedUser = response.data;
       setUserInfo(updatedUser);
       setFormData({
-        fullName: updatedUser.fullName,
-        email: updatedUser.email,
-        batch: updatedUser.batch || "",
-        currentYear: updatedUser.currentYear || "",
-        currentSemester: updatedUser.currentSemester || "",
-        cgpa: updatedUser.cgpa || "",
+        fullName: updatedUser.fullName || "",
+        email: updatedUser.email || "",
+        designation: updatedUser.designation || "",
         department: updatedUser.department || "",
+        officeHours: updatedUser.officeHours || "",
         profilePhoto: null,
       });
       setImagePreview(updatedUser.profilePhoto ? `http://localhost:5000${updatedUser.profilePhoto}` : null);
       setEditMode(false);
       setError("");
     } catch (err) {
+      console.error("Error updating profile:", JSON.stringify(err.response?.data, null, 2));
       setError(err.response?.data?.message || "Failed to update profile");
-      console.error("Save error:", err.response?.data);
     }
   };
 
@@ -154,7 +158,7 @@ export default function StudentProfile() {
           </div>
           <nav className="space-y-4">
             <Link
-              to="/StudentDashboard"
+              to="/StaffDashboard"
               className="flex items-center gap-3 text-[#1B365D] p-3 rounded-lg hover:bg-[#1B365D]/10 transition-all duration-200"
             >
               <ArrowLeft className="w-5 h-5" />
@@ -250,7 +254,7 @@ export default function StudentProfile() {
             )}
           </div>
 
-          {/* Profile Details - Scrollable Container */}
+          {/* Profile Details */}
           <div className="max-h-[400px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-[#1B365D] scrollbar-track-gray-100">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <ProfileField
@@ -270,58 +274,26 @@ export default function StudentProfile() {
                 icon={<Mail className="w-5 h-5 text-[#1B365D]" />}
               />
               <ProfileField
-                label="Batch"
-                value={formData.batch || "Not set"}
+                label="Designation"
+                value={formData.designation}
                 editMode={editMode}
-                name="batch"
-                onChange={handleInputChange}
-                icon={<Users className="w-5 h-5 text-[#1B365D]" />}
-              />
-              <ProfileField
-                label="Current Year"
-                value={formData.currentYear || "Not set"}
-                editMode={editMode}
-                name="currentYear"
+                name="designation"
                 onChange={handleInputChange}
                 type="select"
                 options={[
-                  { value: "", label: "Select Year" },
-                  { value: "1", label: "1st Year" },
-                  { value: "2", label: "2nd Year" },
-                  { value: "3", label: "3rd Year" },
-                  { value: "4", label: "4th Year" },
+                  { value: "", label: "Select Designation" },
+                  { value: "Professor", label: "Professor" },
+                  { value: "Associate Professor", label: "Associate Professor" },
+                  { value: "Senior Lecturer", label: "Senior Lecturer" },
+                  { value: "Lecturer", label: "Lecturer" },
+                  { value: "Assistant Lecturer", label: "Assistant Lecturer" },
+                  { value: "Instructor", label: "Instructor" },
                 ]}
-                icon={<GraduationCap className="w-5 h-5 text-[#1B365D]" />}
-              />
-              <ProfileField
-                label="Current Semester"
-                value={formData.currentSemester || "Not set"}
-                editMode={editMode}
-                name="currentSemester"
-                onChange={handleInputChange}
-                type="select"
-                options={[
-                  { value: "", label: "Select Semester" },
-                  { value: "Semester1", label: "Semester 1" },
-                  { value: "Semester2", label: "Semester 2" },
-                ]}
-                icon={<Book className="w-5 h-5 text-[#1B365D]" />}
-              />
-              <ProfileField
-                label="CGPA"
-                value={formData.cgpa || "Not set"}
-                editMode={editMode}
-                name="cgpa"
-                onChange={handleInputChange}
-                type="number"
-                step="0.01"
-                min="0"
-                max="4"
-                icon={<BarChart className="w-5 h-5 text-[#1B365D]" />}
+                icon={<Briefcase className="w-5 h-5 text-[#1B365D]" />}
               />
               <ProfileField
                 label="Department"
-                value={formData.department || "Not set"}
+                value={formData.department}
                 editMode={editMode}
                 name="department"
                 onChange={handleInputChange}
@@ -333,6 +305,14 @@ export default function StudentProfile() {
                   { value: "Faculty of Engineering", label: "Faculty of Engineering" },
                 ]}
                 icon={<BookOpen className="w-5 h-5 text-[#1B365D]" />}
+              />
+              <ProfileField
+                label="Office Hours"
+                value={formData.officeHours}
+                editMode={editMode}
+                name="officeHours"
+                onChange={handleInputChange}
+                icon={<Clock className="w-5 h-5 text-[#1B365D]" />}
               />
             </div>
           </div>
@@ -362,7 +342,6 @@ export default function StudentProfile() {
   );
 }
 
-// Updated Profile Field Component
 const ProfileField = ({ label, value, editMode, name, onChange, type = "text", options, icon, ...props }) => (
   <div className="space-y-2 bg-white rounded-lg p-4 shadow-sm hover:shadow-md transition-all duration-300">
     <label className="text-sm font-semibold text-[#1B365D] flex items-center gap-2">
@@ -394,7 +373,7 @@ const ProfileField = ({ label, value, editMode, name, onChange, type = "text", o
         />
       )
     ) : (
-      <p className="text-gray-700 p-3 bg-[#F5F7FA] rounded-lg font-medium">{value}</p>
+      <p className="text-gray-700 p-3 bg-[#F5F7FA] rounded-lg font-medium">{value || "Not set"}</p>
     )}
   </div>
 );

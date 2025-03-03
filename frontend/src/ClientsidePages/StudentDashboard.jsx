@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
-import { Calendar, BookOpen, Clock, User, Bell } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Calendar, BookOpen, Clock, User, Bell, Users, LogOut } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
 
 export default function StudentDashboard() {
   const [timetable, setTimetable] = useState([]);
@@ -9,6 +9,7 @@ export default function StudentDashboard() {
   const [userInfo, setUserInfo] = useState(null);
   const [currentDate, setCurrentDate] = useState(new Date());
   const [error, setError] = useState("");
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchData = async () => {
@@ -69,6 +70,12 @@ export default function StudentDashboard() {
     return `${adjustedHour}:${minutes} ${period}`;
   };
 
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    setUserInfo(null);
+    navigate("/LoginPage");
+  };
+
   if (error) {
     return (
       <div className="min-h-screen p-8 bg-[#FFFFFF] flex items-center justify-center">
@@ -106,6 +113,13 @@ export default function StudentDashboard() {
           <div className="flex items-center gap-4">
             <button className="p-2 bg-[#F5F7FA] rounded-full text-[#1B365D] hover:bg-[#1B365D]/10">
               <Bell className="w-5 h-5" />
+            </button>
+            <button
+              onClick={handleLogout}
+              className="p-2 bg-red-100 rounded-full text-red-600 hover:bg-red-200 transition-all duration-200"
+              title="Logout"
+            >
+              <LogOut className="w-5 h-5" />
             </button>
             <Link to="/StudentProfile" className="flex items-center gap-2">
               <div className="w-10 h-10 bg-[#1B365D]/10 rounded-full flex items-center justify-center overflow-hidden">
@@ -160,14 +174,29 @@ export default function StudentDashboard() {
           <div className="bg-white rounded-xl shadow-md p-6 border border-[#E2E8F0]">
             <h2 className="text-xl font-semibold text-[#1B365D] mb-4">Quick Links</h2>
             <div className="space-y-3">
-              <Link to="/timetable" className="w-full text-left p-3 bg-[#F5F7FA] rounded-lg text-[#1B365D] hover:bg-[#1B365D]/10 flex items-center gap-2">
+              <Link
+                to="/timetable"
+                className="w-full text-left p-3 bg-[#F5F7FA] rounded-lg text-[#1B365D] hover:bg-[#1B365D]/10 flex items-center gap-2"
+              >
                 <Calendar className="w-5 h-5" /> View Full Timetable
               </Link>
-              <Link to="/subjects" className="w-full text-left p-3 bg-[#F5F7FA] rounded-lg text-[#1B365D] hover:bg-[#1B365D]/10 flex items-center gap-2">
+              <Link
+                to="/subjects"
+                className="w-full text-left p-3 bg-[#F5F7FA] rounded-lg text-[#1B365D] hover:bg-[#1B365D]/10 flex items-center gap-2"
+              >
                 <BookOpen className="w-5 h-5" /> Enrolled Subjects
               </Link>
-              <Link to="/StudentProfile" className="w-full text-left p-3 bg-[#F5F7FA] rounded-lg text-[#1B365D] hover:bg-[#1B365D]/10 flex items-center gap-2">
+              <Link
+                to="/StudentProfile"
+                className="w-full text-left p-3 bg-[#F5F7FA] rounded-lg text-[#1B365D] hover:bg-[#1B365D]/10 flex items-center gap-2"
+              >
                 <User className="w-5 h-5" /> Profile
+              </Link>
+              <Link
+                to="/batch-details"
+                className="w-full text-left p-3 bg-[#F5F7FA] rounded-lg text-[#1B365D] hover:bg-[#1B365D]/10 flex items-center gap-2"
+              >
+                <Users className="w-5 h-5" /> Batch Details
               </Link>
             </div>
           </div>

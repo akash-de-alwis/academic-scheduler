@@ -12,7 +12,8 @@ import SignupPage from "./ClientsidePages/SignupPage";
 import StudentDashboard from "./ClientsidePages/StudentDashboard";
 import StudentProfile from "./ClientsidePages/StudentProfile";
 
-import AcSHomepage from "./Home/AcSHomepage";
+import StaffDashboard from "./Home/StaffDashboard";
+import StaffProfile from "./Home/StaffProfile";
 import HomePage from "./StudentAndLecturers/pages/HomePage";
 import LecturerList from "./StudentAndLecturers/pages/LecturersList";
 import BatchList from "./StudentAndLecturers/pages/BatchList";
@@ -80,7 +81,8 @@ function App() {
       <Route path="/" element={<MainHomePage />} />
       
       {/* Routes with Main Sidebar */}
-      <Route path="/AcSHomepage" element={<AcSHomepage />} />
+      <Route path="/StaffDashboard" element={<StaffDashboard />} />
+      <Route path="/StaffProfile" element={<StaffProfile />} />
       <Route path="/LoginPage" element={<LoginPage />} />
       <Route path="/AboutPage" element={<AboutPage />} />
       <Route path="/FAQPage" element={<FAQPage />} />

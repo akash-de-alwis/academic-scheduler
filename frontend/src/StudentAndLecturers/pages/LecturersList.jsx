@@ -77,6 +77,7 @@ export default function LecturerList() {
     }
   };
 
+  // Lecturer stats
   const totalLecturers = lecturers.length;
   const deptCounts = {
     "Faculty of Computing": lecturers.filter((lect) => lect.department === "Faculty of Computing").length,
@@ -85,6 +86,17 @@ export default function LecturerList() {
   };
   const weekdaysCount = lecturers.filter((lect) => lect.scheduleType === "Weekdays").length;
   const weekendCount = lecturers.filter((lect) => lect.scheduleType === "Weekend").length;
+
+  // Skills Distribution calculation
+  const skillsCount = {};
+  lecturers.forEach((lecturer) => {
+    lecturer.skills.forEach((skill) => {
+      skillsCount[skill] = (skillsCount[skill] || 0) + 1;
+    });
+  });
+  const topSkills = Object.entries(skillsCount)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 2); // Get top 2 skills
 
   return (
     <div className="min-h-screen p-8 bg-[#FFFFFF]">
@@ -113,6 +125,7 @@ export default function LecturerList() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        {/* Total Lecturers Card */}
         <div className="bg-white rounded-xl shadow-md p-6 border border-[#E2E8F0] flex items-center gap-4 hover:shadow-lg transition-all duration-300">
           <div className="bg-[#1B365D]/10 p-3 rounded-full">
             <svg className="w-6 h-6 text-[#1B365D]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -125,6 +138,7 @@ export default function LecturerList() {
           </div>
         </div>
 
+        {/* By Department Card */}
         <div className="bg-white rounded-xl shadow-md p-6 border border-[#E2E8F0] flex items-center gap-4 hover:shadow-lg transition-all duration-300">
           <div className="bg-[#1B365D]/10 p-3 rounded-full">
             <svg className="w-6 h-6 text-[#1B365D]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -143,6 +157,7 @@ export default function LecturerList() {
           </div>
         </div>
 
+        {/* Availability Card */}
         <div className="bg-white rounded-xl shadow-md p-6 border border-[#E2E8F0] flex items-center gap-4 hover:shadow-lg transition-all duration-300">
           <div className="bg-[#1B365D]/10 p-3 rounded-full">
             <svg className="w-6 h-6 text-[#1B365D]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -157,17 +172,25 @@ export default function LecturerList() {
           </div>
         </div>
 
+        {/* Skills Distribution Card */}
         <div className="bg-white rounded-xl shadow-md p-6 border border-[#E2E8F0] flex items-center gap-4 hover:shadow-lg transition-all duration-300">
           <div className="bg-[#1B365D]/10 p-3 rounded-full">
             <svg className="w-6 h-6 text-[#1B365D]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M3 3h18v18H3z" />
-              <path d="M9 9h6v6H9z" />
+              <path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
           </div>
           <div>
-            <p className="text-sm font-medium text-gray-500">Avg. Workload</p>
-            <p className="text-2xl font-bold text-[#1B365D]">N/A</p>
-            <p className="text-sm text-gray-600">Pending Data</p>
+            <p className="text-sm font-medium text-gray-500">Top Skills</p>
+            {topSkills.length > 0 ? (
+              <>
+                <p className="text-lg font-semibold text-[#1B365D]">{topSkills[0][0]} ({topSkills[0][1]})</p>
+                <p className="text-sm text-gray-600">
+                  {topSkills[1] ? `${topSkills[1][0]} (${topSkills[1][1]})` : "N/A"}
+                </p>
+              </>
+            ) : (
+              <p className="text-sm text-gray-600">No skills data</p>
+            )}
           </div>
         </div>
       </div>
