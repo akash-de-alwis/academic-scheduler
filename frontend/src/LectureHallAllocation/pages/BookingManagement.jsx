@@ -1,9 +1,12 @@
 // BookingManagement.jsx
 import { useState, useEffect } from "react";
 import axios from "axios";
+import { useNavigate } from "react-router-dom";
+import { ArrowLeft } from "lucide-react";
 
 export default function BookingManagement() {
   const [bookings, setBookings] = useState([]);
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetchBookings();
@@ -18,9 +21,41 @@ export default function BookingManagement() {
     }
   };
 
+  const handleBack = () => {
+    navigate("/MeetingRoomBooking");
+  };
+
+  const calculateTimeDuration = (startTime, endTime) => {
+    if (!startTime || !endTime) return "N/A";
+
+    const [startHour, startMinute] = startTime.split(":").map(Number);
+    const [endHour, endMinute] = endTime.split(":").map(Number);
+
+    let hours = endHour - startHour;
+    let minutes = endMinute - startMinute;
+
+    if (minutes < 0) {
+      hours -= 1;
+      minutes += 60;
+    }
+    if (hours < 0) hours += 24; // Handle overnight bookings
+
+    const totalHours = hours + (minutes / 60);
+    return totalHours === 1 ? "1 hour" : `${totalHours.toFixed(1)} hours`;
+  };
+
   return (
     <div className="min-h-screen p-8 bg-[#FFFFFF]">
-      <h2 className="text-2xl font-bold text-[#1B365D] mb-8">Booking Management</h2>
+      <div className="flex justify-between items-center mb-8">
+        <h2 className="text-2xl font-bold text-[#1B365D]">Booking Management</h2>
+        <button
+          onClick={handleBack}
+          className="flex items-center space-x-2 text-[#1B365D] hover:text-[#1B365D]/70"
+        >
+          <ArrowLeft className="w-5 h-5" />
+          <span>Back to Booking</span>
+        </button>
+      </div>
       
       <div className="bg-[#F5F7FA] rounded-lg">
         <table className="w-full">
@@ -31,8 +66,9 @@ export default function BookingManagement() {
               <th className="text-left p-4 font-medium text-[#1B365D]">Room ID</th>
               <th className="text-left p-4 font-medium text-[#1B365D]">Day Type</th>
               <th className="text-left p-4 font-medium text-[#1B365D]">Date</th>
-              <th className="text-left p-4 font-medium text-[#1B365D]">Time</th>
-              <th className="text-left p-4 font-medium text-[#1B365D]">Seats</th>
+              <th className="text-left p-4 font-medium text-[#1B365D]">Time Duration</th>
+              <th className="text-left p-4 font-medium text-[#1B365D]">Expected Seats</th>
+              <th className="text-left p-4 font-medium text-[#1B365D]">Total Seats</th>
               <th className="text-left p-4 font-medium text-[#1B365D]">Status</th>
             </tr>
           </thead>
@@ -44,7 +80,8 @@ export default function BookingManagement() {
                 <td className="p-4 text-[#1B365D]">{booking.meetingRoom}</td>
                 <td className="p-4 text-[#1B365D]">{booking.dayType}</td>
                 <td className="p-4 text-[#1B365D]">{new Date(booking.date).toLocaleDateString()}</td>
-                <td className="p-4 text-[#1B365D]">{booking.timeDuration}</td>
+                <td className="p-4 text-[#1B365D]">{calculateTimeDuration(booking.startTime, booking.endTime)}</td>
+                <td className="p-4 text-[#1B365D]">{booking.totalCount}</td>
                 <td className="p-4 text-[#1B365D]">{booking.seatCount}</td>
                 <td className="p-4 text-[#1B365D]">
                   <span className={

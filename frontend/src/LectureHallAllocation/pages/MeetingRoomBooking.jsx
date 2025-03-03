@@ -1,6 +1,7 @@
 // MeetingRoomBooking.jsx
 import { useState, useEffect } from "react";
 import axios from "axios";
+import { useNavigate } from "react-router-dom";
 
 export default function MeetingRoomBooking() {
   const [meetingRooms, setMeetingRooms] = useState([]);
@@ -10,13 +11,16 @@ export default function MeetingRoomBooking() {
     meetingRoom: "",
     dayType: "Weekday",
     date: "",
-    timeDuration: "",
+    startTime: "",
+    endTime: "",
     seatCount: "",
-    status: "Pending", // Added status field
+    totalCount: "",
+    status: "Pending",
   });
   const [errors, setErrors] = useState({});
   const [availableRooms, setAvailableRooms] = useState([]);
   const [availableFloors, setAvailableFloors] = useState([]);
+  const navigate = useNavigate();
 
   useEffect(() => {
     axios.get("http://localhost:5000/api/rooms").then((res) => {
@@ -33,10 +37,13 @@ export default function MeetingRoomBooking() {
     if (!formData.floor) newErrors.floor = "Floor is required";
     if (!formData.meetingRoom) newErrors.meetingRoom = "Meeting Room is required";
     if (!formData.date) newErrors.date = "Date is required";
-    if (!formData.timeDuration) newErrors.timeDuration = "Time duration is required";
-    if (!formData.seatCount) newErrors.seatCount = "Seat count is required";
-    else if (isNaN(formData.seatCount) || formData.seatCount <= 0) {
-      newErrors.seatCount = "Seat count must be a positive number";
+    if (!formData.startTime) newErrors.startTime = "Start time is required";
+    if (!formData.endTime) newErrors.endTime = "End time is required";
+    if (!formData.totalCount) newErrors.totalCount = "Total count is required";
+    else if (isNaN(formData.totalCount) || formData.totalCount <= 0) {
+      newErrors.totalCount = "Total count must be a positive number";
+    } else if (formData.seatCount && parseInt(formData.totalCount) > parseInt(formData.seatCount)) {
+      newErrors.totalCount = "Total count cannot exceed room capacity";
     }
 
     setErrors(newErrors);
@@ -56,11 +63,14 @@ export default function MeetingRoomBooking() {
         meetingRoom: "",
         dayType: "Weekday",
         date: "",
-        timeDuration: "",
+        startTime: "",
+        endTime: "",
         seatCount: "",
+        totalCount: "",
         status: "Pending",
       });
       setErrors({});
+      navigate("/BookingManagement");
     } catch (err) {
       console.error(err.response ? err.response.data : err);
       alert("Booking submission failed: " + (err.response?.data?.message || "Unknown error"));
@@ -75,16 +85,16 @@ export default function MeetingRoomBooking() {
       const filtered = meetingRooms.filter(room => room.department === value);
       setAvailableFloors([...new Set(filtered.map(room => room.floor))]);
       setAvailableRooms(filtered);
-      setFormData(prev => ({ ...prev, floor: "", meetingRoom: "", seatCount: "" }));
+      setFormData(prev => ({ ...prev, floor: "", meetingRoom: "", seatCount: "", totalCount: "" }));
     } else if (name === "floor") {
       const filtered = meetingRooms.filter(room => 
         room.department === formData.department && room.floor === value
       );
       setAvailableRooms(filtered);
-      setFormData(prev => ({ ...prev, meetingRoom: "", seatCount: "" }));
+      setFormData(prev => ({ ...prev, meetingRoom: "", seatCount: "", totalCount: "" }));
     } else if (name === "meetingRoom") {
       const room = meetingRooms.find(room => room.LID === value);
-      setFormData(prev => ({ ...prev, seatCount: room?.totalSeats || "" }));
+      setFormData(prev => ({ ...prev, seatCount: room?.totalSeats || "", totalCount: "" }));
     }
   };
 
@@ -184,28 +194,52 @@ export default function MeetingRoomBooking() {
         </div>
 
         <div>
-          <label className="block text-sm font-medium mb-2 text-[#1B365D]">Time Duration *</label>
+          <label className="block text-sm font-medium mb-2 text-[#1B365D]">Start Time *</label>
           <input
             type="time"
-            name="timeDuration"
-            value={formData.timeDuration}
+            name="startTime"
+            value={formData.startTime}
             onChange={handleChange}
-            className={`w-full p-2 border rounded-lg ${errors.timeDuration ? 'border-red-500' : 'border-[#F5F7FA]'} bg-[#F5F7FA] text-[#1B365D]`}
+            className={`w-full p-2 border rounded-lg ${errors.startTime ? 'border-red-500' : 'border-[#F5F7FA]'} bg-[#F5F7FA] text-[#1B365D]`}
           />
-          {errors.timeDuration && <p className="text-red-500 text-xs mt-1">{errors.timeDuration}</p>}
+          {errors.startTime && <p className="text-red-500 text-xs mt-1">{errors.startTime}</p>}
         </div>
 
         <div>
-          <label className="block text-sm font-medium mb-2 text-[#1B365D]">Seat Count *</label>
+          <label className="block text-sm font-medium mb-2 text-[#1B365D]">End Time *</label>
+          <input
+            type="time"
+            name="endTime"
+            value={formData.endTime}
+            onChange={handleChange}
+            className={`w-full p-2 border rounded-lg ${errors.endTime ? 'border-red-500' : 'border-[#F5F7FA]'} bg-[#F5F7FA] text-[#1B365D]`}
+          />
+          {errors.endTime && <p className="text-red-500 text-xs mt-1">{errors.endTime}</p>}
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium mb-2 text-[#1B365D]">Seat Count (Room Capacity)</label>
           <input
             type="number"
             name="seatCount"
             value={formData.seatCount}
-            onChange={handleChange}
-            className={`w-full p-2 border rounded-lg ${errors.seatCount ? 'border-red-500' : 'border-[#F5F7FA]'} bg-[#F5F7FA] text-[#1B365D]`}
-            min="1"
+            readOnly
+            className="w-full p-2 border rounded-lg border-[#F5F7FA] bg-[#F5F7FA] text-[#1B365D] cursor-not-allowed"
           />
-          {errors.seatCount && <p className="text-red-500 text-xs mt-1">{errors.seatCount}</p>}
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium mb-2 text-[#1B365D]">Total Count *</label>
+          <input
+            type="number"
+            name="totalCount"
+            value={formData.totalCount}
+            onChange={handleChange}
+            className={`w-full p-2 border rounded-lg ${errors.totalCount ? 'border-red-500' : 'border-[#F5F7FA]'} bg-[#F5F7FA] text-[#1B365D]`}
+            min="1"
+            max={formData.seatCount}
+          />
+          {errors.totalCount && <p className="text-red-500 text-xs mt-1">{errors.totalCount}</p>}
         </div>
 
         <button

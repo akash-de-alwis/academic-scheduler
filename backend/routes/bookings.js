@@ -19,22 +19,28 @@ router.get("/", async (req, res) => {
 // Create a booking
 router.post("/", async (req, res) => {
   try {
-    const { meetingRoom, date, timeDuration, seatCount } = req.body;
+    const { meetingRoom, date, startTime, endTime, seatCount, totalCount } = req.body;
 
     const room = await Room.findOne({ LID: meetingRoom, hallType: "Meeting Room" });
     if (!room) return res.status(404).json({ message: "Meeting room not found" });
-    if (seatCount > room.totalSeats) {
-      return res.status(400).json({ message: "Requested seats exceed room capacity" });
+    if (seatCount !== room.totalSeats) {
+      return res.status(400).json({ message: "Seat count must match room capacity" });
+    }
+    if (totalCount > seatCount) {
+      return res.status(400).json({ message: "Total count cannot exceed room capacity" });
     }
 
+    // Check for overlapping bookings
     const existingBooking = await Booking.findOne({
       meetingRoom,
       date: new Date(date).toISOString().split("T")[0],
-      timeDuration,
       status: "Approved",
+      $or: [
+        { startTime: { $lt: endTime }, endTime: { $gt: startTime } },
+      ],
     });
     if (existingBooking) {
-      return res.status(400).json({ message: "Room already booked for this time" });
+      return res.status(400).json({ message: "Room already booked for this time slot" });
     }
 
     const booking = new Booking(req.body);
