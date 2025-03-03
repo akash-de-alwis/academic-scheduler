@@ -34,6 +34,7 @@ import TimetableList from "./TimetableManagement/pages/TimetableList";
 import SubHome from "./CourseAllocation/pages/SubHome";
 import SubjectList from "./CourseAllocation/pages/SubjectList";
 import ReportGeneration from "./CourseAllocation/pages/ReportGeneration";
+import StudentDashboard from "./CourseAllocation/pages/StudentDashboard";
 
 
 
@@ -85,6 +86,7 @@ function App() {
       <Route path="/AboutPage" element={<AboutPage />} />
       <Route path="/FAQPage" element={<FAQPage />} />
       <Route path="/SignupPage" element={<SignupPage />} />
+      <Route path="/StudentDashboard" element={<StudentDashboard />} />
 
         {/* Routes with Main Sidebar */}
         <Route path="/lecHome" element={<MainLayout><HomePage /></MainLayout>} />
