@@ -9,8 +9,10 @@ import LoginPage from "./ClientsidePages/LoginPage";
 import AboutPage from "./ClientsidePages/AboutPage";
 import FAQPage from "./ClientsidePages/FAQPage";
 import SignupPage from "./ClientsidePages/SignupPage";
+import StudentDashboard from "./ClientsidePages/StudentDashboard";
+import StudentProfile from "./ClientsidePages/StudentProfile";
 
-import AcSHomepage from "./Home/AcSHomepage"
+import AcSHomepage from "./Home/AcSHomepage";
 import HomePage from "./StudentAndLecturers/pages/HomePage";
 import LecturerList from "./StudentAndLecturers/pages/LecturersList";
 import BatchList from "./StudentAndLecturers/pages/BatchList";
@@ -19,7 +21,6 @@ import LecturerWorkload from "./StudentAndLecturers/pages/LecturerWorkload";
 import PrintableReports from "./StudentAndLecturers/pages/PrintableReports";
 import BatchOverviewReport from "./StudentAndLecturers/pages/BatchOverviewReport";
 import LecturerAllocations from "./StudentAndLecturers/pages/LecturerAllocations";
-
 
 import HallHome from "./LectureHallAllocation/pages/HallHome";
 import RoomList from "./LectureHallAllocation/pages/RoomList";
@@ -38,39 +39,38 @@ import ReportGeneration from "./CourseAllocation/pages/ReportGeneration";
 
 
 
+
 /** Layout wrapper for pages with Sidebar */
 const MainLayout = ({ children }) => (
-  <div className="flex">
+  <div className="flex min-h-screen">
     <Sidebar />
-    <div className="flex-1 p-6">{children}</div>
+    <div className="flex-1 ml-64 p-6">{children}</div>
   </div>
 );
 
 /** Layout wrapper for pages with HallSidebar */
 const HallLayout = ({ children }) => (
-  <div className="flex">
+  <div className="flex min-h-screen">
     <HallSidebar />
-    <div className="flex-1 p-6">{children}</div>
+    <div className="flex-1 ml-64 p-6">{children}</div>
   </div>
 );
 
-/** Layout wrapper for pages with HallSidebar */
+/** Layout wrapper for pages with TimeSidebar */
 const TimeLayout = ({ children }) => (
-  <div className="flex">
+  <div className="flex min-h-screen">
     <TimeSidebar />
-    <div className="flex-1 p-6">{children}</div>
+    <div className="flex-1 ml-64 p-6">{children}</div>
   </div>
 );
 
-
-/** Layout wrapper for pages with HallSidebar */
+/** Layout wrapper for pages with SubSidebar */
 const SubjectLayout = ({ children }) => (
-  <div className="flex">
+  <div className="flex min-h-screen">
     <SubSidebar />
-    <div className="flex-1 p-6">{children}</div>
+    <div className="flex-1 ml-64 p-6">{children}</div>
   </div>
 );
-
 
 function App() {
   return (
@@ -85,6 +85,8 @@ function App() {
       <Route path="/AboutPage" element={<AboutPage />} />
       <Route path="/FAQPage" element={<FAQPage />} />
       <Route path="/SignupPage" element={<SignupPage />} />
+      <Route path="/StudentDashboard" element={<StudentDashboard />} />
+      <Route path="/StudentProfile" element={<StudentProfile />} />
 
         {/* Routes with Main Sidebar */}
         <Route path="/lecHome" element={<MainLayout><HomePage /></MainLayout>} />
@@ -94,7 +96,7 @@ function App() {
         <Route path="/LecturerWorkload" element={<MainLayout><LecturerWorkload /></MainLayout>} />
         <Route path="/PrintableReports" element={<MainLayout><PrintableReports /></MainLayout>} />
         <Route path="/BatchOverviewReport" element={<MainLayout><BatchOverviewReport /></MainLayout>} />
-        <Route path="/LecturerAllocations" element={<LecturerAllocations />} />
+        <Route path="/LecturerAllocations" element={<MainLayout><LecturerAllocations /></MainLayout>} />
 
         {/* Routes with Hall Sidebar */}
         <Route path="/HallHome" element={<HallLayout><HallHome /></HallLayout>} />

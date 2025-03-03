@@ -8,10 +8,12 @@ export default function LecturerList() {
   const [newLecturer, setNewLecturer] = useState({
     name: "",
     lecturerId: "",
-    email: "", // Added email to initial state
+    email: "",
     department: "Faculty of Computing",
     scheduleType: "Weekdays",
+    skills: [],
   });
+  const [skillInput, setSkillInput] = useState("");
 
   useEffect(() => {
     axios.get("http://localhost:5000/api/lecturers").then((res) => {
@@ -40,11 +42,30 @@ export default function LecturerList() {
         email: "",
         department: "Faculty of Computing",
         scheduleType: "Weekdays",
+        skills: [],
       });
       setEditingLecturer(null);
+      setSkillInput("");
     } catch (err) {
       console.log(err.response ? err.response.data : err);
     }
+  };
+
+  const handleAddSkill = (e) => {
+    if (e.key === "Enter" && skillInput.trim()) {
+      setNewLecturer({
+        ...newLecturer,
+        skills: [...newLecturer.skills, skillInput.trim()],
+      });
+      setSkillInput("");
+    }
+  };
+
+  const handleRemoveSkill = (skillToRemove) => {
+    setNewLecturer({
+      ...newLecturer,
+      skills: newLecturer.skills.filter((skill) => skill !== skillToRemove),
+    });
   };
 
   const handleDeleteLecturer = async (id) => {
@@ -56,7 +77,6 @@ export default function LecturerList() {
     }
   };
 
-  // Calculate stats for stat cards
   const totalLecturers = lecturers.length;
   const deptCounts = {
     "Faculty of Computing": lecturers.filter((lect) => lect.department === "Faculty of Computing").length,
@@ -92,9 +112,7 @@ export default function LecturerList() {
         </div>
       </div>
 
-      {/* Stat Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        {/* Total Lecturers */}
         <div className="bg-white rounded-xl shadow-md p-6 border border-[#E2E8F0] flex items-center gap-4 hover:shadow-lg transition-all duration-300">
           <div className="bg-[#1B365D]/10 p-3 rounded-full">
             <svg className="w-6 h-6 text-[#1B365D]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -107,7 +125,6 @@ export default function LecturerList() {
           </div>
         </div>
 
-        {/* Lecturers by Department */}
         <div className="bg-white rounded-xl shadow-md p-6 border border-[#E2E8F0] flex items-center gap-4 hover:shadow-lg transition-all duration-300">
           <div className="bg-[#1B365D]/10 p-3 rounded-full">
             <svg className="w-6 h-6 text-[#1B365D]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -126,7 +143,6 @@ export default function LecturerList() {
           </div>
         </div>
 
-        {/* Availability */}
         <div className="bg-white rounded-xl shadow-md p-6 border border-[#E2E8F0] flex items-center gap-4 hover:shadow-lg transition-all duration-300">
           <div className="bg-[#1B365D]/10 p-3 rounded-full">
             <svg className="w-6 h-6 text-[#1B365D]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -141,7 +157,6 @@ export default function LecturerList() {
           </div>
         </div>
 
-        {/* Placeholder for Average Workload (if data available) */}
         <div className="bg-white rounded-xl shadow-md p-6 border border-[#E2E8F0] flex items-center gap-4 hover:shadow-lg transition-all duration-300">
           <div className="bg-[#1B365D]/10 p-3 rounded-full">
             <svg className="w-6 h-6 text-[#1B365D]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -179,6 +194,7 @@ export default function LecturerList() {
               <th className="text-left p-4 font-medium text-[#1B365D]">Lecturer ID</th>
               <th className="text-left p-4 font-medium text-[#1B365D]">Department</th>
               <th className="text-left p-4 font-medium text-[#1B365D]">Availability</th>
+              <th className="text-left p-4 font-medium text-[#1B365D]">Skills</th>
               <th className="text-left p-4 font-medium text-[#1B365D]">Actions</th>
             </tr>
           </thead>
@@ -191,6 +207,18 @@ export default function LecturerList() {
                 </td>
                 <td className="p-4 text-[#1B365D]">{lecturer.department}</td>
                 <td className="p-4 text-[#1B365D]">{lecturer.scheduleType}</td>
+                <td className="p-4">
+                  <div className="flex flex-wrap gap-2">
+                    {lecturer.skills.map((skill, index) => (
+                      <span
+                        key={index}
+                        className="bg-[#1B365D] text-white text-xs px-2 py-1 rounded-full"
+                      >
+                        {skill}
+                      </span>
+                    ))}
+                  </div>
+                </td>
                 <td className="p-4">
                   <div className="flex gap-4">
                     <button
@@ -324,6 +352,36 @@ export default function LecturerList() {
                     />
                     Weekend
                   </label>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-2 text-[#1B365D]">
+                  Skills (Press Enter to add)
+                </label>
+                <input
+                  type="text"
+                  value={skillInput}
+                  onChange={(e) => setSkillInput(e.target.value)}
+                  onKeyPress={handleAddSkill}
+                  className="w-full p-2 border border-[#F5F7FA] rounded-lg bg-[#F5F7FA] text-[#1B365D]"
+                  placeholder="Type a skill and press Enter"
+                />
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {newLecturer.skills.map((skill, index) => (
+                    <div
+                      key={index}
+                      className="bg-[#1B365D] text-white text-xs px-2 py-1 rounded-full flex items-center gap-1"
+                    >
+                      {skill}
+                      <button
+                        onClick={() => handleRemoveSkill(skill)}
+                        className="text-white hover:text-gray-200"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  ))}
                 </div>
               </div>
             </div>
