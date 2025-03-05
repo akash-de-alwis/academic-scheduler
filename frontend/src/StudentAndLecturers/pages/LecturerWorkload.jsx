@@ -37,18 +37,17 @@ export default function LecturerWorkload() {
 
     const processWorkloadData = (lecturersData, allocationsData) => {
         return lecturersData.map(lecturer => {
-            const lecturerAllocations = allocationsData.filter(
-                allocation => allocation.lecturerId === lecturer.lecturerId
-            );
-            
-            // Flatten the subjects array from each allocation
-            const assignedCourses = lecturerAllocations.flatMap(allocation => 
-                allocation.subjects.map(subject => ({
-                    subjectId: subject.subjectId,
-                    subjectName: subject.subjectName,
-                    batchName: allocation.batchName
-                }))
-            );
+            // Collect all subjects assigned to this lecturer across all allocations
+            const assignedCourses = allocationsData
+                .flatMap(allocation => 
+                    allocation.subjects
+                        .filter(subject => subject.lecturerId === lecturer.lecturerId)
+                        .map(subject => ({
+                            subjectId: subject.subjectId,
+                            subjectName: subject.subjectName,
+                            batchName: allocation.batchName
+                        }))
+                );
             
             const workloadPercentage = (assignedCourses.length / maxAllowedCourses) * 100;
             
@@ -172,7 +171,7 @@ export default function LecturerWorkload() {
                 )}
             </div>
 
-            {/* Updated Lecturer Workload Cards */}
+            {/* Lecturer Workload Cards - Design Unchanged */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {loading ? (
                     <div className="col-span-3 flex justify-center items-center p-12">
@@ -197,7 +196,7 @@ export default function LecturerWorkload() {
                                 <div className="flex justify-between items-center">
                                     <div className="flex items-center gap-2">
                                         <div className="bg-white/20 p-1.5 rounded-lg">
-                                            <svg className="w-4 h-4" viewBox="0 0 24  यो24" fill="none" stroke="currentColor" strokeWidth="2">
+                                            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                                 <path d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                                             </svg>
                                         </div>
@@ -258,7 +257,7 @@ export default function LecturerWorkload() {
                                     </div>
                                 </div>
                                 
-                                {/* Updated Assigned Courses Section */}
+                                {/* Assigned Courses Section */}
                                 <div>
                                     <div className="flex justify-between items-center mb-2">
                                         <p className="text-xs font-medium text-gray-400 uppercase tracking-wider">Assigned Courses</p>

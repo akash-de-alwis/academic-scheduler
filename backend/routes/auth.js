@@ -46,13 +46,23 @@ router.get('/me', authenticateToken, async (req, res) => {
     if (!user) return res.status(404).json({ message: 'User not found' });
     res.json(user);
   } catch (error) {
+    console.error("Error fetching user:", error);
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 });
 
 // Update current user info with profile photo
 router.put('/me', authenticateToken, upload.single('profilePhoto'), async (req, res) => {
-  const { fullName, batch, currentYear, currentSemester, cgpa, department } = req.body;
+  const { 
+    fullName, 
+    batch, 
+    currentYear, 
+    currentSemester, 
+    cgpa, 
+    department,
+    designation,
+    officeHours
+  } = req.body;
 
   try {
     const user = await User.findById(req.user.id);
@@ -60,21 +70,24 @@ router.put('/me', authenticateToken, upload.single('profilePhoto'), async (req, 
 
     // Update only provided fields
     user.fullName = fullName || user.fullName;
-    user.batch = batch !== undefined ? batch : user.batch; // Allow empty string
+    user.batch = batch !== undefined ? batch : user.batch;
     user.currentYear = currentYear !== undefined ? currentYear : user.currentYear;
     user.currentSemester = currentSemester !== undefined ? currentSemester : user.currentSemester;
     user.cgpa = cgpa !== undefined ? cgpa : user.cgpa;
     user.department = department !== undefined ? department : user.department;
+    user.designation = designation !== undefined ? designation : user.designation;
+    user.officeHours = officeHours !== undefined ? officeHours : user.officeHours;
 
     if (req.file) {
-      user.profilePhoto = `/uploads/${req.file.filename}`; // Store relative path
+      user.profilePhoto = `/uploads/${req.file.filename}`;
     }
 
     await user.save();
-    const updatedUser = await User.findById(req.user.id).select('-password'); // Return without password
+    const updatedUser = await User.findById(req.user.id).select('-password');
     res.json(updatedUser);
   } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message });
+    console.error("Error updating user:", JSON.stringify(error, null, 2));
+    res.status(400).json({ message: 'Validation error or bad request', error: error.message });
   }
 });
 
@@ -109,6 +122,7 @@ router.post('/signup', async (req, res) => {
 
     res.status(201).json({ token, message: 'Signup successful' });
   } catch (error) {
+    console.error("Error during signup:", error);
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 });
@@ -140,6 +154,7 @@ router.post('/login', async (req, res) => {
 
     res.status(200).json({ token, message: 'Login successful' });
   } catch (error) {
+    console.error("Error during login:", error);
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 });

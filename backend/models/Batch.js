@@ -2,6 +2,12 @@ const mongoose = require("mongoose");
 
 const batchSchema = new mongoose.Schema({
   batchName: { type: String, required: true },
+  intake: { 
+    type: String, 
+    enum: ["Regular", "Main"], 
+    required: true, 
+    default: "Regular" 
+  },
   batchNo: { type: String, required: true },
   year: { type: Number, required: true },
   semester: { 
