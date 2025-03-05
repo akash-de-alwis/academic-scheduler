@@ -1,10 +1,17 @@
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom"; // Added useNavigate
 
 export default function Sidebar() {
   const location = useLocation();
+  const navigate = useNavigate(); // Added navigate hook
 
   const isActive = (path) => {
     return location.pathname === path;
+  };
+
+  // Logout handler
+  const handleLogout = () => {
+    localStorage.removeItem('token'); // Remove token from localStorage
+    navigate('/LoginPage'); // Redirect to login page
   };
 
   return (
@@ -151,6 +158,34 @@ export default function Sidebar() {
             </div>
             Reports
           </Link>
+
+          {/* Added Logout Navigation Item */}
+          <button
+            onClick={handleLogout}
+            className={`flex items-center py-3 px-4 rounded-lg text-[#1B365D] hover:bg-[#F5F7FA] hover:shadow-sm transition-all duration-300 w-full text-left ${
+              isActive("/LoginPage")
+                ? "bg-[#1B365D] text-[#FFFFFF] hover:bg-[#1B365D]/90 font-semibold"
+                : "font-medium"
+            }`}
+          >
+            <div className="w-8 h-8 flex items-center justify-center mr-3">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-5 w-5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
+                />
+              </svg>
+            </div>
+            Logout
+          </button>
         </nav>
       </div>
     </div>

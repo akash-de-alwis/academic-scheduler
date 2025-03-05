@@ -7,13 +7,14 @@ export default function LecturerList() {
   const [editingLecturer, setEditingLecturer] = useState(null);
   const [newLecturer, setNewLecturer] = useState({
     name: "",
-    lecturerId: "",
+    lecturerId: "LEC",
     email: "",
     department: "Faculty of Computing",
     scheduleType: "Weekdays",
     skills: [],
   });
   const [skillInput, setSkillInput] = useState("");
+  const [formErrors, setFormErrors] = useState({});
 
   useEffect(() => {
     axios.get("http://localhost:5000/api/lecturers").then((res) => {
@@ -21,7 +22,29 @@ export default function LecturerList() {
     });
   }, []);
 
+  const validateForm = () => {
+    const errors = {};
+    
+    if (!newLecturer.name.trim()) errors.name = "Name is required";
+    
+    if (!newLecturer.lecturerId) errors.lecturerId = "Lecturer ID is required";
+    else if (!/^LEC\d{3}$/.test(newLecturer.lecturerId)) 
+      errors.lecturerId = "Must be LEC followed by 3 numbers";
+    
+    if (!newLecturer.email.trim()) errors.email = "Email is required";
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newLecturer.email)) 
+      errors.email = "Invalid email format";
+    
+    if (newLecturer.skills.length < 3) 
+      errors.skills = "At least 3 skills are required";
+
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
   const handleSaveLecturer = async () => {
+    if (!validateForm()) return;
+
     try {
       if (editingLecturer) {
         const res = await axios.put(
@@ -38,7 +61,7 @@ export default function LecturerList() {
       setShowForm(false);
       setNewLecturer({
         name: "",
-        lecturerId: "",
+        lecturerId: "LEC",
         email: "",
         department: "Faculty of Computing",
         scheduleType: "Weekdays",
@@ -46,6 +69,7 @@ export default function LecturerList() {
       });
       setEditingLecturer(null);
       setSkillInput("");
+      setFormErrors({});
     } catch (err) {
       console.log(err.response ? err.response.data : err);
     }
@@ -77,6 +101,18 @@ export default function LecturerList() {
     }
   };
 
+  const handleLecturerIdChange = (index, value) => {
+    const idArray = newLecturer.lecturerId.split("");
+    while (idArray.length < 6) idArray.push("");
+    
+    // Only allow changes for the number positions (3, 4, 5)
+    if (index > 2 && value && !/^\d$/.test(value)) return;
+    if (index <= 2) return; // Prevent changes to L, E, C
+    
+    idArray[index] = value;
+    setNewLecturer({ ...newLecturer, lecturerId: idArray.join("") });
+  };
+
   // Lecturer stats
   const totalLecturers = lecturers.length;
   const deptCounts = {
@@ -96,7 +132,7 @@ export default function LecturerList() {
   });
   const topSkills = Object.entries(skillsCount)
     .sort((a, b) => b[1] - a[1])
-    .slice(0, 2); // Get top 2 skills
+    .slice(0, 2);
 
   return (
     <div className="min-h-screen p-8 bg-[#FFFFFF]">
@@ -125,7 +161,6 @@ export default function LecturerList() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        {/* Total Lecturers Card */}
         <div className="bg-white rounded-xl shadow-md p-6 border border-[#E2E8F0] flex items-center gap-4 hover:shadow-lg transition-all duration-300">
           <div className="bg-[#1B365D]/10 p-3 rounded-full">
             <svg className="w-6 h-6 text-[#1B365D]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -138,7 +173,6 @@ export default function LecturerList() {
           </div>
         </div>
 
-        {/* By Department Card */}
         <div className="bg-white rounded-xl shadow-md p-6 border border-[#E2E8F0] flex items-center gap-4 hover:shadow-lg transition-all duration-300">
           <div className="bg-[#1B365D]/10 p-3 rounded-full">
             <svg className="w-6 h-6 text-[#1B365D]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -157,7 +191,6 @@ export default function LecturerList() {
           </div>
         </div>
 
-        {/* Availability Card */}
         <div className="bg-white rounded-xl shadow-md p-6 border border-[#E2E8F0] flex items-center gap-4 hover:shadow-lg transition-all duration-300">
           <div className="bg-[#1B365D]/10 p-3 rounded-full">
             <svg className="w-6 h-6 text-[#1B365D]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -172,7 +205,6 @@ export default function LecturerList() {
           </div>
         </div>
 
-        {/* Skills Distribution Card */}
         <div className="bg-white rounded-xl shadow-md p-6 border border-[#E2E8F0] flex items-center gap-4 hover:shadow-lg transition-all duration-300">
           <div className="bg-[#1B365D]/10 p-3 rounded-full">
             <svg className="w-6 h-6 text-[#1B365D]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -305,20 +337,30 @@ export default function LecturerList() {
                   type="text"
                   value={newLecturer.name}
                   onChange={(e) => setNewLecturer({ ...newLecturer, name: e.target.value })}
-                  className="w-full p-2 border border-[#F5F7FA] rounded-lg bg-[#F5F7FA] text-[#1B365D]"
+                  placeholder="Enter lecturer name"
+                  className={`w-full p-2 border ${formErrors.name ? 'border-red-500' : 'border-[#F5F7FA]'} rounded-lg bg-[#F5F7FA] text-[#1B365D]`}
                 />
+                {formErrors.name && <p className="text-red-500 text-xs mt-1">{formErrors.name}</p>}
               </div>
 
               <div>
                 <label className="block text-sm font-medium mb-2 text-[#1B365D]">
-                  Lecturer ID
+                  Lecturer ID (LEC###)
                 </label>
-                <input
-                  type="text"
-                  value={newLecturer.lecturerId}
-                  onChange={(e) => setNewLecturer({ ...newLecturer, lecturerId: e.target.value })}
-                  className="w-full p-2 border border-[#F5F7FA] rounded-lg bg-[#F5F7FA] text-[#1B365D]"
-                />
+                <div className="flex gap-1">
+                  {[...Array(6)].map((_, i) => (
+                    <input
+                      key={i}
+                      type="text"
+                      maxLength={1}
+                      value={i === 0 ? "L" : i === 1 ? "E" : i === 2 ? "C" : newLecturer.lecturerId[i] || ""}
+                      onChange={(e) => handleLecturerIdChange(i, e.target.value)}
+                      disabled={i < 3}
+                      className={`w-12 p-2 text-center border ${formErrors.lecturerId ? 'border-red-500' : 'border-[#F5F7FA]'} rounded-lg bg-[#F5F7FA] text-[#1B365D] ${i < 3 ? 'cursor-not-allowed opacity-75' : ''}`}
+                    />
+                  ))}
+                </div>
+                {formErrors.lecturerId && <p className="text-red-500 text-xs mt-1">{formErrors.lecturerId}</p>}
               </div>
 
               <div>
@@ -329,8 +371,10 @@ export default function LecturerList() {
                   type="email"
                   value={newLecturer.email}
                   onChange={(e) => setNewLecturer({ ...newLecturer, email: e.target.value })}
-                  className="w-full p-2 border border-[#F5F7FA] rounded-lg bg-[#F5F7FA] text-[#1B365D]"
+                  placeholder="Enter email (e.g., name@domain.com)"
+                  className={`w-full p-2 border ${formErrors.email ? 'border-red-500' : 'border-[#F5F7FA]'} rounded-lg bg-[#F5F7FA] text-[#1B365D]`}
                 />
+                {formErrors.email && <p className="text-red-500 text-xs mt-1">{formErrors.email}</p>}
               </div>
 
               <div>
@@ -342,9 +386,9 @@ export default function LecturerList() {
                   onChange={(e) => setNewLecturer({ ...newLecturer, department: e.target.value })}
                   className="w-full p-2 border border-[#F5F7FA] rounded-lg bg-[#F5F7FA] text-[#1B365D]"
                 >
-                  <option>Faculty of Computing</option>
-                  <option>Faculty of Engineering</option>
-                  <option>Faculty of Business Studies</option>
+                  <option value="Faculty of Computing">Faculty of Computing</option>
+                  <option value="Faculty of Engineering">Faculty of Engineering</option>
+                  <option value="Faculty of Business Studies">Faculty of Business Studies</option>
                 </select>
               </div>
 
@@ -380,15 +424,15 @@ export default function LecturerList() {
 
               <div>
                 <label className="block text-sm font-medium mb-2 text-[#1B365D]">
-                  Skills (Press Enter to add)
+                  Skills (Press Enter to add, minimum 3 required)
                 </label>
                 <input
                   type="text"
                   value={skillInput}
                   onChange={(e) => setSkillInput(e.target.value)}
                   onKeyPress={handleAddSkill}
-                  className="w-full p-2 border border-[#F5F7FA] rounded-lg bg-[#F5F7FA] text-[#1B365D]"
                   placeholder="Type a skill and press Enter"
+                  className={`w-full p-2 border ${formErrors.skills ? 'border-red-500' : 'border-[#F5F7FA]'} rounded-lg bg-[#F5F7FA] text-[#1B365D]`}
                 />
                 <div className="mt-2 flex flex-wrap gap-2">
                   {newLecturer.skills.map((skill, index) => (
@@ -406,6 +450,7 @@ export default function LecturerList() {
                     </div>
                   ))}
                 </div>
+                {formErrors.skills && <p className="text-red-500 text-xs mt-1">{formErrors.skills}</p>}
               </div>
             </div>
 

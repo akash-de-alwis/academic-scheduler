@@ -193,7 +193,7 @@ export default function StudentDashboard() {
                 <User className="w-5 h-5" /> Profile
               </Link>
               <Link
-                to="/batch-details"
+                to="/StudentPortal"
                 className="w-full text-left p-3 bg-[#F5F7FA] rounded-lg text-[#1B365D] hover:bg-[#1B365D]/10 flex items-center gap-2"
               >
                 <Users className="w-5 h-5" /> Batch Details

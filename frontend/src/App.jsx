@@ -11,6 +11,7 @@ import FAQPage from "./ClientsidePages/FAQPage";
 import SignupPage from "./ClientsidePages/SignupPage";
 import StudentDashboard from "./ClientsidePages/StudentDashboard";
 import StudentProfile from "./ClientsidePages/StudentProfile";
+import StudentPortal from "./StudentAndLecturers/pages/StudentPortal";
 
 import StaffDashboard from "./Home/StaffDashboard";
 import StaffProfile from "./Home/StaffProfile";
@@ -22,6 +23,7 @@ import LecturerWorkload from "./StudentAndLecturers/pages/LecturerWorkload";
 import PrintableReports from "./StudentAndLecturers/pages/PrintableReports";
 import BatchOverviewReport from "./StudentAndLecturers/pages/BatchOverviewReport";
 import LecturerAllocations from "./StudentAndLecturers/pages/LecturerAllocations";
+import AllocationReport from "./StudentAndLecturers/pages/AllocationReport";
 
 import HallHome from "./LectureHallAllocation/pages/HallHome";
 import RoomList from "./LectureHallAllocation/pages/RoomList";
@@ -89,6 +91,7 @@ function App() {
       <Route path="/SignupPage" element={<SignupPage />} />
       <Route path="/StudentDashboard" element={<StudentDashboard />} />
       <Route path="/StudentProfile" element={<StudentProfile />} />
+      <Route path="/StudentPortal" element={<StudentPortal />} />
 
         {/* Routes with Main Sidebar */}
         <Route path="/lecHome" element={<MainLayout><HomePage /></MainLayout>} />
@@ -99,6 +102,7 @@ function App() {
         <Route path="/PrintableReports" element={<MainLayout><PrintableReports /></MainLayout>} />
         <Route path="/BatchOverviewReport" element={<MainLayout><BatchOverviewReport /></MainLayout>} />
         <Route path="/LecturerAllocations" element={<MainLayout><LecturerAllocations /></MainLayout>} />
+        <Route path="/AllocationReport" element={<MainLayout><AllocationReport /></MainLayout>} />
 
         {/* Routes with Hall Sidebar */}
         <Route path="/HallHome" element={<HallLayout><HallHome /></HallLayout>} />
