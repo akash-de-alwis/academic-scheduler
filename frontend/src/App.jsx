@@ -31,6 +31,8 @@ import BookingReview from "./LectureHallAllocation/pages/BookingReview";
 import TimeHome from "./TimetableManagement/pages/TimeHome";
 import TimetableList from "./TimetableManagement/pages/TimetableList";
 
+
+
 import SubHome from "./CourseAllocation/pages/SubHome";
 import SubjectList from "./CourseAllocation/pages/SubjectList";
 import ReportGeneration from "./CourseAllocation/pages/ReportGeneration";
@@ -108,6 +110,11 @@ function App() {
         {/* Routes with Time Sidebar */}
         <Route path="/TimeHome" element={<TimeLayout><TimeHome /></TimeLayout>} />
         <Route path="/TimetableList" element={<TimeLayout><TimetableList /></TimeLayout>} />
+       
+
+ 
+      
+      
 
 
         {/* Routes with course Sidebar */}
