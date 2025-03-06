@@ -19,7 +19,11 @@ const LoginPage = () => {
       });
       localStorage.setItem('token', response.data.token); // Store JWT
       console.log(response.data.message);
-      navigate('/AcSHomepage'); // Redirect to homepage or dashboard
+      if (role === "Student") {
+        navigate("/StudentDashboard"); // Redirect students to their dashboard
+      } else {
+      navigate('/StaffDashboard'); // Redirect to homepage or dashboard
+      } 
     } catch (err) {
       setError(err.response?.data?.message || 'Login failed');
     }

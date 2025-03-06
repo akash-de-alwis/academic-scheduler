@@ -7,11 +7,14 @@ export default function LecturerList() {
   const [editingLecturer, setEditingLecturer] = useState(null);
   const [newLecturer, setNewLecturer] = useState({
     name: "",
-    lecturerId: "",
-    email: "", // Added email to initial state
+    lecturerId: "LEC",
+    email: "",
     department: "Faculty of Computing",
     scheduleType: "Weekdays",
+    skills: [],
   });
+  const [skillInput, setSkillInput] = useState("");
+  const [formErrors, setFormErrors] = useState({});
 
   useEffect(() => {
     axios.get("http://localhost:5000/api/lecturers").then((res) => {
@@ -19,7 +22,29 @@ export default function LecturerList() {
     });
   }, []);
 
+  const validateForm = () => {
+    const errors = {};
+    
+    if (!newLecturer.name.trim()) errors.name = "Name is required";
+    
+    if (!newLecturer.lecturerId) errors.lecturerId = "Lecturer ID is required";
+    else if (!/^LEC\d{3}$/.test(newLecturer.lecturerId)) 
+      errors.lecturerId = "Must be LEC followed by 3 numbers";
+    
+    if (!newLecturer.email.trim()) errors.email = "Email is required";
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newLecturer.email)) 
+      errors.email = "Invalid email format";
+    
+    if (newLecturer.skills.length < 3) 
+      errors.skills = "At least 3 skills are required";
+
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
   const handleSaveLecturer = async () => {
+    if (!validateForm()) return;
+
     try {
       if (editingLecturer) {
         const res = await axios.put(
@@ -36,15 +61,35 @@ export default function LecturerList() {
       setShowForm(false);
       setNewLecturer({
         name: "",
-        lecturerId: "",
+        lecturerId: "LEC",
         email: "",
         department: "Faculty of Computing",
         scheduleType: "Weekdays",
+        skills: [],
       });
       setEditingLecturer(null);
+      setSkillInput("");
+      setFormErrors({});
     } catch (err) {
       console.log(err.response ? err.response.data : err);
     }
+  };
+
+  const handleAddSkill = (e) => {
+    if (e.key === "Enter" && skillInput.trim()) {
+      setNewLecturer({
+        ...newLecturer,
+        skills: [...newLecturer.skills, skillInput.trim()],
+      });
+      setSkillInput("");
+    }
+  };
+
+  const handleRemoveSkill = (skillToRemove) => {
+    setNewLecturer({
+      ...newLecturer,
+      skills: newLecturer.skills.filter((skill) => skill !== skillToRemove),
+    });
   };
 
   const handleDeleteLecturer = async (id) => {
@@ -56,7 +101,19 @@ export default function LecturerList() {
     }
   };
 
-  // Calculate stats for stat cards
+  const handleLecturerIdChange = (index, value) => {
+    const idArray = newLecturer.lecturerId.split("");
+    while (idArray.length < 6) idArray.push("");
+    
+    // Only allow changes for the number positions (3, 4, 5)
+    if (index > 2 && value && !/^\d$/.test(value)) return;
+    if (index <= 2) return; // Prevent changes to L, E, C
+    
+    idArray[index] = value;
+    setNewLecturer({ ...newLecturer, lecturerId: idArray.join("") });
+  };
+
+  // Lecturer stats
   const totalLecturers = lecturers.length;
   const deptCounts = {
     "Faculty of Computing": lecturers.filter((lect) => lect.department === "Faculty of Computing").length,
@@ -65,6 +122,17 @@ export default function LecturerList() {
   };
   const weekdaysCount = lecturers.filter((lect) => lect.scheduleType === "Weekdays").length;
   const weekendCount = lecturers.filter((lect) => lect.scheduleType === "Weekend").length;
+
+  // Skills Distribution calculation
+  const skillsCount = {};
+  lecturers.forEach((lecturer) => {
+    lecturer.skills.forEach((skill) => {
+      skillsCount[skill] = (skillsCount[skill] || 0) + 1;
+    });
+  });
+  const topSkills = Object.entries(skillsCount)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 2);
 
   return (
     <div className="min-h-screen p-8 bg-[#FFFFFF]">
@@ -92,9 +160,7 @@ export default function LecturerList() {
         </div>
       </div>
 
-      {/* Stat Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        {/* Total Lecturers */}
         <div className="bg-white rounded-xl shadow-md p-6 border border-[#E2E8F0] flex items-center gap-4 hover:shadow-lg transition-all duration-300">
           <div className="bg-[#1B365D]/10 p-3 rounded-full">
             <svg className="w-6 h-6 text-[#1B365D]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -107,7 +173,6 @@ export default function LecturerList() {
           </div>
         </div>
 
-        {/* Lecturers by Department */}
         <div className="bg-white rounded-xl shadow-md p-6 border border-[#E2E8F0] flex items-center gap-4 hover:shadow-lg transition-all duration-300">
           <div className="bg-[#1B365D]/10 p-3 rounded-full">
             <svg className="w-6 h-6 text-[#1B365D]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -126,7 +191,6 @@ export default function LecturerList() {
           </div>
         </div>
 
-        {/* Availability */}
         <div className="bg-white rounded-xl shadow-md p-6 border border-[#E2E8F0] flex items-center gap-4 hover:shadow-lg transition-all duration-300">
           <div className="bg-[#1B365D]/10 p-3 rounded-full">
             <svg className="w-6 h-6 text-[#1B365D]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -141,18 +205,24 @@ export default function LecturerList() {
           </div>
         </div>
 
-        {/* Placeholder for Average Workload (if data available) */}
         <div className="bg-white rounded-xl shadow-md p-6 border border-[#E2E8F0] flex items-center gap-4 hover:shadow-lg transition-all duration-300">
           <div className="bg-[#1B365D]/10 p-3 rounded-full">
             <svg className="w-6 h-6 text-[#1B365D]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M3 3h18v18H3z" />
-              <path d="M9 9h6v6H9z" />
+              <path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
           </div>
           <div>
-            <p className="text-sm font-medium text-gray-500">Avg. Workload</p>
-            <p className="text-2xl font-bold text-[#1B365D]">N/A</p>
-            <p className="text-sm text-gray-600">Pending Data</p>
+            <p className="text-sm font-medium text-gray-500">Top Skills</p>
+            {topSkills.length > 0 ? (
+              <>
+                <p className="text-lg font-semibold text-[#1B365D]">{topSkills[0][0]} ({topSkills[0][1]})</p>
+                <p className="text-sm text-gray-600">
+                  {topSkills[1] ? `${topSkills[1][0]} (${topSkills[1][1]})` : "N/A"}
+                </p>
+              </>
+            ) : (
+              <p className="text-sm text-gray-600">No skills data</p>
+            )}
           </div>
         </div>
       </div>
@@ -179,6 +249,7 @@ export default function LecturerList() {
               <th className="text-left p-4 font-medium text-[#1B365D]">Lecturer ID</th>
               <th className="text-left p-4 font-medium text-[#1B365D]">Department</th>
               <th className="text-left p-4 font-medium text-[#1B365D]">Availability</th>
+              <th className="text-left p-4 font-medium text-[#1B365D]">Skills</th>
               <th className="text-left p-4 font-medium text-[#1B365D]">Actions</th>
             </tr>
           </thead>
@@ -191,6 +262,18 @@ export default function LecturerList() {
                 </td>
                 <td className="p-4 text-[#1B365D]">{lecturer.department}</td>
                 <td className="p-4 text-[#1B365D]">{lecturer.scheduleType}</td>
+                <td className="p-4">
+                  <div className="flex flex-wrap gap-2">
+                    {lecturer.skills.map((skill, index) => (
+                      <span
+                        key={index}
+                        className="bg-[#1B365D] text-white text-xs px-2 py-1 rounded-full"
+                      >
+                        {skill}
+                      </span>
+                    ))}
+                  </div>
+                </td>
                 <td className="p-4">
                   <div className="flex gap-4">
                     <button
@@ -254,20 +337,30 @@ export default function LecturerList() {
                   type="text"
                   value={newLecturer.name}
                   onChange={(e) => setNewLecturer({ ...newLecturer, name: e.target.value })}
-                  className="w-full p-2 border border-[#F5F7FA] rounded-lg bg-[#F5F7FA] text-[#1B365D]"
+                  placeholder="Enter lecturer name"
+                  className={`w-full p-2 border ${formErrors.name ? 'border-red-500' : 'border-[#F5F7FA]'} rounded-lg bg-[#F5F7FA] text-[#1B365D]`}
                 />
+                {formErrors.name && <p className="text-red-500 text-xs mt-1">{formErrors.name}</p>}
               </div>
 
               <div>
                 <label className="block text-sm font-medium mb-2 text-[#1B365D]">
-                  Lecturer ID
+                  Lecturer ID (LEC###)
                 </label>
-                <input
-                  type="text"
-                  value={newLecturer.lecturerId}
-                  onChange={(e) => setNewLecturer({ ...newLecturer, lecturerId: e.target.value })}
-                  className="w-full p-2 border border-[#F5F7FA] rounded-lg bg-[#F5F7FA] text-[#1B365D]"
-                />
+                <div className="flex gap-1">
+                  {[...Array(6)].map((_, i) => (
+                    <input
+                      key={i}
+                      type="text"
+                      maxLength={1}
+                      value={i === 0 ? "L" : i === 1 ? "E" : i === 2 ? "C" : newLecturer.lecturerId[i] || ""}
+                      onChange={(e) => handleLecturerIdChange(i, e.target.value)}
+                      disabled={i < 3}
+                      className={`w-12 p-2 text-center border ${formErrors.lecturerId ? 'border-red-500' : 'border-[#F5F7FA]'} rounded-lg bg-[#F5F7FA] text-[#1B365D] ${i < 3 ? 'cursor-not-allowed opacity-75' : ''}`}
+                    />
+                  ))}
+                </div>
+                {formErrors.lecturerId && <p className="text-red-500 text-xs mt-1">{formErrors.lecturerId}</p>}
               </div>
 
               <div>
@@ -278,8 +371,10 @@ export default function LecturerList() {
                   type="email"
                   value={newLecturer.email}
                   onChange={(e) => setNewLecturer({ ...newLecturer, email: e.target.value })}
-                  className="w-full p-2 border border-[#F5F7FA] rounded-lg bg-[#F5F7FA] text-[#1B365D]"
+                  placeholder="Enter email (e.g., name@domain.com)"
+                  className={`w-full p-2 border ${formErrors.email ? 'border-red-500' : 'border-[#F5F7FA]'} rounded-lg bg-[#F5F7FA] text-[#1B365D]`}
                 />
+                {formErrors.email && <p className="text-red-500 text-xs mt-1">{formErrors.email}</p>}
               </div>
 
               <div>
@@ -291,9 +386,9 @@ export default function LecturerList() {
                   onChange={(e) => setNewLecturer({ ...newLecturer, department: e.target.value })}
                   className="w-full p-2 border border-[#F5F7FA] rounded-lg bg-[#F5F7FA] text-[#1B365D]"
                 >
-                  <option>Faculty of Computing</option>
-                  <option>Faculty of Engineering</option>
-                  <option>Faculty of Business Studies</option>
+                  <option value="Faculty of Computing">Faculty of Computing</option>
+                  <option value="Faculty of Engineering">Faculty of Engineering</option>
+                  <option value="Faculty of Business Studies">Faculty of Business Studies</option>
                 </select>
               </div>
 
@@ -325,6 +420,37 @@ export default function LecturerList() {
                     Weekend
                   </label>
                 </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-2 text-[#1B365D]">
+                  Skills (Press Enter to add, minimum 3 required)
+                </label>
+                <input
+                  type="text"
+                  value={skillInput}
+                  onChange={(e) => setSkillInput(e.target.value)}
+                  onKeyPress={handleAddSkill}
+                  placeholder="Type a skill and press Enter"
+                  className={`w-full p-2 border ${formErrors.skills ? 'border-red-500' : 'border-[#F5F7FA]'} rounded-lg bg-[#F5F7FA] text-[#1B365D]`}
+                />
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {newLecturer.skills.map((skill, index) => (
+                    <div
+                      key={index}
+                      className="bg-[#1B365D] text-white text-xs px-2 py-1 rounded-full flex items-center gap-1"
+                    >
+                      {skill}
+                      <button
+                        onClick={() => handleRemoveSkill(skill)}
+                        className="text-white hover:text-gray-200"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  ))}
+                </div>
+                {formErrors.skills && <p className="text-red-500 text-xs mt-1">{formErrors.skills}</p>}
               </div>
             </div>
 

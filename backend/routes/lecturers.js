@@ -1,5 +1,5 @@
 const express = require("express");
-const Lecturer = require("../models/Lecturer");  // Using require instead of import
+const Lecturer = require("../models/Lecturer");
 
 const router = express.Router();
 
@@ -44,4 +44,4 @@ router.delete("/:id", async (req, res) => {
   }
 });
 
-module.exports = router;  // Using module.exports to export the router
+module.exports = router;
