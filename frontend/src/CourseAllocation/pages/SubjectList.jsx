@@ -5,6 +5,8 @@ import { useLocation } from "react-router-dom";
 export default function SubjectList() {
   const location = useLocation();
   const [subjects, setSubjects] = useState([]);
+  const [filteredSubjects, setFilteredSubjects] = useState([]);
+  const [searchTerm, setSearchTerm] = useState("");
   const [showForm, setShowForm] = useState(false);
   const [editingSubject, setEditingSubject] = useState(null);
   const [newSubject, setNewSubject] = useState({
@@ -21,6 +23,7 @@ export default function SubjectList() {
   useEffect(() => {
     axios.get("http://localhost:5000/api/subjects").then((res) => {
       setSubjects(res.data);
+      setFilteredSubjects(res.data);
     });
   }, []);
 
@@ -30,6 +33,27 @@ export default function SubjectList() {
       setShowForm(true);
     }
   }, [location.state]);
+
+  // Filter subjects based on search term
+  useEffect(() => {
+    if (searchTerm.trim() === "") {
+      setFilteredSubjects(subjects);
+    } else {
+      const lowercasedSearch = searchTerm.toLowerCase();
+      const filtered = subjects.filter(
+        (subject) =>
+          subject.subjectName.toLowerCase().includes(lowercasedSearch) ||
+          subject.subjectID.toLowerCase().includes(lowercasedSearch) ||
+          subject.department.toLowerCase().includes(lowercasedSearch) ||
+          subject.year.toLowerCase().includes(lowercasedSearch)
+      );
+      setFilteredSubjects(filtered);
+    }
+  }, [searchTerm, subjects]);
+
+  const handleSearch = (e) => {
+    setSearchTerm(e.target.value);
+  };
 
   const validateForm = () => {
     const newErrors = {};
@@ -181,6 +205,8 @@ export default function SubjectList() {
         <input
           type="text"
           placeholder="Search subjects..."
+          value={searchTerm}
+          onChange={handleSearch}
           className="flex-1 px-4 py-2 border border-[#F5F7FA] rounded-lg bg-[#F5F7FA] text-[#1B365D]"
         />
         <button className="px-4 py-2 bg-[#F5F7FA] border border-[#F5F7FA] rounded-lg flex items-center gap-2 text-[#1B365D]">
@@ -206,43 +232,53 @@ export default function SubjectList() {
             </tr>
           </thead>
           <tbody>
-            {subjects.map((subject) => (
-              <tr key={subject._id} className="border-b border-[#FFFFFF]">
-                <td className="p-4 text-[#1B365D]">{subject.subjectName}</td>
-                <td className="p-4"><span className="text-[#1B365D] font-medium">{subject.subjectID}</span></td>
-                <td className="p-4 text-[#1B365D]">{subject.credit}</td>
-                <td className="p-4 text-[#1B365D]">{subject.timeDuration}</td>
-                <td className="p-4 text-[#1B365D]">{subject.department}</td>
-                <td className="p-4 text-[#1B365D]">{subject.year}</td>
-                <td className="p-4">
-                  <div className="flex gap-4">
-                    <button
-                      onClick={() => {
-                        setNewSubject(subject);
-                        setEditingSubject(subject);
-                        setShowForm(true);
-                        setErrors({});
-                      }}
-                      className="text-[#1B365D] hover:text-[#1B365D]/70"
-                    >
-                      <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
-                        <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
-                      </svg>
-                    </button>
-                    <button
-                      onClick={() => handleDeleteSubject(subject._id)}
-                      className="text-red-500 hover:text-red-600"
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M3 6h18"/>
-                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
-                      </svg>
-                    </button>
-                  </div>
+            {filteredSubjects.length > 0 ? (
+              filteredSubjects.map((subject) => (
+                <tr key={subject._id} className="border-b border-[#FFFFFF]">
+                  <td className="p-4 text-[#1B365D]">{subject.subjectName}</td>
+                  <td className="p-4"><span className="text-[#1B365D] font-medium">{subject.subjectID}</span></td>
+                  <td className="p-4 text-[#1B365D]">{subject.credit}</td>
+                  <td className="p-4 text-[#1B365D]">{subject.timeDuration}</td>
+                  <td className="p-4 text-[#1B365D]">{subject.department}</td>
+                  <td className="p-4 text-[#1B365D]">{subject.year}</td>
+                  <td className="p-4">
+                    <div className="flex gap-4">
+                      <button
+                        onClick={() => {
+                          setNewSubject(subject);
+                          setEditingSubject(subject);
+                          setShowForm(true);
+                          setErrors({});
+                        }}
+                        className="text-[#1B365D] hover:text-[#1B365D]/70"
+                      >
+                        <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
+                          <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
+                        </svg>
+                      </button>
+                      <button
+                        onClick={() => handleDeleteSubject(subject._id)}
+                        className="text-red-500 hover:text-red-600"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M3 6h18"/>
+                          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                        </svg>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td colSpan="7" className="p-4 text-center text-[#1B365D]">
+                  {searchTerm.trim() !== "" ? 
+                    "No subjects found matching your search." : 
+                    "No subjects available."}
                 </td>
               </tr>
-            ))}
+            )}
           </tbody>
         </table>
       </div>
