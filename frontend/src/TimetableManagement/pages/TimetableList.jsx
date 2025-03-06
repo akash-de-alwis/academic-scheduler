@@ -1,37 +1,45 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
 import { Search, ChevronDown, Upload, User, BookOpen } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 export default function TimetableList() {
   const [schedules, setSchedules] = useState([]);
   const [showForm, setShowForm] = useState(false);
   const [editingSchedule, setEditingSchedule] = useState(null);
-  const [selectedBatch, setSelectedBatch] = useState("All");
+  const [selectedBatch, setSelectedBatch] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [userType, setUserType] = useState(null);
   const [allocations, setAllocations] = useState([]);
   const [rooms, setRooms] = useState([]);
   const [newSchedule, setNewSchedule] = useState({
     allocationId: "",
-    subject: "",
-    date: "",
-    time: "",
-    duration: "1",
-    room: "",
-    lecturer: "",
     batch: "",
+    subjects: [],
   });
+  const navigate = useNavigate();
 
   useEffect(() => {
-    axios.get("http://localhost:5000/api/timetable").then((res) => {
-      const updatedSchedules = res.data.map((schedule) => ({
-        ...schedule,
-        duration: schedule.duration || "1",
-      }));
-      setSchedules(updatedSchedules);
-    });
-    axios.get("http://localhost:5000/api/allocations").then((res) => setAllocations(res.data));
-    axios.get("http://localhost:5000/api/rooms").then((res) => setRooms(res.data));
+    axios.get("http://localhost:5000/api/timetable")
+      .then((res) => {
+        const updatedSchedules = res.data.map((schedule) => ({
+          ...schedule,
+          subjects: schedule.subjects.map((sub) => ({
+            ...sub,
+            duration: sub.duration || "1",
+          })),
+        }));
+        setSchedules(updatedSchedules);
+      })
+      .catch((err) => console.error("Error fetching timetables:", err.response ? err.response.data : err.message));
+
+    axios.get("http://localhost:5000/api/allocations")
+      .then((res) => setAllocations(res.data))
+      .catch((err) => console.error("Error fetching allocations:", err.response ? err.response.data : err.message));
+
+    axios.get("http://localhost:5000/api/rooms")
+      .then((res) => setRooms(res.data))
+      .catch((err) => console.error("Error fetching rooms:", err.response ? err.response.data : err.message));
   }, []);
 
   const handleSaveSchedule = async () => {
@@ -49,20 +57,19 @@ export default function TimetableList() {
         setSchedules((prev) => [...prev, res.data]);
       }
       setShowForm(false);
-      setNewSchedule({
-        allocationId: "",
-        subject: "",
-        date: "",
-        time: "",
-        duration: "1",
-        room: "",
-        lecturer: "",
-        batch: "",
-      });
+      resetForm();
       setEditingSchedule(null);
     } catch (err) {
       console.log(err.response ? err.response.data : err);
     }
+  };
+
+  const resetForm = () => {
+    setNewSchedule({
+      allocationId: "",
+      batch: selectedBatch,
+      subjects: [],
+    });
   };
 
   const handleDeleteSchedule = async (id) => {
@@ -74,9 +81,41 @@ export default function TimetableList() {
     }
   };
 
-  const handleUploadTimetable = () => {
-    console.log("Upload timetable functionality");
-    alert("Timetable ready to be uploaded!");
+  const handleUploadTimetable = async () => {
+    try {
+      const batchSchedules = schedules.filter((s) => s.batch === selectedBatch);
+      if (batchSchedules.length === 0) {
+        alert("No schedules to upload for this batch!");
+        return;
+      }
+
+      // Validate each schedule
+      for (const schedule of batchSchedules) {
+        for (const subject of schedule.subjects) {
+          if (!subject.room || !subject.date || !subject.time) {
+            alert("All subjects must have a room, date, and time before uploading.");
+            return;
+          }
+        }
+      }
+
+      console.log("Uploading timetable:", { batch: selectedBatch, schedules: batchSchedules });
+      await axios.post("http://localhost:5000/api/timetable/published-timetable", {
+        batch: selectedBatch,
+        schedules: batchSchedules,
+      });
+
+      await axios.delete("http://localhost:5000/api/timetable/batch", {
+        data: { batch: selectedBatch },
+      });
+      setSchedules(schedules.filter((s) => s.batch !== selectedBatch));
+      setSelectedBatch("");
+      alert(`Timetable for ${selectedBatch} uploaded successfully!`);
+      navigate("/timetable-view", { state: { batch: selectedBatch } });
+    } catch (err) {
+      console.log("Upload error:", err.response ? err.response.data : err);
+      alert("Failed to upload timetable. Check console for details.");
+    }
   };
 
   const handleUserTypeSelect = (type) => {
@@ -91,20 +130,19 @@ export default function TimetableList() {
     );
     if (selectedAllocation) {
       setNewSchedule({
-        ...newSchedule,
         allocationId: selectedAllocation.allocationId,
-        subject: selectedAllocation.subjectName,
-        lecturer: selectedAllocation.lecturerName,
         batch: selectedAllocation.batchName,
+        subjects: selectedAllocation.subjects.map((sub) => ({
+          subjectName: sub.subjectName,
+          lecturer: sub.lecturerName,
+          room: "",
+          date: "",
+          time: "",
+          duration: "1",
+        })),
       });
     } else {
-      setNewSchedule({
-        ...newSchedule,
-        allocationId: "",
-        subject: "",
-        lecturer: "",
-        batch: "",
-      });
+      resetForm();
     }
   };
 
@@ -113,7 +151,6 @@ export default function TimetableList() {
     return `${hour.toString().padStart(2, "0")}:00`;
   });
 
-  // Updated to include Saturday and Sunday
   const weekDays = [
     "Monday",
     "Tuesday",
@@ -132,45 +169,52 @@ export default function TimetableList() {
   const processSchedulesForGrid = () => {
     const grid = {};
     weekDays.forEach((day) => {
-      const dayIndex = weekDays.indexOf(day) + 1; // Monday=1, ..., Sunday=7
       grid[day] = {};
       timeSlots.forEach((timeSlot) => {
         grid[day][timeSlot] = {
           isOccupied: false,
           schedule: null,
+          subject: null,
           isStart: false,
           rowSpan: 0,
         };
       });
     });
 
-    schedules.forEach((schedule) => {
-      const scheduleDate = new Date(schedule.date);
-      const scheduleDay = scheduleDate.getDay(); // 0=Sunday, 1=Monday, ..., 6=Saturday
-      // Map getDay() values to weekDays array indices (Sunday=6, Monday=0, ..., Saturday=5)
-      const day = weekDays[scheduleDay === 0 ? 6 : scheduleDay - 1]; // Adjust for Sunday (0 -> 6)
-      const scheduleHour = timeToHour(schedule.time);
-      const scheduleDuration = parseInt(schedule.duration || "1");
-      const timeSlot = timeSlots.find((ts) => timeToHour(ts) === scheduleHour);
-      if (!timeSlot) return;
+    const filteredSchedules = selectedBatch
+      ? schedules.filter((s) => s.batch === selectedBatch)
+      : schedules;
 
-      if (grid[day] && grid[day][timeSlot]) {
-        grid[day][timeSlot].isOccupied = true;
-        grid[day][timeSlot].schedule = schedule;
-        grid[day][timeSlot].isStart = true;
-        grid[day][timeSlot].rowSpan = scheduleDuration;
+    filteredSchedules.forEach((schedule) => {
+      schedule.subjects.forEach((subject) => {
+        const scheduleDate = new Date(subject.date);
+        const scheduleDay = scheduleDate.getDay();
+        const day = weekDays[scheduleDay === 0 ? 6 : scheduleDay - 1];
+        const scheduleHour = timeToHour(subject.time);
+        const scheduleDuration = parseInt(subject.duration || "1");
+        const timeSlot = timeSlots.find((ts) => timeToHour(ts) === scheduleHour);
+        if (!timeSlot) return;
 
-        for (let i = 1; i < scheduleDuration; i++) {
-          const nextHour = scheduleHour + i;
-          if (nextHour > 17) break; // Still limits to 5 PM
-          const nextTimeSlot = `${nextHour.toString().padStart(2, "0")}:00`;
-          if (grid[day][nextTimeSlot]) {
-            grid[day][nextTimeSlot].isOccupied = true;
-            grid[day][nextTimeSlot].schedule = schedule;
-            grid[day][nextTimeSlot].isStart = false;
+        if (grid[day] && grid[day][timeSlot]) {
+          grid[day][timeSlot].isOccupied = true;
+          grid[day][timeSlot].schedule = schedule;
+          grid[day][timeSlot].subject = subject;
+          grid[day][timeSlot].isStart = true;
+          grid[day][timeSlot].rowSpan = scheduleDuration;
+
+          for (let i = 1; i < scheduleDuration; i++) {
+            const nextHour = scheduleHour + i;
+            if (nextHour > 17) break;
+            const nextTimeSlot = `${nextHour.toString().padStart(2, "0")}:00`;
+            if (grid[day][nextTimeSlot]) {
+              grid[day][nextTimeSlot].isOccupied = true;
+              grid[day][nextTimeSlot].schedule = schedule;
+              grid[day][nextTimeSlot].subject = subject;
+              grid[day][nextTimeSlot].isStart = false;
+            }
           }
         }
-      }
+      });
     });
     return grid;
   };
@@ -233,16 +277,19 @@ export default function TimetableList() {
             onChange={(e) => setSelectedBatch(e.target.value)}
             className="appearance-none px-4 py-2 pr-8 bg-[#F5F7FA] border border-[#F5F7FA] rounded-lg text-[#1B365D]"
           >
-            <option value="All">All Batches</option>
-            <option value="2023">Batch 2023</option>
-            <option value="2024">Batch 2024</option>
+            <option value="">Select Batch</option>
+            {allocations.map((allocation) => (
+              <option key={allocation._id} value={allocation.batchName}>
+                {allocation.batchName}
+              </option>
+            ))}
           </select>
           <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
         </div>
       </div>
 
       <div className="overflow-x-auto">
-        <div className="min-w-[1200px]"> {/* Increased min width to accommodate extra days */}
+        <div className="min-w-[1200px]">
           <table className="w-full border-collapse bg-[#F5F7FA] rounded-lg border-2 border-gray-300">
             <thead>
               <tr>
@@ -284,18 +331,18 @@ export default function TimetableList() {
                         } border-gray-300 align-top`}
                         rowSpan={cell.isStart ? cell.rowSpan : 1}
                       >
-                        {cell.isStart && cell.schedule && (
+                        {cell.isStart && cell.schedule && cell.subject && (
                           <div className="bg-white rounded-lg p-3 h-full shadow-md border-l-4 border-[#1B365D]">
                             <div className="font-medium text-[#1B365D] mb-1">
-                              {cell.schedule.subject}
+                              {cell.subject.subjectName}
                             </div>
                             <div className="text-sm text-gray-600 mb-1">
                               <span className="font-medium">Lecturer:</span>{" "}
-                              {cell.schedule.lecturer}
+                              {cell.subject.lecturer}
                             </div>
                             <div className="text-sm text-gray-600 mb-1">
                               <span className="font-medium">Room:</span>{" "}
-                              {cell.schedule.room}
+                              {cell.subject.room}
                             </div>
                             <div className="text-sm text-gray-600 mb-1">
                               <span className="font-medium">Batch:</span>{" "}
@@ -303,15 +350,12 @@ export default function TimetableList() {
                             </div>
                             <div className="text-sm text-gray-600 mb-2">
                               <span className="font-medium">Duration:</span>{" "}
-                              {cell.schedule.duration} hr(s)
+                              {cell.subject.duration} hr(s)
                             </div>
                             <div className="flex gap-2 mt-1 justify-end">
                               <button
                                 onClick={() => {
-                                  setNewSchedule({
-                                    ...cell.schedule,
-                                    duration: cell.schedule.duration || "1",
-                                  });
+                                  setNewSchedule(cell.schedule);
                                   setEditingSchedule(cell.schedule);
                                   setShowForm(true);
                                 }}
@@ -368,7 +412,7 @@ export default function TimetableList() {
 
       {showForm && (
         <div className="fixed inset-0 bg-[#1B365D]/30 backdrop-blur-sm flex justify-center items-center">
-          <div className="bg-white p-6 rounded-lg w-[480px] max-h-[80vh] flex flex-col">
+          <div className="bg-white p-6 rounded-lg w-[600px] max-h-[80vh] flex flex-col overflow-y-auto">
             <div className="flex justify-between items-center mb-6">
               <h3 className="text-lg font-semibold text-[#1B365D]">
                 {editingSchedule ? "Edit Schedule" : "Add New Schedule"}
@@ -381,7 +425,19 @@ export default function TimetableList() {
               </button>
             </div>
 
-            <div className="space-y-4 overflow-y-auto flex-1">
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-2 text-[#1B365D]">
+                  Batch
+                </label>
+                <input
+                  type="text"
+                  value={newSchedule.batch}
+                  readOnly
+                  className="w-full p-2 border border-[#F5F7FA] rounded-lg bg-[#F5F7FA] text-[#1B365D]"
+                />
+              </div>
+
               <div>
                 <label className="block text-sm font-medium mb-2 text-[#1B365D]">
                   Allocation ID
@@ -392,124 +448,112 @@ export default function TimetableList() {
                   className="w-full p-2 border border-[#F5F7FA] rounded-lg bg-[#F5F7FA] text-[#1B365D]"
                 >
                   <option value="">Select Allocation</option>
-                  {allocations.map((allocation) => (
-                    <option key={allocation._id} value={allocation.allocationId}>
-                      {allocation.allocationId}
-                    </option>
-                  ))}
+                  {allocations
+                    .filter((a) => a.batchName === selectedBatch)
+                    .map((allocation) => (
+                      <option key={allocation._id} value={allocation.allocationId}>
+                        {allocation.allocationId}
+                      </option>
+                    ))}
                 </select>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium mb-2 text-[#1B365D]">
-                  Subject
-                </label>
-                <input
-                  type="text"
-                  value={newSchedule.subject}
-                  onChange={(e) =>
-                    setNewSchedule({ ...newSchedule, subject: e.target.value })
-                  }
-                  className="w-full p-2 border border-[#F5F7FA] rounded-lg bg-[#F5F7FA] text-[#1B365D]"
-                  readOnly={!!newSchedule.allocationId}
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-2 text-[#1B365D]">
-                  Date
-                </label>
-                <input
-                  type="date"
-                  value={newSchedule.date}
-                  onChange={(e) =>
-                    setNewSchedule({ ...newSchedule, date: e.target.value })
-                  }
-                  className="w-full p-2 border border-[#F5F7FA] rounded-lg bg-[#F5F7FA] text-[#1B365D]"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-2 text-[#1B365D]">
-                  Time
-                </label>
-                <input
-                  type="time"
-                  value={newSchedule.time}
-                  onChange={(e) =>
-                    setNewSchedule({ ...newSchedule, time: e.target.value })
-                  }
-                  className="w-full p-2 border border-[#F5F7FA] rounded-lg bg-[#F5F7FA] text-[#1B365D]"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-2 text-[#1B365D]">
-                  Duration (hours)
-                </label>
-                <select
-                  value={newSchedule.duration}
-                  onChange={(e) =>
-                    setNewSchedule({ ...newSchedule, duration: e.target.value })
-                  }
-                  className="w-full p-2 border border-[#F5F7FA] rounded-lg bg-[#F5F7FA] text-[#1B365D]"
-                >
-                  <option value="1">1 hour</option>
-                  <option value="2">2 hours</option>
-                  <option value="3">3 hours</option>
-                  <option value="4">4 hours</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-2 text-[#1B365D]">
-                  Room
-                </label>
-                <select
-                  value={newSchedule.room}
-                  onChange={(e) =>
-                    setNewSchedule({ ...newSchedule, room: e.target.value })
-                  }
-                  className="w-full p-2 border border-[#F5F7FA] rounded-lg bg-[#F5F7FA] text-[#1B365D]"
-                >
-                  <option value="">Select Room</option>
-                  {rooms.map((room) => (
-                    <option key={room._id} value={room.LID}>
-                      {room.LID} ({room.hallType})
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-2 text-[#1B365D]">
-                  Lecturer
-                </label>
-                <input
-                  type="text"
-                  value={newSchedule.lecturer}
-                  onChange={(e) =>
-                    setNewSchedule({ ...newSchedule, lecturer: e.target.value })
-                  }
-                  className="w-full p-2 border border-[#F5F7FA] rounded-lg bg-[#F5F7FA] text-[#1B365D]"
-                  readOnly={!!newSchedule.allocationId}
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-2 text-[#1B365D]">
-                  Batch
-                </label>
-                <input
-                  type="text"
-                  value={newSchedule.batch}
-                  onChange={(e) =>
-                    setNewSchedule({ ...newSchedule, batch: e.target.value })
-                  }
-                  className="w-full p-2 border border-[#F5F7FA] rounded-lg bg-[#F5F7FA] text-[#1B365D]"
-                  readOnly={!!newSchedule.allocationId}
-                />
-              </div>
+              {newSchedule.subjects.map((subject, index) => (
+                <div key={index} className="border p-4 rounded-lg">
+                  <h4 className="text-sm font-medium mb-2 text-[#1B365D]">
+                    {subject.subjectName}
+                  </h4>
+                  <div>
+                    <label className="block text-sm font-medium mb-2 text-[#1B365D]">
+                      Lecturer
+                    </label>
+                    <input
+                      type="text"
+                      value={subject.lecturer}
+                      readOnly
+                      className="w-full p-2 border border-[#F5F7FA] rounded-lg bg-[#F5F7FA] text-[#1B365D]"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-2 text-[#1B365D]">
+                      Room
+                    </label>
+                    <select
+                      value={subject.room}
+                      onChange={(e) =>
+                        setNewSchedule((prev) => {
+                          const updatedSubjects = [...prev.subjects];
+                          updatedSubjects[index].room = e.target.value;
+                          return { ...prev, subjects: updatedSubjects };
+                        })
+                      }
+                      className="w-full p-2 border border-[#F5F7FA] rounded-lg bg-[#F5F7FA] text-[#1B365D]"
+                    >
+                      <option value="">Select Room</option>
+                      {rooms.map((room) => (
+                        <option key={room._id} value={room.LID}>
+                          {room.LID} ({room.hallType})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-2 text-[#1B365D]">
+                      Date
+                    </label>
+                    <input
+                      type="date"
+                      value={subject.date}
+                      onChange={(e) =>
+                        setNewSchedule((prev) => {
+                          const updatedSubjects = [...prev.subjects];
+                          updatedSubjects[index].date = e.target.value;
+                          return { ...prev, subjects: updatedSubjects };
+                        })
+                      }
+                      className="w-full p-2 border border-[#F5F7FA] rounded-lg bg-[#F5F7FA] text-[#1B365D]"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-2 text-[#1B365D]">
+                      Time
+                    </label>
+                    <input
+                      type="time"
+                      value={subject.time}
+                      onChange={(e) =>
+                        setNewSchedule((prev) => {
+                          const updatedSubjects = [...prev.subjects];
+                          updatedSubjects[index].time = e.target.value;
+                          return { ...prev, subjects: updatedSubjects };
+                        })
+                      }
+                      className="w-full p-2 border border-[#F5F7FA] rounded-lg bg-[#F5F7FA] text-[#1B365D]"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-2 text-[#1B365D]">
+                      Duration (hours)
+                    </label>
+                    <select
+                      value={subject.duration}
+                      onChange={(e) =>
+                        setNewSchedule((prev) => {
+                          const updatedSubjects = [...prev.subjects];
+                          updatedSubjects[index].duration = e.target.value;
+                          return { ...prev, subjects: updatedSubjects };
+                        })
+                      }
+                      className="w-full p-2 border border-[#F5F7FA] rounded-lg bg-[#F5F7FA] text-[#1B365D]"
+                    >
+                      <option value="1">1 hour</option>
+                      <option value="2">2 hours</option>
+                      <option value="3">3 hours</option>
+                      <option value="4">4 hours</option>
+                    </select>
+                  </div>
+                </div>
+              ))}
             </div>
 
             <button
