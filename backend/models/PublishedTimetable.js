@@ -1,7 +1,7 @@
 const mongoose = require("mongoose");
 
 const PublishedTimetableSchema = new mongoose.Schema({
-  batch: { type: String, required: true },
+  batch: { type: String, required: true, unique: true },
   schedules: [
     {
       allocationId: { type: String, required: true },

@@ -61,9 +61,14 @@ router.delete("/:id", async (req, res) => {
 router.delete("/batch", async (req, res) => {
   try {
     const { batch } = req.body;
+    console.log("Received batch for deletion:", batch); // Add this log
+    if (!batch) {
+      return res.status(400).json({ error: "Batch is required" });
+    }
     await Timetable.deleteMany({ batch });
     res.json({ message: `Schedules for batch ${batch} deleted successfully` });
   } catch (error) {
+    console.log("Error in delete batch route:", error); // Add this log
     res.status(500).json({ error: error.message });
   }
 });

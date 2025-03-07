@@ -20,7 +20,8 @@ export default function TimetableList() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    axios.get("http://localhost:5000/api/timetable")
+    axios
+      .get("http://localhost:5000/api/timetable")
       .then((res) => {
         const updatedSchedules = res.data.map((schedule) => ({
           ...schedule,
@@ -31,15 +32,23 @@ export default function TimetableList() {
         }));
         setSchedules(updatedSchedules);
       })
-      .catch((err) => console.error("Error fetching timetables:", err.response ? err.response.data : err.message));
+      .catch((err) =>
+        console.error("Error fetching timetables:", err.response ? err.response.data : err.message)
+      );
 
-    axios.get("http://localhost:5000/api/allocations")
+    axios
+      .get("http://localhost:5000/api/allocations")
       .then((res) => setAllocations(res.data))
-      .catch((err) => console.error("Error fetching allocations:", err.response ? err.response.data : err.message));
+      .catch((err) =>
+        console.error("Error fetching allocations:", err.response ? err.response.data : err.message)
+      );
 
-    axios.get("http://localhost:5000/api/rooms")
+    axios
+      .get("http://localhost:5000/api/rooms")
       .then((res) => setRooms(res.data))
-      .catch((err) => console.error("Error fetching rooms:", err.response ? err.response.data : err.message));
+      .catch((err) =>
+        console.error("Error fetching rooms:", err.response ? err.response.data : err.message)
+      );
   }, []);
 
   const handleSaveSchedule = async () => {
@@ -88,8 +97,7 @@ export default function TimetableList() {
         alert("No schedules to upload for this batch!");
         return;
       }
-
-      // Validate each schedule
+  
       for (const schedule of batchSchedules) {
         for (const subject of schedule.subjects) {
           if (!subject.room || !subject.date || !subject.time) {
@@ -98,25 +106,30 @@ export default function TimetableList() {
           }
         }
       }
-
-      console.log("Uploading timetable:", { batch: selectedBatch, schedules: batchSchedules });
-      await axios.post("http://localhost:5000/api/timetable/published-timetable", {
+  
+      console.log("Posting timetable for batch:", selectedBatch);
+      const postResponse = await axios.post("http://localhost:5000/api/timetable/published-timetable", {
         batch: selectedBatch,
         schedules: batchSchedules,
       });
-
-      await axios.delete("http://localhost:5000/api/timetable/batch", {
+      console.log("Post response:", postResponse.data);
+  
+      console.log("Deleting schedules for batch:", selectedBatch);
+      const deleteResponse = await axios.delete("http://localhost:5000/api/timetable/batch", {
         data: { batch: selectedBatch },
       });
+      console.log("Delete response:", deleteResponse.data);
+  
       setSchedules(schedules.filter((s) => s.batch !== selectedBatch));
       setSelectedBatch("");
       alert(`Timetable for ${selectedBatch} uploaded successfully!`);
-      navigate("/timetable-view", { state: { batch: selectedBatch } });
+      navigate("/published-timetable", { state: { batch: selectedBatch } });
     } catch (err) {
-      console.log("Upload error:", err.response ? err.response.data : err);
+      console.log("Upload error:", err.response ? err.response.data : err.message);
       alert("Failed to upload timetable. Check console for details.");
     }
   };
+
 
   const handleUserTypeSelect = (type) => {
     setUserType(type);
@@ -125,9 +138,7 @@ export default function TimetableList() {
   };
 
   const handleAllocationChange = (e) => {
-    const selectedAllocation = allocations.find(
-      (a) => a.allocationId === e.target.value
-    );
+    const selectedAllocation = allocations.find((a) => a.allocationId === e.target.value);
     if (selectedAllocation) {
       setNewSchedule({
         allocationId: selectedAllocation.allocationId,
@@ -151,15 +162,7 @@ export default function TimetableList() {
     return `${hour.toString().padStart(2, "0")}:00`;
   });
 
-  const weekDays = [
-    "Monday",
-    "Tuesday",
-    "Wednesday",
-    "Thursday",
-    "Friday",
-    "Saturday",
-    "Sunday",
-  ];
+  const weekDays = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 
   const timeToHour = (timeStr) => {
     const [hours] = timeStr.split(":").map(Number);
@@ -337,20 +340,16 @@ export default function TimetableList() {
                               {cell.subject.subjectName}
                             </div>
                             <div className="text-sm text-gray-600 mb-1">
-                              <span className="font-medium">Lecturer:</span>{" "}
-                              {cell.subject.lecturer}
+                              <span className="font-medium">Lecturer:</span> {cell.subject.lecturer}
                             </div>
                             <div className="text-sm text-gray-600 mb-1">
-                              <span className="font-medium">Room:</span>{" "}
-                              {cell.subject.room}
+                              <span className="font-medium">Room:</span> {cell.subject.room}
                             </div>
                             <div className="text-sm text-gray-600 mb-1">
-                              <span className="font-medium">Batch:</span>{" "}
-                              {cell.schedule.batch}
+                              <span className="font-medium">Batch:</span> {cell.schedule.batch}
                             </div>
                             <div className="text-sm text-gray-600 mb-2">
-                              <span className="font-medium">Duration:</span>{" "}
-                              {cell.subject.duration} hr(s)
+                              <span className="font-medium">Duration:</span> {cell.subject.duration} hr(s)
                             </div>
                             <div className="flex gap-2 mt-1 justify-end">
                               <button
@@ -427,9 +426,7 @@ export default function TimetableList() {
 
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium mb-2 text-[#1B365D]">
-                  Batch
-                </label>
+                <label className="block text-sm font-medium mb-2 text-[#1B365D]">Batch</label>
                 <input
                   type="text"
                   value={newSchedule.batch}
@@ -439,9 +436,7 @@ export default function TimetableList() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-2 text-[#1B365D]">
-                  Allocation ID
-                </label>
+                <label className="block text-sm font-medium mb-2 text-[#1B365D]">Allocation ID</label>
                 <select
                   value={newSchedule.allocationId}
                   onChange={handleAllocationChange}
@@ -460,13 +455,9 @@ export default function TimetableList() {
 
               {newSchedule.subjects.map((subject, index) => (
                 <div key={index} className="border p-4 rounded-lg">
-                  <h4 className="text-sm font-medium mb-2 text-[#1B365D]">
-                    {subject.subjectName}
-                  </h4>
+                  <h4 className="text-sm font-medium mb-2 text-[#1B365D]">{subject.subjectName}</h4>
                   <div>
-                    <label className="block text-sm font-medium mb-2 text-[#1B365D]">
-                      Lecturer
-                    </label>
+                    <label className="block text-sm font-medium mb-2 text-[#1B365D]">Lecturer</label>
                     <input
                       type="text"
                       value={subject.lecturer}
@@ -475,9 +466,7 @@ export default function TimetableList() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-2 text-[#1B365D]">
-                      Room
-                    </label>
+                    <label className="block text-sm font-medium mb-2 text-[#1B365D]">Room</label>
                     <select
                       value={subject.room}
                       onChange={(e) =>
@@ -498,9 +487,7 @@ export default function TimetableList() {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-2 text-[#1B365D]">
-                      Date
-                    </label>
+                    <label className="block text-sm font-medium mb-2 text-[#1B365D]">Date</label>
                     <input
                       type="date"
                       value={subject.date}
@@ -515,9 +502,7 @@ export default function TimetableList() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-2 text-[#1B365D]">
-                      Time
-                    </label>
+                    <label className="block text-sm font-medium mb-2 text-[#1B365D]">Time</label>
                     <input
                       type="time"
                       value={subject.time}
@@ -532,9 +517,7 @@ export default function TimetableList() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-2 text-[#1B365D]">
-                      Duration (hours)
-                    </label>
+                    <label className="block text-sm font-medium mb-2 text-[#1B365D]">Duration (hours)</label>
                     <select
                       value={subject.duration}
                       onChange={(e) =>

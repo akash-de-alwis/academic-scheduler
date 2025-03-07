@@ -34,7 +34,7 @@ import BookingReview from "./LectureHallAllocation/pages/BookingReview";
 
 import TimeHome from "./TimetableManagement/pages/TimeHome";
 import TimetableList from "./TimetableManagement/pages/TimetableList";
-import TimetableView from "./ClientsidePages/TimetableView";
+import PublishTimetable from "./ClientsidePages/PublishTimetable";
 
 
 
@@ -119,7 +119,7 @@ function App() {
         {/* Routes with Time Sidebar */}
         <Route path="/TimeHome" element={<TimeLayout><TimeHome /></TimeLayout>} />
         <Route path="/TimetableList" element={<TimeLayout><TimetableList /></TimeLayout>} />
-        <Route path="/TimetableView" element={<TimetableView/>}/>
+        <Route path="/PublishTimetable" element={<PublishTimetable/>}/>
        
 
  
