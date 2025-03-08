@@ -28,9 +28,11 @@ import AllocationReport from "./StudentAndLecturers/pages/AllocationReport";
 import HallHome from "./LectureHallAllocation/pages/HallHome";
 import RoomList from "./LectureHallAllocation/pages/RoomList";
 import MeetingRoomList from "./LectureHallAllocation/pages/MeetingRoomList";
-import MeetingRoomBooking from "./LectureHallAllocation/pages/MeetingRoomBooking";
-import BookingManagement from "./LectureHallAllocation/pages/BookingManagement";
+import MeetingRoomBooking from "./LectureHallAllocation/pages/Challs/MeetingRoomBooking";
+import BookingManagement from "./LectureHallAllocation/pages/Challs/BookingManagement";
 import BookingReview from "./LectureHallAllocation/pages/BookingReview";
+import RaisingIssues from "./LectureHallAllocation/pages/Challs/RaisingIssues";
+import HallIssues from "./LectureHallAllocation/pages/HallIssues";
 
 import TimeHome from "./TimetableManagement/pages/TimeHome";
 import TimetableList from "./TimetableManagement/pages/TimetableList";
@@ -111,7 +113,9 @@ function App() {
         <Route path="/MeetingRoomBooking" element={<MeetingRoomBooking/>}/>
         <Route path="/BookingReview" element={<HallLayout><BookingReview/></HallLayout>}/>
         <Route path="/BookingManagement" element={<BookingManagement/>}/>
-        
+        <Route path="/RaisingIssues" element={<RaisingIssues/>}/>
+        <Route path="/HallIssues" element={<HallLayout><HallIssues/></HallLayout>}/>
+
 
         {/* Routes with Time Sidebar */}
         <Route path="/TimeHome" element={<TimeLayout><TimeHome /></TimeLayout>} />
