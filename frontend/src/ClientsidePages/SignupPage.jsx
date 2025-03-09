@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import axios from 'axios';  
 
 const SignupPage = () => {
   const [fullName, setFullName] = useState('');
@@ -27,7 +27,7 @@ const SignupPage = () => {
       });
       localStorage.setItem('token', response.data.token); // Store JWT
       console.log(response.data.message);
-      navigate('/login'); // Redirect to login after signup
+      navigate('/LoginPage'); // Redirect to login after signup
     } catch (err) {
       setError(err.response?.data?.message || 'Signup failed');
     }

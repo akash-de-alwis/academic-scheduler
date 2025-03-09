@@ -1,6 +1,7 @@
-import React from 'react';
-import { Calendar, Users, BookOpen, AlertTriangle, Building } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from "react";
+import { Calendar, Users, BookOpen, AlertTriangle, Building } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import axios from "axios";
 
 const DashboardStats = ({ icon: Icon, title, value, subtitle }) => (
   <div className="bg-[#F5F7FA] p-6 rounded-lg shadow-sm relative">
@@ -13,35 +14,47 @@ const DashboardStats = ({ icon: Icon, title, value, subtitle }) => (
   </div>
 );
 
-const ResourceAllocation = () => (
-  <div className="bg-[#F5F7FA] p-6 rounded-lg shadow-sm mt-6">
-    <h2 className="text-xl font-bold text-[#1B365D] mb-4">Resource Distribution</h2>
-    {[
-      { name: "Lecture Halls", count: "8 venues" },
-      { name: "Laboratories", count: "5 labs" },
-      { name: "Meeting Rooms", count: "3 rooms" }
-    ].map((item) => (
-      <div key={item.name} className="mb-4">
-        <div className="flex justify-between items-center mb-2">
-          <span className="text-[#1B365D]">{item.name}</span>
-          <span className="text-sm text-gray-500">{item.count}</span>
+const ResourceAllocation = ({ rooms }) => {
+  const lectureHalls = rooms.filter(room => room.hallType === "Lecturer Hall").length;
+  const laboratories = rooms.filter(room => room.hallType === "Laboratory").length;
+  const meetingRooms = rooms.filter(room => room.hallType === "Meeting Room").length;
+  const total = rooms.length;
+
+  const getPercentage = (count) => total > 0 ? `${Math.round((count / total) * 100)}%` : "0%";
+
+  return (
+    <div className="bg-[#F5F7FA] p-6 rounded-lg shadow-sm mt-6">
+      <h2 className="text-xl font-bold text-[#1B365D] mb-4">Resource Distribution</h2>
+      {[
+        { name: "Lecture Halls", count: `${lectureHalls} venues` },
+        { name: "Laboratories", count: `${laboratories} labs` },
+        { name: "Meeting Rooms", count: `${meetingRooms} rooms` },
+      ].map((item) => (
+        <div key={item.name} className="mb-4">
+          <div className="flex justify-between items-center mb-2">
+            <span className="text-[#1B365D]">{item.name}</span>
+            <span className="text-sm text-gray-500">{item.count}</span>
+          </div>
+          <div className="w-full bg-[#F5F7FA] rounded-full h-2">
+            <div
+              className="bg-[#1B365D] h-2 rounded-full"
+              style={{ width: getPercentage(parseInt(item.count.split(" ")[0])) }}
+            />
+          </div>
         </div>
-        <div className="w-full bg-[#F5F7FA] rounded-full h-2">
-          <div className="bg-[#1B365D] h-2 rounded-full" style={{ width: '75%' }} />
-        </div>
-      </div>
-    ))}
-  </div>
-);
+      ))}
+    </div>
+  );
+};
 
 const ActionButtons = () => {
   const navigate = useNavigate();
   
   const actions = [
     { title: "Add Venues", icon: Building, path: "/RoomList" },
-    { title: "Bookings", icon: Calendar, path: "/bookings" },
-    { title: "Book Meetings", icon: Users, path: "/book-meetings" },
-    { title: "Report Issues", icon: AlertTriangle, path: "/report-issues" }
+    { title: "Bookings", icon: Calendar, path: "/BookingReview" },
+    { title: "Book Meetings", icon: Users, path: "/MeetingRoomList" },
+    { title: "Report Issues", icon: AlertTriangle, path: "/report-issues" },
   ];
 
   return (
@@ -61,6 +74,47 @@ const ActionButtons = () => {
 };
 
 const HallHome = () => {
+  const [stats, setStats] = useState({
+    totalVenues: 0,
+    activeBookings: 0,
+    todaysSessions: 0,
+  });
+  const [rooms, setRooms] = useState([]);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        // Fetch rooms
+        const roomsResponse = await axios.get("http://localhost:5000/api/rooms");
+        const roomsData = roomsResponse.data;
+        setRooms(roomsData);
+
+        // Fetch bookings
+        const bookingsResponse = await axios.get("http://localhost:5000/api/bookings");
+        const bookingsData = bookingsResponse.data;
+
+        // Calculate stats
+        const totalVenues = roomsData.length;
+        const activeBookings = bookingsData.filter(booking => booking.status === "Approved").length;
+        const today = new Date().toISOString().split("T")[0];
+        const todaysSessions = bookingsData.filter(booking => 
+          booking.status === "Approved" && 
+          new Date(booking.date).toISOString().split("T")[0] === today
+        ).length;
+
+        setStats({
+          totalVenues,
+          activeBookings,
+          todaysSessions,
+        });
+      } catch (err) {
+        console.error("Failed to fetch dashboard data:", err);
+      }
+    };
+
+    fetchData();
+  }, []);
+
   return (
     <div className="p-6 max-w-7xl mx-auto">
       <div className="mb-8">
@@ -71,32 +125,34 @@ const HallHome = () => {
         <DashboardStats
           icon={Building}
           title="Total Venues"
-          value="16"
+          value={stats.totalVenues}
           subtitle="Halls, Labs & Meeting Rooms"
         />
         <DashboardStats
           icon={Calendar}
           title="Active Bookings"
-          value="42"
+          value={stats.activeBookings}
           subtitle="Across all venues"
         />
         <DashboardStats
           icon={AlertTriangle}
           title="Pending Issues"
-          value="3"
+          value="3" // Static as requested
           subtitle="Maintenance & repairs"
         />
         <DashboardStats
           icon={BookOpen}
           title="Today's Sessions"
-          value="12"
+          value={stats.todaysSessions}
           subtitle="Scheduled classes & labs"
         />
       </div>
-      <ResourceAllocation />
+      <ResourceAllocation rooms={rooms} />
       <ActionButtons />
     </div>
   );
 };
 
 export default HallHome;
+
+

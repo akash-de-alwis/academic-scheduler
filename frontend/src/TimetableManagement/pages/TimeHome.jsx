@@ -1,5 +1,5 @@
 import React from 'react';
-import { Calendar, Users, BookOpen, Clock, AlertCircle, Plus, Eye, Wrench } from 'lucide-react';
+import { Calendar, Clock, BookOpen, AlertCircle, Plus, Eye, Wrench } from 'lucide-react';
 
 // Card Components
 const Card = ({ className, children }) => (
@@ -57,23 +57,23 @@ const TimeHome = () => {
 
           <Card className="bg-[#F5F7FA]">
             <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="text-[#1B365D] text-lg">Available Rooms</CardTitle>
-              <BookOpen className="h-5 w-5 text-[#1B365D]" />
+              <CardTitle className="text-[#1B365D] text-lg">Hours Scheduled</CardTitle>
+              <Clock className="h-5 w-5 text-[#1B365D]" />
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-[#1B365D]">15</div>
-              <p className="text-gray-600 text-sm">Ready for allocation</p>
+              <div className="text-3xl font-bold text-[#1B365D]">420</div>
+              <p className="text-gray-600 text-sm">Total hours this semester</p>
             </CardContent>
           </Card>
 
           <Card className="bg-[#F5F7FA]">
             <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="text-[#1B365D] text-lg">Active Lecturers</CardTitle>
-              <Users className="h-5 w-5 text-[#1B365D]" />
+              <CardTitle className="text-[#1B365D] text-lg">Weekly Schedules</CardTitle>
+              <BookOpen className="h-5 w-5 text-[#1B365D]" />
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-[#1B365D]">42</div>
-              <p className="text-gray-600 text-sm">Currently teaching</p>
+              <div className="text-3xl font-bold text-[#1B365D]">35</div>
+              <p className="text-gray-600 text-sm">This week</p>
             </CardContent>
           </Card>
 
