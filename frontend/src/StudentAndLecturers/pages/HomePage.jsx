@@ -8,7 +8,7 @@ export default function HomePage() {
     totalLecturers: 0,
     activeBatches: { total: 0, weekday: 0, weekend: 0 },
     totalStudents: 0,
-    courseAllocations: 0,
+    courseAllocations: 0, // This will now reflect actual allocations
     departmentDistribution: []
   });
   
@@ -17,9 +17,11 @@ export default function HomePage() {
       try {
         const lecturersRes = await axios.get("http://localhost:5000/api/lecturers");
         const batchesRes = await axios.get("http://localhost:5000/api/batches");
+        const allocationsRes = await axios.get("http://localhost:5000/api/allocations"); // Fetch allocations
         
         const lecturers = lecturersRes.data;
         const batches = batchesRes.data;
+        const allocations = allocationsRes.data;
         
         const weekdayBatches = batches.filter(batch => batch.scheduleType === "Weekdays").length;
         const weekendBatches = batches.filter(batch => batch.scheduleType === "Weekend").length;
@@ -50,7 +52,7 @@ export default function HomePage() {
             weekend: weekendBatches 
           },
           totalStudents: totalStudentCount,
-          courseAllocations: 2,
+          courseAllocations: allocations.length, // Set the actual number of allocations
           departmentDistribution: departmentArray
         });
         

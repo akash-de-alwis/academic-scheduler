@@ -22,7 +22,7 @@ const LoginPage = () => {
       if (role === "Student") {
         navigate("/StudentDashboard"); // Redirect students to their dashboard
       } else {
-      navigate('/AcSHomepage'); // Redirect to homepage or dashboard
+      navigate('/StaffDashboard'); // Redirect to homepage or dashboard
       } 
     } catch (err) {
       setError(err.response?.data?.message || 'Login failed');

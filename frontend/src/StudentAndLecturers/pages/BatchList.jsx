@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom"; // Import useNavigate
+import { useNavigate } from "react-router-dom";
 import axios from "axios";
 
 export default function BatchList() {
@@ -10,14 +10,21 @@ export default function BatchList() {
   const [editingBatch, setEditingBatch] = useState(null);
   const [newBatch, setNewBatch] = useState({
     batchName: "",
-    batchNo: "",
+    intake: "Regular",
+    batchNoPrefix: "BT",
+    batchNo1: "",
+    batchNo2: "",
+    batchNo3: "",
     year: "",
+    semester: "Semester1",
     department: "Information Technology",
     studentCount: "",
     startDate: "",
     endDate: "",
     scheduleType: "Weekdays",
   });
+  const [formErrors, setFormErrors] = useState({});
+  const [duplicateBatchNoError, setDuplicateBatchNoError] = useState("");
   const [filters, setFilters] = useState({
     department: "",
     scheduleType: "",
@@ -26,16 +33,38 @@ export default function BatchList() {
   const [searchQuery, setSearchQuery] = useState("");
   const [sortOrder, setSortOrder] = useState("asc");
 
-  const navigate = useNavigate(); // Initialize navigate
+  const navigate = useNavigate();
 
   useEffect(() => {
-    axios.get("http://localhost:5000/api/batches").then((res) => {
-      setBatches(res.data);
-    });
-    axios.get("http://localhost:5000/api/allocations").then((res) => {
-      setAllocations(res.data);
-    });
+    const fetchData = async () => {
+      try {
+        const batchesRes = await axios.get("http://localhost:5000/api/batches");
+        const allocationsRes = await axios.get("http://localhost:5000/api/allocations");
+        setBatches(batchesRes.data);
+        setAllocations(allocationsRes.data);
+      } catch (error) {
+        console.error("Error fetching data:", error);
+      }
+    };
+    fetchData();
   }, []);
+
+  useEffect(() => {
+    const deptMap = {
+      "Information Technology": "IT",
+      "Engineering": "ENG",
+      "Business Studies": "BS",
+    };
+
+    if (newBatch.department && newBatch.startDate) {
+      const year = new Date(newBatch.startDate).getFullYear().toString();
+      const deptCode = deptMap[newBatch.department];
+      setNewBatch((prev) => ({
+        ...prev,
+        batchName: `${deptCode}-${year}`,
+      }));
+    }
+  }, [newBatch.department, newBatch.startDate]);
 
   const formatDate = (dateString) => {
     if (!dateString) return "";
@@ -49,27 +78,87 @@ export default function BatchList() {
     return date.toISOString().split("T")[0];
   };
 
+  const validateForm = () => {
+    const errors = {};
+    const requiredFields = [
+      "batchNo1",
+      "batchNo2",
+      "batchNo3",
+      "year",
+      "studentCount",
+      "startDate",
+      "endDate",
+      "department",
+      "semester",
+      "scheduleType",
+      "intake",
+    ];
+
+    requiredFields.forEach((field) => {
+      if (!newBatch[field]) {
+        errors[field] = "This field is required";
+      }
+    });
+
+    if (newBatch.batchNo1 && !/^\d+$/.test(newBatch.batchNo1)) {
+      errors.batchNo1 = "Must be numbers only";
+    }
+    if (newBatch.batchNo2 && !/^\d+$/.test(newBatch.batchNo2)) {
+      errors.batchNo2 = "Must be numbers only";
+    }
+    if (newBatch.batchNo3 && !/^\d+$/.test(newBatch.batchNo3)) {
+      errors.batchNo3 = "Must be numbers only";
+    }
+
+    if (
+      newBatch.studentCount &&
+      (!/^\d+$/.test(newBatch.studentCount) || parseInt(newBatch.studentCount) <= 0)
+    ) {
+      errors.studentCount = "Must be a positive number";
+    }
+
+    if (
+      newBatch.startDate &&
+      newBatch.endDate &&
+      new Date(newBatch.startDate) >= new Date(newBatch.endDate)
+    ) {
+      errors.endDate = "End date must be after start date";
+    }
+
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
   const handleSaveBatch = async () => {
+    if (!validateForm()) return;
+
     try {
+      const batchData = {
+        ...newBatch,
+        batchNo: `${newBatch.batchNoPrefix}${newBatch.batchNo1}${newBatch.batchNo2}${newBatch.batchNo3}`,
+      };
+
+      setDuplicateBatchNoError("");
+
       if (editingBatch) {
-        const res = await axios.put(
-          `http://localhost:5000/api/batches/${editingBatch._id}`,
-          newBatch
-        );
+        const res = await axios.put(`http://localhost:5000/api/batches/${editingBatch._id}`, batchData);
         setBatches((prevBatches) =>
-          prevBatches.map((batch) =>
-            batch._id === editingBatch._id ? res.data : batch
-          )
+          prevBatches.map((batch) => (batch._id === editingBatch._id ? res.data : batch))
         );
       } else {
-        const res = await axios.post("http://localhost:5000/api/batches", newBatch);
+        const res = await axios.post("http://localhost:5000/api/batches", batchData);
         setBatches((prevBatches) => [...prevBatches, res.data]);
       }
       setShowForm(false);
       setNewBatch({
         batchName: "",
-        batchNo: "",
+        intake: "Regular",
+        batchNoPrefix: "BT",
+        batchNo1: "",
+        batchNo2: "",
+        batchNo3: "",
         year: "",
+        semester: "Semester1",
         department: "Information Technology",
         studentCount: "",
         startDate: "",
@@ -77,8 +166,13 @@ export default function BatchList() {
         scheduleType: "Weekdays",
       });
       setEditingBatch(null);
+      setFormErrors({});
     } catch (err) {
-      console.log(err.response ? err.response.data : err);
+      if (err.response && err.response.data.message === "Batch ID already exists") {
+        setDuplicateBatchNoError("Batch ID already exists");
+      } else {
+        console.log(err.response ? err.response.data : err);
+      }
     }
   };
 
@@ -92,18 +186,24 @@ export default function BatchList() {
   };
 
   const handleEdit = (batch) => {
+    const batchNoParts = batch.batchNo.match(/BT(\d)(\d)(\d)/);
     setNewBatch({
       ...batch,
+      batchNoPrefix: "BT",
+      batchNo1: batchNoParts ? batchNoParts[1] : "",
+      batchNo2: batchNoParts ? batchNoParts[2] : "",
+      batchNo3: batchNoParts ? batchNoParts[3] : "",
       startDate: formatDateForInput(batch.startDate),
       endDate: formatDateForInput(batch.endDate),
       year: batch.year.toString(),
     });
     setEditingBatch(batch);
     setShowForm(true);
+    setDuplicateBatchNoError("");
   };
 
-  const isBatchAllocated = (batchName) => {
-    return allocations.some((allocation) => allocation.batchName === batchName);
+  const isBatchAllocated = (batchNo) => {
+    return allocations.some((allocation) => allocation.batchId === batchNo);
   };
 
   const toggleExpand = (batchId) => {
@@ -111,12 +211,11 @@ export default function BatchList() {
   };
 
   const handleQuickAllocate = (batch) => {
-    // Navigate to Allocations and pass batch data
     navigate("/allocations", {
       state: {
         batchName: batch.batchName,
         batchId: batch.batchNo,
-        quickAllocate: true, // Flag to trigger form popup
+        quickAllocate: true,
       },
     });
   };
@@ -127,8 +226,8 @@ export default function BatchList() {
         (filters.department === "" || batch.department === filters.department) &&
         (filters.scheduleType === "" || batch.scheduleType === filters.scheduleType) &&
         (filters.allocated === "" ||
-          (filters.allocated === "yes" && isBatchAllocated(batch.batchName)) ||
-          (filters.allocated === "no" && !isBatchAllocated(batch.batchName))) &&
+          (filters.allocated === "yes" && isBatchAllocated(batch.batchNo)) ||
+          (filters.allocated === "no" && !isBatchAllocated(batch.batchNo))) &&
         (searchQuery === "" || batch.batchName.toLowerCase().includes(searchQuery.toLowerCase()))
       );
     })
@@ -246,75 +345,63 @@ export default function BatchList() {
               onClick={() => toggleExpand(batch._id)}
             >
               <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-full bg-[#1B365D] flex items-center justify-center text-white text-lg font-semibold">
-                  {batch.batchName.charAt(0)}
+                <div className="w-12 h-12 flex items-center justify-center bg-[#1B365D]/10 rounded-lg">
+                  <svg
+                    className="w-6 h-6 text-[#1B365D]"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"
+                    />
+                  </svg>
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold text-[#1B365D]">{batch.batchName}</h3>
+                  <h3 className="text-lg font-semibold text-[#1B365D]">
+                    {batch.batchName} ({batch.intake})
+                  </h3>
                   <p className="text-sm text-gray-500">{batch.batchNo}</p>
                 </div>
               </div>
               <div className="flex items-center gap-4">
                 <span
                   className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
-                    isBatchAllocated(batch.batchName)
+                    isBatchAllocated(batch.batchNo)
                       ? "bg-green-100 text-green-800"
                       : "bg-red-100 text-red-800 animate-blink"
                   }`}
                 >
-                  {isBatchAllocated(batch.batchName) ? (
+                  {isBatchAllocated(batch.batchNo) ? (
                     <>
-                      <svg
-                        className="w-4 h-4 mr-1"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth="2"
-                          d="M5 13l4 4L19 7"
-                        />
+                      <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
                       </svg>
                       Allocated
                     </>
                   ) : (
                     <>
-                      <svg
-                        className="w-4 h-4 mr-1"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth="2"
-                          d="M6 18L18 6M6 6l12 12"
-                        />
+                      <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
                       </svg>
                       Not Allocated
                     </>
                   )}
                 </span>
-                {/* Quick Allocate Icon for Unallocated Batches */}
-                {!isBatchAllocated(batch.batchName) && (
+                {!isBatchAllocated(batch.batchNo) && (
                   <button
                     onClick={(e) => {
-                      e.stopPropagation(); // Prevent triggering toggleExpand
+                      e.stopPropagation();
                       handleQuickAllocate(batch);
                     }}
                     className="text-[#1B365D] hover:text-[#1B365D]/70"
                     title="Quick Allocate"
                   >
-                    <svg
-                      className="w-5 h-5"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                    >
+                    <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                       <path d="M12 4v16m8-8H4" />
                     </svg>
                   </button>
@@ -337,46 +424,127 @@ export default function BatchList() {
                 expandedBatch === batch._id ? "max-h-96 opacity-100" : "max-h-0 opacity-0"
               }`}
             >
-              <div className="p-4 bg-[#F9FAFB] border-t border-[#E2E8F0]">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-sm font-medium text-gray-500">Department</p>
-                    <p className="text-[#1B365D]">{batch.department}</p>
+              <div className="p-6 bg-[#F9FAFB] border-t border-[#E2E8F0]">
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="flex items-center gap-3 bg-white p-3 rounded-lg border border-[#E2E8F0] hover:bg-[#F5F7FA] transition-all duration-200">
+                      <svg
+                        className="w-5 h-5 text-[#1B365D]"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth="2"
+                          d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h-2m-2 0h-2m-2 0H7"
+                        />
+                      </svg>
+                      <div>
+                        <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Department</p>
+                        <p className="text-sm font-semibold text-[#1B365D]">{batch.department}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3 bg-white p-3 rounded-lg border border-[#E2E8F0] hover:bg-[#F5F7FA] transition-all duration-200">
+                      <svg
+                        className="w-5 h-5 text-[#1B365D]"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth="2"
+                          d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 1.636v-2a3 3 0 013.288-2.979M12 4a4 4 0 110 8 4 4 0 010-8z"
+                        />
+                      </svg>
+                      <div>
+                        <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Students</p>
+                        <p className="text-sm font-semibold text-[#1B365D]">{batch.studentCount}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3 bg-white p-3 rounded-lg border border-[#E2E8F0] hover:bg-[#F5F7FA] transition-all duration-200">
+                      <svg
+                        className="w-5 h-5 text-[#1B365D]"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth="2"
+                          d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                        />
+                      </svg>
+                      <div>
+                        <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Year/Semester</p>
+                        <p className="text-sm font-semibold text-[#1B365D]">{`${batch.year} - ${batch.semester}`}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3 bg-white p-3 rounded-lg border border-[#E2E8F0] hover:bg-[#F5F7FA] transition-all duration-200">
+                      <svg
+                        className="w-5 h-5 text-[#1B365D]"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth="2"
+                          d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                        />
+                      </svg>
+                      <div>
+                        <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Schedule</p>
+                        <p className="text-sm font-semibold text-[#1B365D]">{batch.scheduleType}</p>
+                      </div>
+                    </div>
+                    <div className="sm:col-span-2 flex items-center gap-3 bg-white p-3 rounded-lg border border-[#E2E8F0] hover:bg-[#F5F7FA] transition-all duration-200">
+                      <svg
+                        className="w-5 h-5 text-[#1B365D]"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth="2"
+                          d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                        />
+                      </svg>
+                      <div>
+                        <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Duration</p>
+                        <p className="text-sm font-semibold text-[#1B365D]">{`${formatDate(
+                          batch.startDate
+                        )} - ${formatDate(batch.endDate)}`}</p>
+                      </div>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-500">Students</p>
-                    <p className="text-[#1B365D]">{batch.studentCount}</p>
+                  <div className="flex justify-end gap-4 mt-4">
+                    <button
+                      onClick={() => handleEdit(batch)}
+                      className="text-[#1B365D] hover:text-[#1B365D]/70"
+                    >
+                      <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
+                        <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
+                      </svg>
+                    </button>
+                    <button
+                      onClick={() => handleDeleteBatch(batch._id)}
+                      className="text-red-500 hover:text-red-600"
+                    >
+                      <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M3 6h18" />
+                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                      </svg>
+                    </button>
                   </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-500">Schedule</p>
-                    <p className="text-[#1B365D]">{batch.scheduleType}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-500">Duration</p>
-                    <p className="text-[#1B365D]">{`${formatDate(batch.startDate)} - ${formatDate(
-                      batch.endDate
-                    )}`}</p>
-                  </div>
-                </div>
-                <div className="flex justify-end gap-4 mt-4">
-                  <button
-                    onClick={() => handleEdit(batch)}
-                    className="text-[#1B365D] hover:text-[#1B365D]/70"
-                  >
-                    <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
-                      <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
-                    </svg>
-                  </button>
-                  <button
-                    onClick={() => handleDeleteBatch(batch._id)}
-                    className="text-red-500 hover:text-red-600"
-                  >
-                    <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M3 6h18" />
-                      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                    </svg>
-                  </button>
                 </div>
               </div>
             </div>
@@ -400,111 +568,181 @@ export default function BatchList() {
 
             <div className="p-6 overflow-y-auto">
               <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium mb-2 text-[#1B365D]">
-                    Batch Name
-                  </label>
-                  <input
-                    type="text"
-                    value={newBatch.batchName}
-                    onChange={(e) =>
-                      setNewBatch({ ...newBatch, batchName: e.target.value })
-                    }
-                    className="w-full p-2 border border-[#F5F7FA] rounded-lg bg-[#F5F7FA] text-[#1B365D]"
-                  />
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-2 text-[#1B365D]">
+                      Batch Name (Auto-generated)
+                    </label>
+                    <input
+                      type="text"
+                      value={newBatch.batchName}
+                      readOnly
+                      className="w-full p-2 border border-[#F5F7FA] rounded-lg bg-[#F5F7FA] text-[#1B365D] opacity-70"
+                      placeholder="Will be generated based on department and start date"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-2 text-[#1B365D]">Intake *</label>
+                    <select
+                      value={newBatch.intake}
+                      onChange={(e) => setNewBatch({ ...newBatch, intake: e.target.value })}
+                      className={`w-full p-2 border border-[#F5F7FA] rounded-lg bg-[#F5F7FA] text-[#1B365D] ${
+                        formErrors.intake ? "border-red-500" : ""
+                      }`}
+                    >
+                      <option value="Regular">Regular</option>
+                      <option value="Main">Main</option>
+                    </select>
+                    {formErrors.intake && <p className="text-red-500 text-xs mt-1">{formErrors.intake}</p>}
+                  </div>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium mb-2 text-[#1B365D]">
-                    Batch Number
-                  </label>
-                  <input
-                    type="text"
-                    value={newBatch.batchNo}
-                    onChange={(e) =>
-                      setNewBatch({ ...newBatch, batchNo: e.target.value })
-                    }
-                    className="w-full p-2 border border-[#F5F7FA] rounded-lg bg-[#F5F7FA] text-[#1B365D]"
-                  />
+                  <label className="block text-sm font-medium mb-2 text-[#1B365D]">Batch Number *</label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={newBatch.batchNoPrefix}
+                      readOnly
+                      className="w-16 p-2 border border-[#F5F7FA] rounded-lg bg-[#F5F7FA] text-[#1B365D] opacity-70 text-center"
+                    />
+                    <input
+                      type="text"
+                      value={newBatch.batchNo1}
+                      onChange={(e) => setNewBatch({ ...newBatch, batchNo1: e.target.value })}
+                      maxLength={1}
+                      className={`w-12 p-2 border border-[#F5F7FA] rounded-lg bg-[#F5F7FA] text-[#1B365D] text-center ${
+                        formErrors.batchNo1 ? "border-red-500" : ""
+                      }`}
+                      placeholder="0"
+                    />
+                    <input
+                      type="text"
+                      value={newBatch.batchNo2}
+                      onChange={(e) => setNewBatch({ ...newBatch, batchNo2: e.target.value })}
+                      maxLength={1}
+                      className={`w-12 p-2 border border-[#F5F7FA] rounded-lg bg-[#F5F7FA] text-[#1B365D] text-center ${
+                        formErrors.batchNo2 ? "border-red-500" : ""
+                      }`}
+                      placeholder="0"
+                    />
+                    <input
+                      type="text"
+                      value={newBatch.batchNo3}
+                      onChange={(e) => setNewBatch({ ...newBatch, batchNo3: e.target.value })}
+                      maxLength={1}
+                      className={`w-12 p-2 border border-[#F5F7FA] rounded-lg bg-[#F5F7FA] text-[#1B365D] text-center ${
+                        formErrors.batchNo3 ? "border-red-500" : ""
+                      }`}
+                      placeholder="0"
+                    />
+                  </div>
+                  {(formErrors.batchNo1 || formErrors.batchNo2 || formErrors.batchNo3) && (
+                    <p className="text-red-500 text-xs mt-1">
+                      {formErrors.batchNo1 || formErrors.batchNo2 || formErrors.batchNo3}
+                    </p>
+                  )}
+                  {duplicateBatchNoError && (
+                    <p className="text-red-500 text-xs mt-1">{duplicateBatchNoError}</p>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-2 text-[#1B365D]">Year *</label>
+                    <input
+                      type="number"
+                      value={newBatch.year}
+                      onChange={(e) => setNewBatch({ ...newBatch, year: e.target.value })}
+                      className={`w-full p-2 border border-[#F5F7FA] rounded-lg bg-[#F5F7FA] text-[#1B365D] ${
+                        formErrors.year ? "border-red-500" : ""
+                      }`}
+                      placeholder="e.g., 2025"
+                    />
+                    {formErrors.year && <p className="text-red-500 text-xs mt-1">{formErrors.year}</p>}
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-2 text-[#1B365D]">Semester *</label>
+                    <select
+                      value={newBatch.semester}
+                      onChange={(e) => setNewBatch({ ...newBatch, semester: e.target.value })}
+                      className={`w-full p-2 border border-[#F5F7FA] rounded-lg bg-[#F5F7FA] text-[#1B365D] ${
+                        formErrors.semester ? "border-red-500" : ""
+                      }`}
+                    >
+                      <option value="Semester1">Semester 1</option>
+                      <option value="Semester2">Semester 2</option>
+                    </select>
+                    {formErrors.semester && (
+                      <p className="text-red-500 text-xs mt-1">{formErrors.semester}</p>
+                    )}
+                  </div>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium mb-2 text-[#1B365D]">
-                    Year
-                  </label>
-                  <input
-                    type="number"
-                    value={newBatch.year}
-                    onChange={(e) =>
-                      setNewBatch({ ...newBatch, year: e.target.value })
-                    }
-                    className="w-full p-2 border border-[#F5F7FA] rounded-lg bg-[#F5F7FA] text-[#1B365D]"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium mb-2 text-[#1B365D]">
-                    Department
-                  </label>
+                  <label className="block text-sm font-medium mb-2 text-[#1B365D]">Department *</label>
                   <select
                     value={newBatch.department}
-                    onChange={(e) =>
-                      setNewBatch({ ...newBatch, department: e.target.value })
-                    }
-                    className="w-full p-2 border border-[#F5F7FA] rounded-lg bg-[#F5F7FA] text-[#1B365D]"
+                    onChange={(e) => setNewBatch({ ...newBatch, department: e.target.value })}
+                    className={`w-full p-2 border border-[#F5F7FA] rounded-lg bg-[#F5F7FA] text-[#1B365D] ${
+                      formErrors.department ? "border-red-500" : ""
+                    }`}
                   >
-                    <option>Information Technology</option>
-                    <option>Engineering</option>
-                    <option>Business Studies</option>
+                    <option value="Information Technology">Information Technology</option>
+                    <option value="Engineering">Engineering</option>
+                    <option value="Business Studies">Business Studies</option>
                   </select>
+                  {formErrors.department && (
+                    <p className="text-red-500 text-xs mt-1">{formErrors.department}</p>
+                  )}
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium mb-2 text-[#1B365D]">
-                    Student Count
-                  </label>
+                  <label className="block text-sm font-medium mb-2 text-[#1B365D]">Student Count *</label>
                   <input
                     type="number"
                     value={newBatch.studentCount}
-                    onChange={(e) =>
-                      setNewBatch({ ...newBatch, studentCount: e.target.value })
-                    }
-                    className="w-full p-2 border border-[#F5F7FA] rounded-lg bg-[#F5F7FA] text-[#1B365D]"
+                    onChange={(e) => setNewBatch({ ...newBatch, studentCount: e.target.value })}
+                    className={`w-full p-2 border border-[#F5F7FA] rounded-lg bg-[#F5F7FA] text-[#1B365D] ${
+                      formErrors.studentCount ? "border-red-500" : ""
+                    }`}
+                    placeholder="Enter number of students (e.g., 30)"
                   />
+                  {formErrors.studentCount && (
+                    <p className="text-red-500 text-xs mt-1">{formErrors.studentCount}</p>
+                  )}
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium mb-2 text-[#1B365D]">
-                    Start Date
-                  </label>
+                  <label className="block text-sm font-medium mb-2 text-[#1B365D]">Start Date *</label>
                   <input
                     type="date"
                     value={newBatch.startDate}
-                    onChange={(e) =>
-                      setNewBatch({ ...newBatch, startDate: e.target.value })
-                    }
-                    className="w-full p-2 border border-[#F5F7FA] rounded-lg bg-[#F5F7FA] text-[#1B365D]"
+                    onChange={(e) => setNewBatch({ ...newBatch, startDate: e.target.value })}
+                    className={`w-full p-2 border border-[#F5F7FA] rounded-lg bg-[#F5F7FA] text-[#1B365D] ${
+                      formErrors.startDate ? "border-red-500" : ""
+                    }`}
                   />
+                  {formErrors.startDate && (
+                    <p className="text-red-500 text-xs mt-1">{formErrors.startDate}</p>
+                  )}
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium mb-2 text-[#1B365D]">
-                    End Date
-                  </label>
+                  <label className="block text-sm font-medium mb-2 text-[#1B365D]">End Date *</label>
                   <input
                     type="date"
                     value={newBatch.endDate}
-                    onChange={(e) =>
-                      setNewBatch({ ...newBatch, endDate: e.target.value })
-                    }
-                    className="w-full p-2 border border-[#F5F7FA] rounded-lg bg-[#F5F7FA] text-[#1B365D]"
+                    onChange={(e) => setNewBatch({ ...newBatch, endDate: e.target.value })}
+                    className={`w-full p-2 border border-[#F5F7FA] rounded-lg bg-[#F5F7FA] text-[#1B365D] ${
+                      formErrors.endDate ? "border-red-500" : ""
+                    }`}
                   />
+                  {formErrors.endDate && <p className="text-red-500 text-xs mt-1">{formErrors.endDate}</p>}
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium mb-2 text-[#1B365D]">
-                    Schedule
-                  </label>
+                  <label className="block text-sm font-medium mb-2 text-[#1B365D]">Schedule *</label>
                   <div className="flex gap-6">
                     <label className="flex items-center gap-2 text-[#1B365D]">
                       <input
@@ -512,9 +750,7 @@ export default function BatchList() {
                         name="scheduleType"
                         value="Weekdays"
                         checked={newBatch.scheduleType === "Weekdays"}
-                        onChange={(e) =>
-                          setNewBatch({ ...newBatch, scheduleType: e.target.value })
-                        }
+                        onChange={(e) => setNewBatch({ ...newBatch, scheduleType: e.target.value })}
                         className="w-4 h-4 accent-[#1B365D]"
                       />
                       Weekday
@@ -525,14 +761,15 @@ export default function BatchList() {
                         name="scheduleType"
                         value="Weekend"
                         checked={newBatch.scheduleType === "Weekend"}
-                        onChange={(e) =>
-                          setNewBatch({ ...newBatch, scheduleType: e.target.value })
-                        }
+                        onChange={(e) => setNewBatch({ ...newBatch, scheduleType: e.target.value })}
                         className="w-4 h-4 accent-[#1B365D]"
                       />
                       Weekend
                     </label>
                   </div>
+                  {formErrors.scheduleType && (
+                    <p className="text-red-500 text-xs mt-1">{formErrors.scheduleType}</p>
+                  )}
                 </div>
               </div>
             </div>
