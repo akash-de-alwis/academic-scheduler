@@ -9,6 +9,8 @@ export default function StudentDashboard() {
   const [userInfo, setUserInfo] = useState(null);
   const [currentDate, setCurrentDate] = useState(new Date());
   const [error, setError] = useState("");
+  const [activities, setActivities] = useState([]);
+  const [showNotifications, setShowNotifications] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -26,7 +28,7 @@ export default function StudentDashboard() {
         });
         setUserInfo(userResponse.data);
 
-        // Fetch timetable (filtered by student's batch if applicable)
+        // Fetch timetable
         const timetableResponse = await axios.get("http://localhost:5000/api/timetable", {
           headers: { Authorization: `Bearer ${token}` },
         });
@@ -36,11 +38,17 @@ export default function StudentDashboard() {
         }));
         setTimetable(updatedSchedules.filter((s) => s.batch === userResponse.data.batch));
 
-        // Fetch enrolled subjects (assuming a relation between user and subjects exists)
+        // Fetch enrolled subjects
         const subjectsResponse = await axios.get("http://localhost:5000/api/subjects", {
           headers: { Authorization: `Bearer ${token}` },
         });
         setSubjects(subjectsResponse.data.filter((s) => s.year === userResponse.data.currentYear));
+
+        // Fetch recent activities
+        const activitiesResponse = await axios.get("http://localhost:5000/api/activities", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        setActivities(activitiesResponse.data.slice(0, 5)); // Limit to 5 recent activities
       } catch (err) {
         setError(err.response?.data?.message || "Failed to load dashboard data");
       }
@@ -70,10 +78,32 @@ export default function StudentDashboard() {
     return `${adjustedHour}:${minutes} ${period}`;
   };
 
+  const formatActivityTime = (timestamp) => {
+    return new Date(timestamp).toLocaleString("en-GB", {
+      day: "numeric",
+      month: "short",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
+
   const handleLogout = () => {
     localStorage.removeItem("token");
     setUserInfo(null);
     navigate("/LoginPage");
+  };
+
+  const getActivityIcon = (type) => {
+    switch (type) {
+      case "added":
+        return <span className="text-green-500">➕</span>;
+      case "edited":
+        return <span className="text-blue-500">✏️</span>;
+      case "deleted":
+        return <span className="text-red-500">🗑️</span>;
+      default:
+        return <span className="text-gray-500">🔔</span>;
+    }
   };
 
   if (error) {
@@ -111,9 +141,76 @@ export default function StudentDashboard() {
             </p>
           </div>
           <div className="flex items-center gap-4">
-            <button className="p-2 bg-[#F5F7FA] rounded-full text-[#1B365D] hover:bg-[#1B365D]/10">
-              <Bell className="w-5 h-5" />
-            </button>
+            <div className="relative">
+              <button
+                onClick={() => setShowNotifications(!showNotifications)}
+                className="p-2 bg-[#F5F7FA] rounded-full text-[#1B365D] hover:bg-[#1B365D]/10 relative"
+              >
+                <Bell className="w-5 h-5" />
+                {activities.length > 0 && (
+                  <span className="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full"></span>
+                )}
+              </button>
+              {showNotifications && (
+                <div className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-lg border border-[#E2E8F0] z-10 max-h-96 overflow-y-auto">
+                  <div className="p-4 border-b border-[#E2E8F0]">
+                    <h3 className="text-lg font-semibold text-[#1B365D]">Notifications</h3>
+                  </div>
+                  {activities.length > 0 ? (
+                    <div className="p-2">
+                      {activities.map((activity) => (
+                        <div
+                          key={activity._id}
+                          className="p-3 mb-2 bg-[#F5F7FA] rounded-lg flex items-start gap-3 hover:bg-[#1B365D]/5 transition-all duration-200"
+                        >
+                          <div className="flex-shrink-0 mt-1">
+                            {getActivityIcon(activity.type)}
+                          </div>
+                          <div className="flex-1">
+                            <p className="text-[#1B365D] font-medium text-sm animate-pulse-once">
+                              {activity.type === "added" && (
+                                <>
+                                  <span className="font-bold text-green-600">New!</span> Subject{" "}
+                                  <span className="italic">"{activity.subjectName}"</span> was added
+                                </>
+                              )}
+                              {activity.type === "edited" && (
+                                <>
+                                  <span className="font-bold text-blue-600">Updated!</span> Subject{" "}
+                                  <span className="italic">"{activity.subjectName}"</span> was modified
+                                </>
+                              )}
+                              {activity.type === "deleted" && (
+                                <>
+                                  <span className="font-bold text-red-600">Gone!</span> Subject{" "}
+                                  <span className="italic">"{activity.subjectName}"</span> was removed
+                                </>
+                              )}
+                            </p>
+                            <p className="text-xs text-gray-500 mt-1">
+                              {activity.subjectID} • {formatActivityTime(activity.timestamp)}
+                            </p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="p-4 text-center text-gray-500">
+                      No new notifications
+                    </div>
+                  )}
+                  <div className="p-2 border-t border-[#E2E8F0]">
+                    <Link
+                      to="/NotificationList"
+                      className="block text-center text-[#1B365D] hover:text-[#1B365D]/70 text-sm"
+                      onClick={() => setShowNotifications(false)}
+                    >
+                      View All Activities
+                    </Link>
+                  </div>
+                </div>
+              )}
+            </div>
             <button
               onClick={handleLogout}
               className="p-2 bg-red-100 rounded-full text-red-600 hover:bg-red-200 transition-all duration-200"
@@ -259,6 +356,18 @@ export default function StudentDashboard() {
           </div>
         </div>
       </div>
+
+      {/* CSS for animation */}
+      <style jsx>{`
+        @keyframes pulseOnce {
+          0% { transform: scale(1); }
+          50% { transform: scale(1.05); }
+          100% { transform: scale(1); }
+        }
+        .animate-pulse-once {
+          animation: pulseOnce 0.5s ease-in-out;
+        }
+      `}</style>
     </div>
   );
 }

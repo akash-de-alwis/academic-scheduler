@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 
 export default function SubjectList() {
   const location = useLocation();
+  const navigate = useNavigate();
   const [subjects, setSubjects] = useState([]);
   const [filteredSubjects, setFilteredSubjects] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -15,26 +16,29 @@ export default function SubjectList() {
     credit: "",
     timeDuration: 40,
     department: "Faculty of Computing",
-    year: "1 Year"
+    year: "1 Year",
   });
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    axios.get("http://localhost:5000/api/subjects").then((res) => {
+    const fetchSubjects = async () => {
+      const token = localStorage.getItem("token");
+      const res = await axios.get("http://localhost:5000/api/subjects", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       setSubjects(res.data);
       setFilteredSubjects(res.data);
-    });
+    };
+    fetchSubjects();
   }, []);
 
-  // Check for navigation state on component mount
   useEffect(() => {
     if (location.state?.showForm) {
       setShowForm(true);
     }
   }, [location.state]);
 
-  // Filter subjects based on search term
   useEffect(() => {
     if (searchTerm.trim() === "") {
       setFilteredSubjects(subjects);
@@ -58,7 +62,6 @@ export default function SubjectList() {
   const validateForm = () => {
     const newErrors = {};
     
-    // Subject Name validation
     if (!newSubject.subjectName.trim()) {
       newErrors.subjectName = "Subject name is required";
     } else if (newSubject.subjectName.length < 3) {
@@ -67,19 +70,16 @@ export default function SubjectList() {
       newErrors.subjectName = "Subject name cannot exceed 100 characters";
     }
     
-    // Subject ID validation
     if (!newSubject.subjectID.trim()) {
       newErrors.subjectID = "Subject ID is required";
     } else if (!/^[A-Z]{2,4}\d{4}$/.test(newSubject.subjectID)) {
       newErrors.subjectID = "Subject ID must be in format: 2-4 uppercase letters followed by 4 digits (e.g., CS1234)";
     }
     
-    // Check for duplicate Subject ID (only for new subjects)
     if (!editingSubject && subjects.some(subject => subject.subjectID === newSubject.subjectID)) {
       newErrors.subjectID = "Subject ID already exists";
     }
     
-    // Credit validation
     if (!newSubject.credit) {
       newErrors.credit = "Credit value is required";
     } else if (isNaN(newSubject.credit) || Number(newSubject.credit) <= 0) {
@@ -88,7 +88,6 @@ export default function SubjectList() {
       newErrors.credit = "Credit cannot exceed 10";
     }
     
-    // Time Duration validation
     if (!newSubject.timeDuration) {
       newErrors.timeDuration = "Time duration is required";
     } else if (
@@ -105,28 +104,34 @@ export default function SubjectList() {
 
   const handleSaveSubject = async () => {
     setIsSubmitting(true);
+    const token = localStorage.getItem("token");
     
     if (validateForm()) {
       try {
-        // Convert numeric strings to numbers
         const subjectData = {
           ...newSubject,
           credit: Number(newSubject.credit),
-          timeDuration: Number(newSubject.timeDuration)
+          timeDuration: Number(newSubject.timeDuration),
         };
 
         if (editingSubject) {
           const res = await axios.put(
             `http://localhost:5000/api/subjects/${editingSubject._id}`,
-            subjectData
+            subjectData,
+            { headers: { Authorization: `Bearer ${token}` } }
           );
           setSubjects((prevSubjects) =>
             prevSubjects.map((subj) => (subj._id === editingSubject._id ? res.data : subj))
           );
         } else {
-          const res = await axios.post("http://localhost:5000/api/subjects", subjectData);
+          const res = await axios.post("http://localhost:5000/api/subjects", subjectData, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
           setSubjects((prevSubjects) => [...prevSubjects, res.data]);
         }
+
+        // Navigate to /SubjectList after successful save
+        navigate("/SubjectList");
         setShowForm(false);
         setNewSubject({
           subjectName: "",
@@ -134,15 +139,14 @@ export default function SubjectList() {
           credit: "",
           timeDuration: 40,
           department: "Faculty of Computing",
-          year: "1 Year"
+          year: "1 Year",
         });
         setEditingSubject(null);
         setErrors({});
       } catch (err) {
         console.log(err.response ? err.response.data : err);
-        // Handle API errors
         if (err.response && err.response.data) {
-          setErrors({ api: err.response.data.message || "An error occurred" });
+          setErrors({ api: err.response.data.error || "An error occurred" });
         } else {
           setErrors({ api: "Could not connect to server" });
         }
@@ -155,7 +159,10 @@ export default function SubjectList() {
   const handleDeleteSubject = async (id) => {
     if (window.confirm("Are you sure you want to delete this subject?")) {
       try {
-        await axios.delete(`http://localhost:5000/api/subjects/${id}`);
+        const token = localStorage.getItem("token");
+        await axios.delete(`http://localhost:5000/api/subjects/${id}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
         setSubjects(subjects.filter((subj) => subj._id !== id));
       } catch (err) {
         console.log(err.response ? err.response.data : err);
@@ -167,13 +174,11 @@ export default function SubjectList() {
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setNewSubject({ ...newSubject, [name]: value });
-    // Clear the error for this field when the user starts typing
     if (errors[name]) {
       setErrors({ ...errors, [name]: null });
     }
   };
 
-  // Function to check if field has error
   const hasError = (field) => Boolean(errors[field]);
 
   return (
@@ -190,7 +195,7 @@ export default function SubjectList() {
               credit: "",
               timeDuration: 40,
               department: "Faculty of Computing",
-              year: "1 Year"
+              year: "1 Year",
             });
             setErrors({});
           }}
@@ -200,7 +205,6 @@ export default function SubjectList() {
         </button>
       </div>
 
-      {/* Search Bar */}
       <div className="flex justify-between gap-4 mb-8">
         <input
           type="text"
@@ -217,7 +221,6 @@ export default function SubjectList() {
         </button>
       </div>
 
-      {/* Table */}
       <div className="bg-[#F5F7FA] rounded-lg">
         <table className="w-full">
           <thead>
@@ -283,7 +286,6 @@ export default function SubjectList() {
         </table>
       </div>
 
-      {/* Modal */}
       {showForm && (
         <div className="fixed inset-0 bg-[#1B365D]/30 backdrop-blur-sm flex justify-center items-center">
           <div className="bg-[#FFFFFF] p-6 rounded-lg w-[480px] max-h-[90vh] overflow-y-auto">

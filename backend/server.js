@@ -10,6 +10,7 @@ const allocationRoutes = require('./routes/allocations');
 const authRoutes = require('./routes/auth');
 const bookingRoutes = require("./routes/bookings");
 const timetableRoutes = require("./routes/timetableRoutes");
+const activityRoutes = require("./routes/activityRoutes");
 
 dotenv.config();
 
@@ -18,7 +19,7 @@ const PORT = process.env.PORT || 5000;
 
 app.use(cors());
 app.use(express.json());
-app.use('/uploads', express.static('uploads')); // Serve uploaded images
+app.use('/uploads', express.static('uploads'));
 
 mongoose.connect(process.env.MONGO_URI, {
     useNewUrlParser: true,
@@ -33,10 +34,8 @@ app.use('/api/rooms', roomRoutes);
 app.use('/api/subjects', subjectRoutes);
 app.use('/api/allocations', allocationRoutes);
 app.use('/api/auth', authRoutes);
-app.use("/api/batches", batchRoutes);
-app.use("/api/lecturers", lecturerRoutes);
-app.use("/api/rooms", roomRoutes);
 app.use("/api/timetable", timetableRoutes);
 app.use("/api/bookings", bookingRoutes);
+app.use("/api/activities", activityRoutes);
 
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
