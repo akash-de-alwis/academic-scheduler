@@ -164,7 +164,8 @@ export default function StaffDashboard() {
       title: "Assigned Subjects",
       description: "Manage your teaching courses",
       icon: <Book className="w-6 h-6" />,
-      path: "/subjects",
+      path: "/subjectHome",
+      color: "text-[#1B365D]",
       stats: `${modulesData.subjects.count} Courses • ${modulesData.subjects.active} Active`,
     },
     {
