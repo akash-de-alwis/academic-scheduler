@@ -15,12 +15,20 @@ export default function LecturerList() {
   });
   const [skillInput, setSkillInput] = useState("");
   const [formErrors, setFormErrors] = useState({});
+  const [toast, setToast] = useState({ message: "", visible: false }); // Added toast state
 
   useEffect(() => {
     axios.get("http://localhost:5000/api/lecturers").then((res) => {
       setLecturers(res.data);
     });
   }, []);
+
+  const showToast = (message) => {
+    setToast({ message, visible: true });
+    setTimeout(() => {
+      setToast((prev) => ({ ...prev, visible: false }));
+    }, 3000); // Hide after 3 seconds
+  };
 
   const validateForm = () => {
     const errors = {};
@@ -54,9 +62,11 @@ export default function LecturerList() {
         setLecturers((prevLecturers) =>
           prevLecturers.map((lect) => (lect._id === editingLecturer._id ? res.data : lect))
         );
+        showToast("Lecturer updated successfully!");
       } else {
         const res = await axios.post("http://localhost:5000/api/lecturers", newLecturer);
         setLecturers((prevLecturers) => [...prevLecturers, res.data]);
+        showToast("Lecturer created successfully!");
       }
       setShowForm(false);
       setNewLecturer({
@@ -105,15 +115,13 @@ export default function LecturerList() {
     const idArray = newLecturer.lecturerId.split("");
     while (idArray.length < 6) idArray.push("");
     
-    // Only allow changes for the number positions (3, 4, 5)
     if (index > 2 && value && !/^\d$/.test(value)) return;
-    if (index <= 2) return; // Prevent changes to L, E, C
+    if (index <= 2) return;
     
     idArray[index] = value;
     setNewLecturer({ ...newLecturer, lecturerId: idArray.join("") });
   };
 
-  // Lecturer stats
   const totalLecturers = lecturers.length;
   const deptCounts = {
     "Faculty of Computing": lecturers.filter((lect) => lect.department === "Faculty of Computing").length,
@@ -123,7 +131,6 @@ export default function LecturerList() {
   const weekdaysCount = lecturers.filter((lect) => lect.scheduleType === "Weekdays").length;
   const weekendCount = lecturers.filter((lect) => lect.scheduleType === "Weekend").length;
 
-  // Skills Distribution calculation
   const skillsCount = {};
   lecturers.forEach((lecturer) => {
     lecturer.skills.forEach((skill) => {
@@ -135,7 +142,56 @@ export default function LecturerList() {
     .slice(0, 2);
 
   return (
-    <div className="min-h-screen p-8 bg-[#FFFFFF]">
+    <div className="min-h-screen p-8 bg-[#FFFFFF] relative">
+      <style>
+        {`
+          @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+          }
+          .animate-fade-in {
+            animation: fadeIn 0.3s ease-out;
+          }
+          @keyframes popIn {
+            0% { transform: translateX(100%) scale(0.8); opacity: 0; }
+            60% { transform: translateX(0) scale(1.05); opacity: 1; }
+            100% { transform: translateX(0) scale(1); opacity: 1; }
+          }
+          @keyframes popOut {
+            0% { transform: translateX(0) scale(1); opacity: 1; }
+            40% { transform: translateX(0) scale(1.05); opacity: 1; }
+            100% { transform: translateX(100%) scale(0.8); opacity: 0; }
+          }
+          .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 12px 20px;
+            background: linear-gradient(135deg, #1B365D 0%, #3B5A9A 100%);
+            color: #E6ECF5;
+            border-radius: 8px;
+            box-shadow: 0 6px 16px rgba(27, 54, 93, 0.4);
+            font-size: 0.95rem;
+            font-weight: 600;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+          }
+          .toast.show {
+            animation: popIn 0.5s ease-out forwards;
+          }
+          .toast.hide {
+            animation: popOut 0.5s ease-out forwards;
+          }
+          .toast-icon {
+            width: 20px;
+            height: 20px;
+          }
+        `}
+      </style>
+
       <div className="flex justify-between items-center mb-8">
         <h2 className="text-2xl font-bold text-[#1B365D]">Lecturer Management</h2>
         <div className="flex gap-3">
@@ -159,6 +215,15 @@ export default function LecturerList() {
           </button>
         </div>
       </div>
+
+      {toast.visible && (
+        <div className={`toast ${toast.visible ? "show" : "hide"}`}>
+          <svg className="toast-icon" fill="none" stroke="#E6ECF5" viewBox="0 0 24 24" strokeWidth="2">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+          </svg>
+          {toast.message}
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         <div className="bg-white rounded-xl shadow-md p-6 border border-[#E2E8F0] flex items-center gap-4 hover:shadow-lg transition-all duration-300">

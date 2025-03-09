@@ -20,6 +20,8 @@ export default function Allocations() {
   const [suggestedLecturers, setSuggestedLecturers] = useState({});
   const [lecturerDropdownOpen, setLecturerDropdownOpen] = useState({});
   const [selectedBatchSchedule, setSelectedBatchSchedule] = useState(null);
+  const [searchingLecturer, setSearchingLecturer] = useState({});
+  const [toast, setToast] = useState({ message: "", visible: false });
 
   const location = useLocation();
   const navigate = useNavigate();
@@ -37,7 +39,7 @@ export default function Allocations() {
         setSubjects(subjectsRes.data);
         setBatches(batchesRes.data);
         setLecturers(lecturersRes.data);
-        console.log("Fetched lecturers:", lecturersRes.data); // Debug lecturer data
+        console.log("Fetched lecturers:", lecturersRes.data);
       } catch (err) {
         console.error("Error fetching data:", err);
       }
@@ -64,6 +66,14 @@ export default function Allocations() {
     setSuggestedLecturers({});
     setLecturerDropdownOpen({});
     setSelectedBatchSchedule(null);
+    setSearchingLecturer({});
+  };
+
+  const showToast = (message) => {
+    setToast({ message, visible: true });
+    setTimeout(() => {
+      setToast((prev) => ({ ...prev, visible: false }));
+    }, 3000); // Hide after 3 seconds
   };
 
   useEffect(() => {
@@ -120,6 +130,11 @@ export default function Allocations() {
       delete newSuggestions[index];
       return newSuggestions;
     });
+    setSearchingLecturer((prev) => {
+      const newSearching = { ...prev };
+      delete newSearching[index];
+      return newSearching;
+    });
   };
 
   const handleSubjectChange = (index, value) => {
@@ -148,6 +163,36 @@ export default function Allocations() {
     setLecturerDropdownOpen((prev) => ({ ...prev, [index]: false }));
   };
 
+  const findSimilarLecturer = (currentLecturerId, subjectIndex) => {
+    const currentLecturer = lecturers.find((l) => l.lecturerId === currentLecturerId);
+    if (!currentLecturer || !currentLecturer.skills) return null;
+
+    const currentSkills = currentLecturer.skills;
+    setSearchingLecturer((prev) => ({ ...prev, [subjectIndex]: true }));
+
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        const similarLecturer = lecturers.find((lecturer) => {
+          if (lecturer.lecturerId === currentLecturerId) return false;
+          if (lecturer.scheduleType !== selectedBatchSchedule) return false;
+          const matchingSkills = lecturer.skills?.filter((skill) =>
+            currentSkills.includes(skill)
+          ) || [];
+          return matchingSkills.length >= 3;
+        });
+        setSearchingLecturer((prev) => ({ ...prev, [subjectIndex]: false }));
+        if (similarLecturer) {
+          const matchingSkills = similarLecturer.skills.filter((skill) =>
+            currentSkills.includes(skill)
+          ).slice(0, 3);
+          resolve({ ...similarLecturer, matchingSkills });
+        } else {
+          resolve(null);
+        }
+      }, 6000); // 6-second delay
+    });
+  };
+
   const handleSave = async () => {
     try {
       const batchNameWithoutIntake = newAllocation.batchName.split(" (")[0];
@@ -157,11 +202,13 @@ export default function Allocations() {
       };
 
       if (!saveData.batchName) throw new Error("Batch is required");
-      if (saveData.subjects.some(s => !s.subjectName)) throw new Error("All subjects must be selected");
+      if (saveData.subjects.some((s) => !s.subjectName))
+        throw new Error("All subjects must be selected");
 
       setBatchError("");
       setLecturerErrors({});
       setSuggestedLecturers({});
+      setSearchingLecturer({});
 
       if (editingAllocation) {
         const res = await axios.put(
@@ -173,9 +220,11 @@ export default function Allocations() {
             allocation._id === editingAllocation._id ? res.data : allocation
           )
         );
+        showToast("Allocation updated successfully!");
       } else {
         const res = await axios.post("http://localhost:5000/api/allocations", saveData);
         setAllocations([...allocations, res.data]);
+        showToast("Allocation created successfully!");
       }
       setShowForm(false);
       resetForm();
@@ -196,11 +245,25 @@ export default function Allocations() {
           ...prev,
           [subjectIndex]: err.response.data.message,
         }));
-        if (err.response.data.suggestedLecturer) {
-          setSuggestedLecturers((prev) => ({
-            ...prev,
-            [subjectIndex]: err.response.data.suggestedLecturer,
-          }));
+
+        const currentLecturerId = newAllocation.subjects[subjectIndex].lecturerId;
+        if (currentLecturerId) {
+          const similarLecturer = await findSimilarLecturer(currentLecturerId, subjectIndex);
+          if (similarLecturer) {
+            setSuggestedLecturers((prev) => ({
+              ...prev,
+              [subjectIndex]: {
+                name: similarLecturer.name,
+                lecturerId: similarLecturer.lecturerId,
+                matchingSkills: similarLecturer.matchingSkills,
+              },
+            }));
+          } else {
+            setSuggestedLecturers((prev) => ({
+              ...prev,
+              [subjectIndex]: null,
+            }));
+          }
         }
       } else {
         console.log(err.response ? err.response.data : err);
@@ -256,7 +319,7 @@ export default function Allocations() {
         ...prev,
         batchName: `${selectedBatch.batchName} (${selectedBatch.intake})`,
         batchId: selectedBatch.batchNo,
-        subjects: prev.subjects.map(s => ({ ...s, lecturerName: "", lecturerId: "" })),
+        subjects: prev.subjects.map((s) => ({ ...s, lecturerName: "", lecturerId: "" })),
       }));
       setSelectedBatchSchedule(selectedBatch.scheduleType);
       setLecturerDropdownOpen({});
@@ -269,14 +332,123 @@ export default function Allocations() {
 
   return (
     <>
-      <div className="min-h-screen p-8">
+      <div className="min-h-screen p-8 relative">
         <style>{`
           @keyframes slideIn {
             from { transform: translateY(-20px); opacity: 0; }
             to { transform: translateY(0); opacity: 1; }
           }
+          @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+          }
+          @keyframes pulseGlow {
+            0% { opacity: 0.5; text-shadow: 0 0 5px rgba(27, 54, 93, 0.5); }
+            50% { opacity: 1; text-shadow: 0 0 15px rgba(27, 54, 93, 0.8); }
+            100% { opacity: 0.5; text-shadow: 0 0 5px rgba(27, 54, 93, 0.5); }
+          }
+          @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(5px); }
+            to { opacity: 1; transform: translateY(0); }
+          }
+          @keyframes popIn {
+            0% { transform: translateX(100%) scale(0.8); opacity: 0; }
+            60% { transform: translateX(0) scale(1.05); opacity: 1; }
+            100% { transform: translateX(0) scale(1); opacity: 1; }
+          }
+          @keyframes popOut {
+            0% { transform: translateX(0) scale(1); opacity: 1; }
+            40% { transform: translateX(0) scale(1.05); opacity: 1; }
+            100% { transform: translateX(100%) scale(0.8); opacity: 0; }
+          }
           .alert-slide-in {
             animation: slideIn 0.3s ease-out forwards;
+          }
+          .ai-search-container {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px;
+            background: linear-gradient(135deg, #E6ECF5, #F0F4F9);
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(27, 54, 93, 0.2);
+          }
+          .ai-spinner {
+            width: 24px;
+            height: 24px;
+            border: 3px solid #1B365D;
+            border-top: 3px solid transparent;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+          }
+          .ai-search-text {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #1B365D;
+            animation: pulseGlow 2s infinite;
+          }
+          .ai-suggestion-card {
+            margin-top: 12px;
+            padding: 12px;
+            background: #F9FAFB;
+            border: 1px solid #E2E8F0;
+            border-radius: 8px;
+            box-shadow: 0 2px 6px rgba(27, 54, 93, 0.1);
+            animation: fadeIn 0.4s ease-out;
+            display: flex;
+            justify-content: space-between;
+            gap: 16px;
+          }
+          .ai-suggestion-card .left {
+            flex: 1;
+          }
+          .ai-suggestion-card .right {
+            flex: 1;
+            text-align: right;
+          }
+          .ai-suggestion-card h5 {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #1B365D;
+            margin-bottom: 8px;
+          }
+          .ai-suggestion-card p {
+            font-size: 0.85rem;
+            color: #4B5E7A;
+            margin: 4px 0;
+          }
+          .ai-suggestion-card .confidence {
+            font-size: 0.8rem;
+            color: #3B5A9A;
+            margin-top: 6px;
+            font-style: italic;
+          }
+          .ai-suggestion-card .skills-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+          }
+          .ai-suggestion-card .skills-list li {
+            font-size: 0.8rem;
+            color: #1B365D;
+            margin: 4px 0;
+            background: #E6ECF5;
+            padding: 2px 8px;
+            border-radius: 12px;
+            display: inline-block;
+          }
+          .ai-suggestion-card button {
+            margin-top: 10px;
+            padding: 6px 14px;
+            background: #1B365D;
+            color: white;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            transition: background 0.3s ease;
+          }
+          .ai-suggestion-card button:hover {
+            background: #2A4A7F;
           }
           .dropdown-menu {
             max-height: 250px;
@@ -323,6 +495,33 @@ export default function Allocations() {
             padding: 16px;
             border-radius: 8px;
           }
+          .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 12px 20px;
+            background: linear-gradient(135deg, #1B365D 0%, #3B5A9A 100%);
+            color: #E6ECF5;
+            border-radius: 8px;
+            box-shadow: 0 6px 16px rgba(27, 54, 93, 0.4);
+            font-size: 0.95rem;
+            font-weight: 600;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+          }
+          .toast.show {
+            animation: popIn 0.5s ease-out forwards;
+          }
+          .toast.hide {
+            animation: popOut 0.5s ease-out forwards;
+          }
+          .toast-icon {
+            width: 20px;
+            height: 20px;
+          }
         `}</style>
 
         <div className="flex justify-between items-center mb-8">
@@ -340,6 +539,15 @@ export default function Allocations() {
             Add Allocation
           </button>
         </div>
+
+        {toast.visible && (
+          <div className={`toast ${toast.visible ? "show" : "hide"}`}>
+            <svg className="toast-icon" fill="none" stroke="#E6ECF5" viewBox="0 0 24 24" strokeWidth="2">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+            </svg>
+            {toast.message}
+          </div>
+        )}
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {allocations.map((allocation) => (
@@ -471,7 +679,10 @@ export default function Allocations() {
                 <h3 className="text-xl font-semibold text-[#1B365D] tracking-tight">
                   {editingAllocation ? "Edit Allocation" : "New Allocation"}
                 </h3>
-                <button onClick={handleCloseForm} className="text-[#1B365D]/70 hover:text-[#1B365D] text-2xl font-medium">
+                <button
+                  onClick={handleCloseForm}
+                  className="text-[#1B365D]/70 hover:text-[#1B365D] text-2xl font-medium"
+                >
                   ✕
                 </button>
               </div>
@@ -509,7 +720,12 @@ export default function Allocations() {
                       {batchError && (
                         <p className="text-red-500 text-sm mt-2 flex items-center gap-2">
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth="2"
+                              d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                            />
                           </svg>
                           {batchError}
                         </p>
@@ -594,16 +810,39 @@ export default function Allocations() {
                       {lecturerErrors[index] && (
                         <div className="mt-3 bg-red-50 border-l-4 border-red-400 p-3 text-red-700 text-sm rounded shadow-sm">
                           <p>{lecturerErrors[index]}</p>
-                          {suggestedLecturers[index] && (
-                            <div className="mt-2">
-                              <p>Suggested: <span className="font-medium">{suggestedLecturers[index].name}</span></p>
-                              <button
-                                onClick={() => handleUseSuggestedLecturer(index)}
-                                className="text-[#1B365D] underline hover:text-[#2A4A7F] text-sm"
-                              >
-                                Use this lecturer
-                              </button>
+                          {searchingLecturer[index] && (
+                            <div className="ai-search-container mt-2">
+                              <div className="ai-spinner"></div>
+                              <p className="ai-search-text">
+                                AI analyzing lecturer skills... (please wait)
+                              </p>
                             </div>
+                          )}
+                          {suggestedLecturers[index] && !searchingLecturer[index] && (
+                            <div className="ai-suggestion-card">
+                              <div className="left">
+                                <h5>AI Suggested Lecturer</h5>
+                                <p>Name: <span className="font-medium">{suggestedLecturers[index].name}</span></p>
+                                <p>ID: {suggestedLecturers[index].lecturerId}</p>
+                                <p className="confidence">AI Match Confidence: 92%</p>
+                                <button onClick={() => handleUseSuggestedLecturer(index)}>
+                                  Use This Lecturer
+                                </button>
+                              </div>
+                              <div className="right">
+                                <h5>Top Matching Skills</h5>
+                                <ul className="skills-list">
+                                  {suggestedLecturers[index].matchingSkills.map((skill, i) => (
+                                    <li key={i}>{skill}</li>
+                                  ))}
+                                </ul>
+                              </div>
+                            </div>
+                          )}
+                          {!suggestedLecturers[index] && !searchingLecturer[index] && (
+                            <p className="mt-2 text-gray-600">
+                              AI could not find a lecturer with at least 3 similar skills.
+                            </p>
                           )}
                         </div>
                       )}

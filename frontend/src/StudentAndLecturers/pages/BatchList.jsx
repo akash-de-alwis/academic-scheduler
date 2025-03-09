@@ -32,8 +32,16 @@ export default function BatchList() {
   });
   const [searchQuery, setSearchQuery] = useState("");
   const [sortOrder, setSortOrder] = useState("asc");
+  const [toast, setToast] = useState({ message: "", visible: false });
 
   const navigate = useNavigate();
+
+  const showToast = (message) => {
+    setToast({ message, visible: true });
+    setTimeout(() => {
+      setToast((prev) => ({ ...prev, visible: false }));
+    }, 3000); // Hide after 3 seconds
+  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -145,9 +153,11 @@ export default function BatchList() {
         setBatches((prevBatches) =>
           prevBatches.map((batch) => (batch._id === editingBatch._id ? res.data : batch))
         );
+        showToast("Batch updated successfully!");
       } else {
         const res = await axios.post("http://localhost:5000/api/batches", batchData);
         setBatches((prevBatches) => [...prevBatches, res.data]);
+        showToast("Batch created successfully!");
       }
       setShowForm(false);
       setNewBatch({
@@ -246,7 +256,7 @@ export default function BatchList() {
   };
 
   return (
-    <div className="min-h-screen p-8 bg-[#FFFFFF]">
+    <div className="min-h-screen p-8 bg-[#FFFFFF] relative">
       <style>
         {`
           @keyframes fadeIn {
@@ -263,6 +273,43 @@ export default function BatchList() {
           }
           .animate-blink {
             animation: blink 1s infinite;
+          }
+          @keyframes popIn {
+            0% { transform: translateX(100%) scale(0.8); opacity: 0; }
+            60% { transform: translateX(0) scale(1.05); opacity: 1; }
+            100% { transform: translateX(0) scale(1); opacity: 1; }
+          }
+          @keyframes popOut {
+            0% { transform: translateX(0) scale(1); opacity: 1; }
+            40% { transform: translateX(0) scale(1.05); opacity: 1; }
+            100% { transform: translateX(100%) scale(0.8); opacity: 0; }
+          }
+          .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 12px 20px;
+            background: linear-gradient(135deg, #1B365D 0%, #3B5A9A 100%);
+            color: #E6ECF5;
+            border-radius: 8px;
+            box-shadow: 0 6px 16px rgba(27, 54, 93, 0.4);
+            font-size: 0.95rem;
+            font-weight: 600;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+          }
+          .toast.show {
+            animation: popIn 0.5s ease-out forwards;
+          }
+          .toast.hide {
+            animation: popOut 0.5s ease-out forwards;
+          }
+          .toast-icon {
+            width: 20px;
+            height: 20px;
           }
         `}
       </style>
@@ -309,6 +356,15 @@ export default function BatchList() {
           </button>
         </div>
       </div>
+
+      {toast.visible && (
+        <div className={`toast ${toast.visible ? "show" : "hide"}`}>
+          <svg className="toast-icon" fill="none" stroke="#E6ECF5" viewBox="0 0 24 24" strokeWidth="2">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+          </svg>
+          {toast.message}
+        </div>
+      )}
 
       <div className="flex justify-between gap-4 mb-8">
         <input
