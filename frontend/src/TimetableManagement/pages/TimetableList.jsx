@@ -92,12 +92,14 @@ export default function TimetableList() {
 
   const handleUploadTimetable = async () => {
     try {
+      // Filter schedules for the selected batch
       const batchSchedules = schedules.filter((s) => s.batch === selectedBatch);
       if (batchSchedules.length === 0) {
         alert("No schedules to upload for this batch!");
         return;
       }
-  
+
+      // Validate that all subjects have required fields
       for (const schedule of batchSchedules) {
         for (const subject of schedule.subjects) {
           if (!subject.room || !subject.date || !subject.time) {
@@ -106,30 +108,56 @@ export default function TimetableList() {
           }
         }
       }
-  
-      console.log("Posting timetable for batch:", selectedBatch);
-      const postResponse = await axios.post("http://localhost:5000/api/timetable/published-timetable", {
-        batch: selectedBatch,
-        schedules: batchSchedules,
-      });
-      console.log("Post response:", postResponse.data);
-  
-      console.log("Deleting schedules for batch:", selectedBatch);
-      const deleteResponse = await axios.delete("http://localhost:5000/api/timetable/batch", {
-        data: { batch: selectedBatch },
-      });
-      console.log("Delete response:", deleteResponse.data);
-  
+
+      // Step 1: Upload the timetable
+      console.log("Uploading timetable for batch:", selectedBatch);
+      const postResponse = await axios.post(
+        "http://localhost:5000/api/timetable/published-timetable",
+        {
+          batch: selectedBatch,
+          schedules: batchSchedules,
+        }
+      );
+      console.log("Upload response:", postResponse.data);
+
+      // Verify successful upload
+      if (postResponse.status !== 200 && postResponse.status !== 201) {
+        throw new Error("Failed to upload timetable: Server returned an error status.");
+      }
+
+      // Step 2: Attempt to delete schedules (non-critical step)
+      try {
+        console.log("Deleting schedules for batch:", selectedBatch);
+        const deleteResponse = await axios.delete("http://localhost:5000/api/timetable/batch", {
+          data: { batch: selectedBatch },
+        });
+        console.log("Delete response:", deleteResponse.data);
+
+        if (deleteResponse.status !== 200) {
+          console.warn("Delete step returned an unexpected status but upload succeeded.");
+        }
+      } catch (deleteErr) {
+        // Log the delete error but don’t fail the upload
+        console.error(
+          "Failed to delete schedules after upload:",
+          deleteErr.response ? deleteErr.response.data : deleteErr.message
+        );
+      }
+
+      // Update local state and navigate regardless of delete success
       setSchedules(schedules.filter((s) => s.batch !== selectedBatch));
       setSelectedBatch("");
       alert(`Timetable for ${selectedBatch} uploaded successfully!`);
-      navigate("/published-timetable", { state: { batch: selectedBatch } });
+      navigate("/TimeView", { state: { batch: selectedBatch } });
     } catch (err) {
-      console.log("Upload error:", err.response ? err.response.data : err.message);
-      alert("Failed to upload timetable. Check console for details.");
+      // Handle critical errors (e.g., POST failure)
+      const errorMessage = err.response
+        ? `Server Error: ${err.response.status} - ${JSON.stringify(err.response.data)}`
+        : `Client Error: ${err.message}`;
+      console.error("Upload timetable error:", errorMessage);
+      alert(`Failed to upload timetable: ${errorMessage}. Please check the console for details.`);
     }
   };
-
 
   const handleUserTypeSelect = (type) => {
     setUserType(type);

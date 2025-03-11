@@ -35,8 +35,8 @@ import BookingReview from "./LectureHallAllocation/pages/BookingReview";
 import TimeHome from "./TimetableManagement/pages/TimeHome";
 import TimetableList from "./TimetableManagement/pages/TimetableList";
 import PublishTimetable from "./ClientsidePages/PublishTimetable";
-
-
+import Timeview from "./TimetableManagement/pages/TimeView";
+import TimetableReports from "./TimetableManagement/pages/TimetableReports";
 
 import SubHome from "./CourseAllocation/pages/SubHome";
 import SubjectList from "./CourseAllocation/pages/SubjectList";
@@ -119,13 +119,10 @@ function App() {
         {/* Routes with Time Sidebar */}
         <Route path="/TimeHome" element={<TimeLayout><TimeHome /></TimeLayout>} />
         <Route path="/TimetableList" element={<TimeLayout><TimetableList /></TimeLayout>} />
+        <Route path="/Timeview" element={<TimeLayout><Timeview /></TimeLayout>} />
+        <Route path="/TimetableReports" element={<TimeLayout><TimetableReports /></TimeLayout>} />
         <Route path="/PublishTimetable" element={<PublishTimetable/>}/>
        
-
- 
-      
-      
-
 
         {/* Routes with course Sidebar */}
         <Route path="/SubjectHome" element={<SubjectLayout>< SubHome /></SubjectLayout>} />

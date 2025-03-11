@@ -31,9 +31,9 @@ export default function TimeSidebar() {
           </Link>
          
           <Link
-            to="/schedules"
+            to="/TimetableList"
             className={`flex items-center py-3 px-4 rounded-lg text-[#1B365D] hover:bg-[#F5F7FA] hover:shadow-sm transition-all duration-300 ${
-              isActive("/schedules")
+              isActive("/TimetableList")
                 ? "bg-[#1B365D] text-[#FFFFFF] hover:bg-[#1B365D]/90 font-semibold"
                 : "font-medium"
             }`}
@@ -45,9 +45,9 @@ export default function TimeSidebar() {
           </Link>
          
           <Link
-            to="/TimetableList"
+            to="/TimeView"
             className={`flex items-center py-3 px-4 rounded-lg text-[#1B365D] hover:bg-[#F5F7FA] hover:shadow-sm transition-all duration-300 ${
-              isActive("/TimetableList")
+              isActive("/TimeView")
                 ? "bg-[#1B365D] text-[#FFFFFF] hover:bg-[#1B365D]/90 font-semibold"
                 : "font-medium"
             }`}
@@ -59,7 +59,7 @@ export default function TimeSidebar() {
           </Link>
          
           <Link
-            to="/reports"
+            to="/TimetableReports"
             className={`flex items-center py-3 px-4 rounded-lg text-[#1B365D] hover:bg-[#F5F7FA] hover:shadow-sm transition-all duration-300 ${
               isActive("/reports")
                 ? "bg-[#1B365D] text-[#FFFFFF] hover:bg-[#1B365D]/90 font-semibold"
