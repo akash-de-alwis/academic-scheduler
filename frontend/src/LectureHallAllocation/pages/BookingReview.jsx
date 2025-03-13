@@ -1,11 +1,13 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
 import { AlertTriangle } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 export default function BookingReview() {
   const [bookings, setBookings] = useState([]);
   const [expandedIssues, setExpandedIssues] = useState({});
   const [expandedWarnings, setExpandedWarnings] = useState({});
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetchBookings();
@@ -74,9 +76,17 @@ export default function BookingReview() {
   return (
     <div className="min-h-screen bg-gradient-to-br [#FFFFFF] p-8">
       <div className="max-w-7xl mx-auto">
-        <h2 className="text-3xl font-bold text-[#1B365D] mb-8 tracking-tight">
-          Booking Review <span className="text-gray-400 text-xl font-normal">(Under Review)</span>
-        </h2>
+        <div className="flex justify-between items-center mb-8">
+          <h2 className="text-3xl font-bold text-[#1B365D] tracking-tight">
+            Booking Review <span className="text-gray-400 text-xl font-normal">(Under Review)</span>
+          </h2>
+          <button
+            onClick={() => navigate("/BookingHistory")}
+            className="px-4 py-2 bg-[#1B365D] text-white rounded-full hover:bg-[#1B365D]/90 transition-all duration-200 font-medium shadow-md"
+          >
+            View Booking History
+          </button>
+        </div>
 
         <div className="bg-white rounded-xl shadow-lg overflow-hidden border border-[#E2E8F0]">
           <table className="w-full text-left">

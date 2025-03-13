@@ -33,6 +33,7 @@ import BookingManagement from "./LectureHallAllocation/pages/Challs/BookingManag
 import BookingReview from "./LectureHallAllocation/pages/BookingReview";
 import RaisingIssues from "./LectureHallAllocation/pages/Challs/RaisingIssues";
 import HallIssues from "./LectureHallAllocation/pages/HallIssues";
+import BookingHistory from "./LectureHallAllocation/pages/BookingHistory";
 
 import TimeHome from "./TimetableManagement/pages/TimeHome";
 import TimetableList from "./TimetableManagement/pages/TimetableList";
@@ -115,6 +116,7 @@ function App() {
         <Route path="/BookingManagement" element={<BookingManagement/>}/>
         <Route path="/RaisingIssues" element={<RaisingIssues/>}/>
         <Route path="/HallIssues" element={<HallLayout><HallIssues/></HallLayout>}/>
+        <Route path="/BookingHistory" element={<HallLayout><BookingHistory/></HallLayout>}/>
 
 
         {/* Routes with Time Sidebar */}
