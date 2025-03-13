@@ -814,17 +814,17 @@ export default function Allocations() {
                             <div className="ai-search-container mt-2">
                               <div className="ai-spinner"></div>
                               <p className="ai-search-text">
-                                AI analyzing lecturer skills... (please wait)
+                                Analyzing lecturer skills... (please wait)
                               </p>
                             </div>
                           )}
                           {suggestedLecturers[index] && !searchingLecturer[index] && (
                             <div className="ai-suggestion-card">
                               <div className="left">
-                                <h5>AI Suggested Lecturer</h5>
+                                <h5>Suggested Lecturer</h5>
                                 <p>Name: <span className="font-medium">{suggestedLecturers[index].name}</span></p>
                                 <p>ID: {suggestedLecturers[index].lecturerId}</p>
-                                <p className="confidence">AI Match Confidence: 92%</p>
+                                <p className="confidence">Match Confidence: 92%</p>
                                 <button onClick={() => handleUseSuggestedLecturer(index)}>
                                   Use This Lecturer
                                 </button>
@@ -841,7 +841,7 @@ export default function Allocations() {
                           )}
                           {!suggestedLecturers[index] && !searchingLecturer[index] && (
                             <p className="mt-2 text-gray-600">
-                              AI could not find a lecturer with at least 3 similar skills.
+                              Could not find a lecturer with at least 3 similar skills.
                             </p>
                           )}
                         </div>
