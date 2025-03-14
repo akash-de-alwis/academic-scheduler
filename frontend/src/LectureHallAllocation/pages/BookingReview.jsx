@@ -5,8 +5,11 @@ import { useNavigate } from "react-router-dom";
 
 export default function BookingReview() {
   const [bookings, setBookings] = useState([]);
+  const [filteredBookings, setFilteredBookings] = useState([]);
   const [expandedIssues, setExpandedIssues] = useState({});
   const [expandedWarnings, setExpandedWarnings] = useState({});
+  const [searchTerm, setSearchTerm] = useState("");
+  const [departmentFilter, setDepartmentFilter] = useState("All");
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -17,9 +20,40 @@ export default function BookingReview() {
     try {
       const res = await axios.get("http://localhost:5000/api/bookings?status=Pending");
       setBookings(res.data);
+      setFilteredBookings(applyFilters(res.data, searchTerm, departmentFilter));
     } catch (err) {
       console.error(err);
     }
+  };
+
+  const applyFilters = (bookingsList, search, dept) => {
+    let filtered = [...bookingsList];
+    
+    if (dept !== "All") {
+      filtered = filtered.filter(booking => booking.department === dept);
+    }
+
+    if (search) {
+      filtered = filtered.filter((booking) =>
+        booking.department.toLowerCase().includes(search.toLowerCase()) ||
+        booking.meetingRoom.toLowerCase().includes(search.toLowerCase()) ||
+        booking.dayType.toLowerCase().includes(search.toLowerCase())
+      );
+    }
+
+    return filtered;
+  };
+
+  const handleSearch = (term) => {
+    const filtered = applyFilters(bookings, term, departmentFilter);
+    setFilteredBookings(filtered);
+    setSearchTerm(term);
+  };
+
+  const handleFilterChange = (dept) => {
+    setDepartmentFilter(dept);
+    const filtered = applyFilters(bookings, searchTerm, dept);
+    setFilteredBookings(filtered);
   };
 
   const handleStatusChange = async (id, newStatus) => {
@@ -27,7 +61,6 @@ export default function BookingReview() {
       let updateData = { status: newStatus };
       const booking = bookings.find((b) => b._id === id);
 
-      // If denying, include the denial reason
       if (newStatus === "Denied") {
         let denialReason = [];
         if (hasIssue(booking)) {
@@ -97,10 +130,30 @@ export default function BookingReview() {
           </h2>
           <button
             onClick={() => navigate("/BookingHistory")}
-            className="px-4 py-2 bg-[#1B365D] text-white rounded-full hover:bg-[#1B365D]/90 transition-all duration-200 font-medium shadow-md"
+            className="bg-[#1B365D] text-[#FFFFFF] px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-[#1B365D]/90"
           >
             View Booking History
           </button>
+        </div>
+
+        <div className="flex justify-between gap-4 mb-8">
+          <input
+            type="text"
+            placeholder="Search bookings..."
+            value={searchTerm}
+            onChange={(e) => handleSearch(e.target.value)}
+            className="flex-1 px-4 py-2 border border-[#F5F7FA] rounded-lg bg-[#F5F7FA] text-[#1B365D]"
+          />
+          <select
+            value={departmentFilter}
+            onChange={(e) => handleFilterChange(e.target.value)}
+            className="p-2 border border-[#F5F7FA] rounded-lg bg-[#F5F7FA] text-[#1B365D]"
+          >
+            <option value="All">All Departments</option>
+            <option value="Computer Faculty">Computer Faculty</option>
+            <option value="Engineer Faculty">Engineer Faculty</option>
+            <option value="Business Faculty">Business Faculty</option>
+          </select>
         </div>
 
         <div className="bg-white rounded-xl shadow-lg overflow-hidden border border-[#E2E8F0]">
@@ -118,8 +171,8 @@ export default function BookingReview() {
               </tr>
             </thead>
             <tbody>
-              {bookings.length > 0 ? (
-                bookings.map((booking) => (
+              {filteredBookings.length > 0 ? (
+                filteredBookings.map((booking) => (
                   <tr
                     key={booking._id}
                     className="border-b border-[#E2E8F0] hover:bg-[#F8FAFC] transition-all duration-200 ease-in-out"
