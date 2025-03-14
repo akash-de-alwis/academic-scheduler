@@ -24,7 +24,22 @@ export default function BookingReview() {
 
   const handleStatusChange = async (id, newStatus) => {
     try {
-      await axios.put(`http://localhost:5000/api/bookings/${id}`, { status: newStatus });
+      let updateData = { status: newStatus };
+      const booking = bookings.find((b) => b._id === id);
+
+      // If denying, include the denial reason
+      if (newStatus === "Denied") {
+        let denialReason = [];
+        if (hasIssue(booking)) {
+          denialReason.push("Maintenance Issues");
+        }
+        if (hasLowStudentCount(booking)) {
+          denialReason.push("Low Student Count");
+        }
+        updateData.denialReason = denialReason.length > 0 ? denialReason : ["No specific reason"];
+      }
+
+      await axios.put(`http://localhost:5000/api/bookings/${id}`, updateData);
       fetchBookings();
       alert(`Booking ${newStatus.toLowerCase()} successfully!`);
     } catch (err) {
@@ -34,16 +49,16 @@ export default function BookingReview() {
   };
 
   const toggleIssueDetails = (bookingId) => {
-    setExpandedIssues(prev => ({
+    setExpandedIssues((prev) => ({
       ...prev,
-      [bookingId]: !prev[bookingId]
+      [bookingId]: !prev[bookingId],
     }));
   };
 
   const toggleWarningDetails = (bookingId) => {
-    setExpandedWarnings(prev => ({
+    setExpandedWarnings((prev) => ({
       ...prev,
-      [bookingId]: !prev[bookingId]
+      [bookingId]: !prev[bookingId],
     }));
   };
 
@@ -58,7 +73,7 @@ export default function BookingReview() {
       minutes += 60;
     }
     if (hours < 0) hours += 24;
-    const totalHours = hours + (minutes / 60);
+    const totalHours = hours + minutes / 60;
     return totalHours === 1 ? "1 hour" : `${totalHours.toFixed(1)} hours`;
   };
 
