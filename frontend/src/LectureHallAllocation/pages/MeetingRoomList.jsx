@@ -26,7 +26,7 @@ const calculateRoomPosition = (index, rooms) => {
     return { x: 20, y: 40 }; // Fallback position
   }
 
-  const topZoneSlots = Array(COLUMNS_PER_ROW).fill(true); // true = available
+  const topZoneSlots = Array(COLUMNS_PER_ROW).fill(true);
   const bottomZoneSlots = Array(COLUMNS_PER_ROW).fill(true);
 
   STATIC_ZONES.forEach((zone) => {
@@ -41,7 +41,7 @@ const calculateRoomPosition = (index, rooms) => {
     }
   });
 
-  const topAvailable = topZoneSlots.filter(Boolean).length; // e.g., 6
+  const topAvailable = topZoneSlots.filter(Boolean).length;
   const isTopZone = index < topAvailable;
 
   const zoneSlots = isTopZone ? topZoneSlots : bottomZoneSlots;
@@ -65,8 +65,8 @@ const calculateRoomPosition = (index, rooms) => {
   return { x, y };
 };
 
-// FloorMap component
-const FloorMap = ({ filteredRooms }) => (
+// FloorMap component with warning sign and modal trigger
+const FloorMap = ({ filteredRooms, issues, showMaintenanceModal }) => (
   <div className="mt-8 bg-white rounded-xl shadow-lg p-6 border border-[#E2E8F0]">
     <h3 className="text-xl font-semibold text-[#1B365D] mb-4">Floor Map</h3>
     {filteredRooms.length > 0 ? (
@@ -116,6 +116,9 @@ const FloorMap = ({ filteredRooms }) => (
         {filteredRooms.map((room, index) => {
           const { x, y } = calculateRoomPosition(index, filteredRooms);
           const isMeetingRoom = room.hallType === "Meeting Room";
+          const hasIssue = issues.some((issue) => issue.roomId === room.LID && issue.status === "Pending");
+          const isUnderMaintenance = room.status === "Under Maintenance";
+
           return (
             <g key={room._id}>
               <rect
@@ -123,8 +126,8 @@ const FloorMap = ({ filteredRooms }) => (
                 y={y}
                 width={ROOM_WIDTH}
                 height={ROOM_HEIGHT}
-                fill={isMeetingRoom ? "#E6F0FA" : "#FFFFFF"}
-                stroke={isMeetingRoom ? "#1B365D" : "#6B7280"}
+                fill={isUnderMaintenance ? "#FEE2E2" : isMeetingRoom ? "#E6F0FA" : "#FFFFFF"}
+                stroke={isUnderMaintenance ? "#EF4444" : isMeetingRoom ? "#1B365D" : "#6B7280"}
                 strokeWidth={isMeetingRoom ? "3" : "2"}
                 rx="5"
                 className="hover:fill-[#1B365D]/20 transition-all duration-200"
@@ -146,7 +149,7 @@ const FloorMap = ({ filteredRooms }) => (
                 fill="#6B7280"
                 fontSize="10"
               >
-                {room.hallType}
+                {isUnderMaintenance ? "Under Maintenance" : room.hallType}
               </text>
               <text
                 x={x + ROOM_WIDTH / 2}
@@ -157,6 +160,32 @@ const FloorMap = ({ filteredRooms }) => (
               >
                 Seats: {room.totalSeats || "-"}
               </text>
+              {hasIssue && !isUnderMaintenance && (
+                <g
+                  onClick={() => showMaintenanceModal(room._id, room.LID)}
+                  className="cursor-pointer"
+                >
+                  <circle
+                    cx={x + ROOM_WIDTH - 15}
+                    cy={y + 15}
+                    r="12"
+                    fill="#F59E0B"
+                    stroke="#D97706"
+                    strokeWidth="2"
+                    className="hover:fill-[#FBBF24] transition-all duration-200"
+                  />
+                  <text
+                    x={x + ROOM_WIDTH - 15}
+                    y={y + 20}
+                    textAnchor="middle"
+                    fill="#FFFFFF"
+                    fontSize="14"
+                    fontWeight="bold"
+                  >
+                    !
+                  </text>
+                </g>
+              )}
             </g>
           );
         })}
@@ -179,17 +208,39 @@ export default function MeetingRoomList() {
     department: "Computer Faculty",
     floor: "",
     totalSeats: "",
+    status: "Available",
   });
   const [errors, setErrors] = useState({});
   const [selectedDepartment, setSelectedDepartment] = useState("");
   const [selectedFloor, setSelectedFloor] = useState("");
   const [filteredRooms, setFilteredRooms] = useState([]);
+  const [issues, setIssues] = useState([]);
+  const [showMaintenanceModal, setShowMaintenanceModal] = useState(false);
+  const [selectedRoomLID, setSelectedRoomLID] = useState("");
 
+  // Fetch rooms and issues on mount
   useEffect(() => {
-    axios.get("http://localhost:5000/api/rooms").then((res) => {
-      setAllRooms(res.data);
-      setFilteredRooms(res.data.filter((room) => room.hallType === "Meeting Room"));
-    });
+    const fetchRooms = async () => {
+      try {
+        const res = await axios.get("http://localhost:5000/api/rooms");
+        setAllRooms(res.data);
+        setFilteredRooms(res.data.filter((room) => room.hallType === "Meeting Room"));
+      } catch (err) {
+        console.error(err);
+      }
+    };
+
+    const fetchIssues = async () => {
+      try {
+        const res = await axios.get("http://localhost:5000/api/facility-issues");
+        setIssues(res.data);
+      } catch (err) {
+        console.error(err);
+      }
+    };
+
+    fetchRooms();
+    fetchIssues();
   }, []);
 
   const departments = [...new Set(allRooms.map((room) => room.department))];
@@ -294,9 +345,15 @@ export default function MeetingRoomList() {
       department: "Computer Faculty",
       floor: "",
       totalSeats: "",
+      status: "Available",
     });
     setEditingRoom(null);
     setErrors({});
+  };
+
+  const handleShowMaintenanceModal = (roomId, roomLID) => {
+    setSelectedRoomLID(roomLID);
+    setShowMaintenanceModal(true);
   };
 
   return (
@@ -365,6 +422,7 @@ export default function MeetingRoomList() {
                 <th className="p-5 font-semibold text-sm uppercase tracking-wide">Department</th>
                 <th className="p-5 font-semibold text-sm uppercase tracking-wide">Floor</th>
                 <th className="p-5 font-semibold text-sm uppercase tracking-wide">Capacity</th>
+                <th className="p-5 font-semibold text-sm uppercase tracking-wide">Status</th>
                 <th className="p-5 font-semibold text-sm uppercase tracking-wide">Actions</th>
               </tr>
             </thead>
@@ -380,6 +438,12 @@ export default function MeetingRoomList() {
                   <td className="p-5 text-[#1B365D]">{room.department}</td>
                   <td className="p-5 text-[#1B365D]">{room.floor}</td>
                   <td className="p-5 text-[#1B365D]">{room.totalSeats}</td>
+                  <td className="p-5 text-[#1B365D]">
+                    {room.status || "Available"}
+                    {issues.some((issue) => issue.roomId === room.LID && issue.status === "Pending") && (
+                      <span className="ml-2 text-yellow-600">⚠️</span>
+                    )}
+                  </td>
                   <td className="p-5">
                     <div className="flex gap-4">
                       <button
@@ -417,7 +481,7 @@ export default function MeetingRoomList() {
                           strokeLinejoin="round"
                         >
                           <path d="M3 6h18" />
-                          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 0 0 1 2 2v2" />
                         </svg>
                       </button>
                     </div>
@@ -428,9 +492,16 @@ export default function MeetingRoomList() {
           </table>
         </div>
 
-        {(selectedDepartment || selectedFloor) && <FloorMap filteredRooms={filteredRooms} />}
+        {(selectedDepartment || selectedFloor) && (
+          <FloorMap
+            filteredRooms={filteredRooms}
+            issues={issues}
+            showMaintenanceModal={handleShowMaintenanceModal}
+          />
+        )}
       </div>
 
+      {/* Room Creation/Edit Modal */}
       {showForm && (
         <div className="fixed inset-0 bg-[#1B365D]/30 backdrop-blur-sm flex justify-center items-center">
           <div className="bg-[#FFFFFF] p-6 rounded-lg w-[480px]">
@@ -502,6 +573,51 @@ export default function MeetingRoomList() {
               className="w-full mt-6 bg-[#1B365D] text-[#FFFFFF] py-3 rounded-lg hover:bg-[#1B365D]/90 transition-all duration-200 font-medium shadow-md"
             >
               {editingRoom ? "Save Changes" : "Create Room"}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Maintenance Modal */}
+      {showMaintenanceModal && (
+        <div className="fixed inset-0 bg-[#1B365D]/30 backdrop-blur-sm flex justify-center items-center">
+          <div className="bg-[#FFFFFF] p-6 rounded-lg w-[400px] shadow-xl">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold text-[#1B365D]">Maintenance Notice</h3>
+              <button
+                onClick={() => setShowMaintenanceModal(false)}
+                className="text-[#1B365D]/70 hover:text-[#1B365D]"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="text-center">
+              <svg
+                className="w-12 h-12 mx-auto mb-4 text-[#F59E0B]"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M12 9v2m0 4h.01M12 4a8 8 0 110 16 8 8 0 010-16z"
+                />
+              </svg>
+              <p className="text-[#1B365D] text-lg font-medium">
+                Room {selectedRoomLID} has Reported Issues
+              </p>
+              <p className="text-[#6B7280] mt-2">
+                This room is scheduled for maintenance due to reported facility issues.
+              </p>
+            </div>
+            <button
+              onClick={() => setShowMaintenanceModal(false)}
+              className="w-full mt-6 bg-[#1B365D] text-white py-2 rounded-lg hover:bg-[#1B365D]/90 transition-all duration-200 font-medium shadow-md"
+            >
+              Close
             </button>
           </div>
         </div>
