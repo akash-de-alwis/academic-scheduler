@@ -19,7 +19,7 @@ const facilityIssueSchema = new mongoose.Schema({
     type: String,
     required: true
   }],
-  description: { // Added for miscellaneous issues
+  description: {
     type: String,
     default: ""
   },
@@ -30,7 +30,13 @@ const facilityIssueSchema = new mongoose.Schema({
   status: {
     type: String,
     default: 'Pending',
-    enum: ['Pending', 'Resolved'] // Simplified to only Pending and Resolved
+    enum: ['Pending', 'Resolved']
+  },
+  urgency: { // New field
+    type: String,
+    required: true,
+    enum: ['Urgent', 'Medium', 'Low'],
+    default: 'Low'
   }
 });
 

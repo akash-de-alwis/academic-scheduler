@@ -357,7 +357,7 @@ export default function MeetingRoomList() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#E6F0FA] to-[#FFFFFF] p-8">
+    <div className="min-h-screen bg-gradient-to-br [#FFFFFF] p-8">
       <div className="max-w-7xl mx-auto">
         <div className="flex justify-between items-center mb-8">
           <h2 className="text-3xl font-bold text-[#1B365D] tracking-tight">Meeting Room List</h2>

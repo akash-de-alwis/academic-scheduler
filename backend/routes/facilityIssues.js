@@ -21,7 +21,8 @@ router.post('/', async (req, res) => {
     issues: req.body.issues,
     description: req.body.description,
     reportedDate: req.body.reportedDate,
-    status: req.body.status
+    status: req.body.status,
+    urgency: req.body.urgency // Include urgency
   });
 
   try {
