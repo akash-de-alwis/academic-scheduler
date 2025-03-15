@@ -11,6 +11,7 @@ const authRoutes = require('./routes/auth');
 const bookingRoutes = require("./routes/bookings");
 const timetableRoutes = require("./routes/timetableRoutes");
 const activityRoutes = require("./routes/activityRoutes");
+const moduleOverviewRoutes = require("./routes/moduleOverviewRoutes");
 
 dotenv.config();
 
@@ -37,5 +38,5 @@ app.use('/api/auth', authRoutes);
 app.use("/api/timetable", timetableRoutes);
 app.use("/api/bookings", bookingRoutes);
 app.use("/api/activities", activityRoutes);
-
+app.use("/api/module-overviews", moduleOverviewRoutes);
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
