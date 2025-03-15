@@ -15,7 +15,8 @@ export default function LecturerList() {
   });
   const [skillInput, setSkillInput] = useState("");
   const [formErrors, setFormErrors] = useState({});
-  const [toast, setToast] = useState({ message: "", visible: false }); // Added toast state
+  const [toast, setToast] = useState({ message: "", visible: false });
+  const [searchQuery, setSearchQuery] = useState(""); // New state for search input
 
   useEffect(() => {
     axios.get("http://localhost:5000/api/lecturers").then((res) => {
@@ -27,7 +28,7 @@ export default function LecturerList() {
     setToast({ message, visible: true });
     setTimeout(() => {
       setToast((prev) => ({ ...prev, visible: false }));
-    }, 3000); // Hide after 3 seconds
+    }, 3000);
   };
 
   const validateForm = () => {
@@ -122,17 +123,22 @@ export default function LecturerList() {
     setNewLecturer({ ...newLecturer, lecturerId: idArray.join("") });
   };
 
-  const totalLecturers = lecturers.length;
+  // Filter lecturers based on search query
+  const filteredLecturers = lecturers.filter((lecturer) =>
+    lecturer.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const totalLecturers = filteredLecturers.length; // Updated to use filtered list
   const deptCounts = {
-    "Faculty of Computing": lecturers.filter((lect) => lect.department === "Faculty of Computing").length,
-    "Faculty of Engineering": lecturers.filter((lect) => lect.department === "Faculty of Engineering").length,
-    "Faculty of Business Studies": lecturers.filter((lect) => lect.department === "Faculty of Business Studies").length,
+    "Faculty of Computing": filteredLecturers.filter((lect) => lect.department === "Faculty of Computing").length,
+    "Faculty of Engineering": filteredLecturers.filter((lect) => lect.department === "Faculty of Engineering").length,
+    "Faculty of Business Studies": filteredLecturers.filter((lect) => lect.department === "Faculty of Business Studies").length,
   };
-  const weekdaysCount = lecturers.filter((lect) => lect.scheduleType === "Weekdays").length;
-  const weekendCount = lecturers.filter((lect) => lect.scheduleType === "Weekend").length;
+  const weekdaysCount = filteredLecturers.filter((lect) => lect.scheduleType === "Weekdays").length;
+  const weekendCount = filteredLecturers.filter((lect) => lect.scheduleType === "Weekend").length;
 
   const skillsCount = {};
-  lecturers.forEach((lecturer) => {
+  filteredLecturers.forEach((lecturer) => { // Updated to use filtered list
     lecturer.skills.forEach((skill) => {
       skillsCount[skill] = (skillsCount[skill] || 0) + 1;
     });
@@ -296,9 +302,11 @@ export default function LecturerList() {
         <input
           type="text"
           placeholder="Search lecturers..."
-          className="flex-1 px-4 py-2 border border-[#F5F7FA] rounded-lg bg-[#F5F7FA] text-[#1B365D]"
+          value={searchQuery} // Bind value to searchQuery state
+          onChange={(e) => setSearchQuery(e.target.value)} // Update searchQuery on input change
+          className="flex-1 px-4 py-2 border border-[#F5F7FA] rounded-lg bg-[#F5F7FA] text-[#1B365D] focus:outline-none focus:ring-2 focus:ring-[#1B365D] focus:border-transparent"
         />
-        <button className="px-4 py-2 bg-[#F5F7FA] border border-[#F5F7FA] rounded-lg flex items-center gap-2 text-[#1B365D]">
+        <button className="px-4 py-2 bg-[#F5F7FA] border border-[#F5F7FA] rounded-lg flex items-center gap-2 text-[#1B365D] hover:bg-[#E6ECF5]">
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
           </svg>
@@ -306,33 +314,50 @@ export default function LecturerList() {
         </button>
       </div>
 
-      <div className="bg-[#F5F7FA] rounded-lg">
-        <table className="w-full">
+      <div className="bg-[#F5F7FA] rounded-lg shadow-md overflow-hidden">
+        <table className="w-full table-auto">
           <thead>
-            <tr className="border-b border-[#FFFFFF]">
-              <th className="text-left p-4 font-medium text-[#1B365D]">Name</th>
-              <th className="text-left p-4 font-medium text-[#1B365D]">Lecturer ID</th>
-              <th className="text-left p-4 font-medium text-[#1B365D]">Department</th>
-              <th className="text-left p-4 font-medium text-[#1B365D]">Availability</th>
-              <th className="text-left p-4 font-medium text-[#1B365D]">Skills</th>
-              <th className="text-left p-4 font-medium text-[#1B365D]">Actions</th>
+            <tr className="bg-[#1B365D] text-[#E6ECF5]">
+              <th className="text-left p-4 font-semibold text-sm uppercase tracking-wide">Name</th>
+              <th className="text-left p-4 font-semibold text-sm uppercase tracking-wide">Lecturer ID</th>
+              <th className="text-left p-4 font-semibold text-sm uppercase tracking-wide">Department</th>
+              <th className="text-left p-4 font-semibold text-sm uppercase tracking-wide">Availability</th>
+              <th className="text-left p-4 font-semibold text-sm uppercase tracking-wide">Skills</th>
+              <th className="text-left p-4 font-semibold text-sm uppercase tracking-wide">Actions</th>
             </tr>
           </thead>
           <tbody>
-            {lecturers.map((lecturer) => (
-              <tr key={lecturer._id} className="border-b border-[#FFFFFF]">
-                <td className="p-4 text-[#1B365D]">{lecturer.name}</td>
+            {filteredLecturers.map((lecturer, index) => ( // Use filteredLecturers instead of lecturers
+              <tr 
+                key={lecturer._id} 
+                className={`${
+                  index % 2 === 0 ? 'bg-white' : 'bg-[#F9FAFB]'
+                } hover:bg-[#E6ECF5]/50 transition-colors duration-200 border-b border-[#E2E8F0] last:border-b-0`}
+              >
+                <td className="p-4 text-[#1B365D] font-medium">{lecturer.name}</td>
                 <td className="p-4">
-                  <span className="text-[#1B365D] font-medium">{lecturer.lecturerId}</span>
+                  <span className="text-[#1B365D] font-mono bg-[#E6ECF5] px-2 py-1 rounded-md">
+                    {lecturer.lecturerId}
+                  </span>
                 </td>
                 <td className="p-4 text-[#1B365D]">{lecturer.department}</td>
-                <td className="p-4 text-[#1B365D]">{lecturer.scheduleType}</td>
+                <td className="p-4">
+                  <span 
+                    className={`${
+                      lecturer.scheduleType === "Weekdays" 
+                        ? 'bg-green-100 text-green-800' 
+                        : 'bg-blue-100 text-blue-800'
+                    } px-2 py-1 rounded-full text-xs font-medium`}
+                  >
+                    {lecturer.scheduleType}
+                  </span>
+                </td>
                 <td className="p-4">
                   <div className="flex flex-wrap gap-2">
                     {lecturer.skills.map((skill, index) => (
                       <span
                         key={index}
-                        className="bg-[#1B365D] text-white text-xs px-2 py-1 rounded-full"
+                        className="bg-[#1B365D] text-white text-xs px-2.5 py-1 rounded-full shadow-sm"
                       >
                         {skill}
                       </span>
@@ -347,7 +372,8 @@ export default function LecturerList() {
                         setEditingLecturer(lecturer);
                         setShowForm(true);
                       }}
-                      className="text-[#1B365D] hover:text-[#1B365D]/70"
+                      className="text-[#1B365D] hover:text-[#3B5A9A] transition-colors duration-150"
+                      title="Edit"
                     >
                       <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                         <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
@@ -356,7 +382,8 @@ export default function LecturerList() {
                     </button>
                     <button
                       onClick={() => handleDeleteLecturer(lecturer._id)}
-                      className="text-red-500 hover:text-red-600"
+                      className="text-red-500 hover:text-red-600 transition-colors duration-150"
+                      title="Delete"
                     >
                       <svg
                         xmlns="http://www.w3.org/2000/svg"

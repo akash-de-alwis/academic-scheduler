@@ -10,19 +10,23 @@ export default function LecturerWorkload() {
     const [filteredData, setFilteredData] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
-    const [maxAllowedCourses] = useState(5);
+    const [maxAllowedCourses, setMaxAllowedCourses] = useState(5);
 
     useEffect(() => {
         const fetchData = async () => {
             try {
                 setLoading(true);
-                const lecturersRes = await axios.get('http://localhost:5000/api/lecturers');
-                const allocationsRes = await axios.get('http://localhost:5000/api/allocations');
+                const [lecturersRes, allocationsRes, settingsRes] = await Promise.all([
+                    axios.get('http://localhost:5000/api/lecturers'),
+                    axios.get('http://localhost:5000/api/allocations'),
+                    axios.get('http://localhost:5000/api/settings/max-workload'),
+                ]);
                 
                 setLecturers(lecturersRes.data);
                 setAllocations(allocationsRes.data);
+                setMaxAllowedCourses(settingsRes.data.maxWorkload || 5);
                 
-                const processedData = processWorkloadData(lecturersRes.data, allocationsRes.data);
+                const processedData = processWorkloadData(lecturersRes.data, allocationsRes.data, settingsRes.data.maxWorkload || 5);
                 setWorkloadData(processedData);
                 setFilteredData(processedData);
                 setLoading(false);
@@ -35,9 +39,8 @@ export default function LecturerWorkload() {
         fetchData();
     }, []);
 
-    const processWorkloadData = (lecturersData, allocationsData) => {
+    const processWorkloadData = (lecturersData, allocationsData, maxCourses) => {
         return lecturersData.map(lecturer => {
-            // Collect all subjects assigned to this lecturer across all allocations
             const assignedCourses = allocationsData
                 .flatMap(allocation => 
                     allocation.subjects
@@ -49,7 +52,7 @@ export default function LecturerWorkload() {
                         }))
                 );
             
-            const workloadPercentage = (assignedCourses.length / maxAllowedCourses) * 100;
+            const workloadPercentage = (assignedCourses.length / maxCourses) * 100;
             
             return {
                 _id: lecturer._id,
@@ -59,7 +62,7 @@ export default function LecturerWorkload() {
                 scheduleType: lecturer.scheduleType,
                 assignedCourses,
                 courseCount: assignedCourses.length,
-                workloadPercentage: workloadPercentage > 100 ? 100 : workloadPercentage
+                workloadPercentage // Keep raw percentage for logic, not capped
             };
         });
     };
@@ -112,13 +115,12 @@ export default function LecturerWorkload() {
     const getWorkloadStatus = (courseCount) => {
         if (courseCount === 0) return 'No Courses';
         if (courseCount === maxAllowedCourses) return 'Full Workload';
-        if (courseCount > maxAllowedCourses) return 'Overloaded';
+        if (courseCount > maxAllowedCourses) return `Overloaded (${courseCount}/${maxAllowedCourses})`;
         return `${courseCount}/${maxAllowedCourses} Courses`;
     };
 
     return (
         <div className="min-h-screen p-8">
-            {/* Header and summary cards remain unchanged */}
             <div className="flex justify-between items-center mb-8">
                 <h2 className="text-2xl font-bold text-[#1B365D]">Lecturer Workload Dashboard</h2>
                 <div className="flex gap-3">
@@ -143,12 +145,54 @@ export default function LecturerWorkload() {
                 </div>
             </div>
 
-            {/* Summary cards remain unchanged */}
+            {/* Summary Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                {/* ... Existing summary cards code ... */}
+                <div className="bg-white p-6 rounded-xl shadow-md border border-gray-100">
+                    <div className="flex items-center gap-4">
+                        <div className="bg-[#E6ECF5] p-3 rounded-full">
+                            <svg className="w-6 h-6 text-[#1B365D]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <path d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                            </svg>
+                        </div>
+                        <div>
+                            <p className="text-sm text-gray-500">Total Lecturers</p>
+                            <p className="text-2xl font-semibold text-[#1B365D]">{lecturers.length}</p>
+                        </div>
+                    </div>
+                </div>
+                <div className="bg-white p-6 rounded-xl shadow-md border border-gray-100">
+                    <div className="flex items-center gap-4">
+                        <div className="bg-[#E6ECF5] p-3 rounded-full">
+                            <svg className="w-6 h-6 text-[#1B365D]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <path d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                            </svg>
+                        </div>
+                        <div>
+                            <p className="text-sm text-gray-500">Courses Assigned</p>
+                            <p className="text-2xl font-semibold text-[#1B365D]">
+                                {workloadData.reduce((sum, lecturer) => sum + lecturer.courseCount, 0)}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                <div className="bg-white p-6 rounded-xl shadow-md border border-gray-100">
+                    <div className="flex items-center gap-4">
+                        <div className="bg-[#E6ECF5] p-3 rounded-full">
+                            <svg className="w-6 h-6 text-[#1B365D]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        </div>
+                        <div>
+                            <p className="text-sm text-gray-500">Overloaded Lecturers</p>
+                            <p className="text-2xl font-semibold text-[#1B365D]">
+                                {workloadData.filter(lecturer => lecturer.courseCount > maxAllowedCourses).length}
+                            </p>
+                        </div>
+                    </div>
+                </div>
             </div>
 
-            {/* Search bar remains unchanged */}
+            {/* Search Bar */}
             <div className="mb-8">
                 <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -171,7 +215,7 @@ export default function LecturerWorkload() {
                 )}
             </div>
 
-            {/* Lecturer Workload Cards - Design Unchanged */}
+            {/* Lecturer Workload Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {loading ? (
                     <div className="col-span-3 flex justify-center items-center p-12">
@@ -219,21 +263,24 @@ export default function LecturerWorkload() {
                                     <div className="relative h-4 w-full bg-[#F5F7FA] rounded-full overflow-hidden">
                                         <div 
                                             className={`h-full bg-gradient-to-r ${getWorkloadGradient(lecturer.workloadPercentage)} rounded-full transition-all duration-500 ease-in-out relative`}
-                                            style={{ width: `${lecturer.workloadPercentage}%` }}
+                                            style={{ width: `${Math.min(lecturer.workloadPercentage, 100)}%` }} // Cap visual at 100%
                                         >
-                                            {lecturer.workloadPercentage >= 80 && (
+                                            {lecturer.workloadPercentage >= 80 && lecturer.workloadPercentage <= 100 && (
                                                 <div className="absolute inset-0 bg-white opacity-30 animate-pulse"></div>
+                                            )}
+                                            {lecturer.workloadPercentage > 100 && (
+                                                <div className="absolute inset-0 bg-red-600 opacity-40 animate-pulse"></div>
                                             )}
                                         </div>
                                         <div className="absolute inset-0 flex">
-                                            {[1, 2, 3, 4].map((marker) => (
-                                                <div key={marker} className="flex-1 border-r border-white/50"></div>
+                                            {Array.from({ length: maxAllowedCourses - 1 }).map((_, index) => (
+                                                <div key={index} className="flex-1 border-r border-white/50"></div>
                                             ))}
                                             <div className="flex-1"></div>
                                         </div>
                                     </div>
                                     <div className="flex justify-between text-xs text-gray-400 mt-1 px-1">
-                                        {[1, 2, 3, 4, 5].map((num) => (
+                                        {Array.from({ length: maxAllowedCourses }, (_, i) => i + 1).map((num) => (
                                             <span 
                                                 key={num} 
                                                 className={`${lecturer.courseCount >= num ? getWorkloadTextColor(lecturer.workloadPercentage) : 'text-gray-400'} font-medium`}
@@ -241,6 +288,9 @@ export default function LecturerWorkload() {
                                                 {num}
                                             </span>
                                         ))}
+                                        {lecturer.courseCount > maxAllowedCourses && (
+                                            <span className="text-red-500 font-medium">{lecturer.courseCount}</span>
+                                        )}
                                     </div>
                                 </div>
                                 
