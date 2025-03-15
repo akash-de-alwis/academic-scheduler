@@ -34,7 +34,7 @@ export default function HallSidebar() {
       icon: <Users className="h-5 w-5" />
     },
     {
-      path: "/report",
+      path: "/HallIssues",
       name: "Report",
       icon: <AlertTriangle className="h-5 w-5" />
     }

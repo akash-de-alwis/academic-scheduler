@@ -81,7 +81,7 @@ const StudentPortal = () => {
       {/* Header (Original, Unchanged) */}
       <header className="bg-gradient-to-r from-[#1B365D] to-[#2A4A7A] text-white p-6 shadow-lg sticky top-0 z-10">
         <div className="container mx-auto flex justify-between items-center">
-          <h1 className="text-3xl font-bold tracking-tight">Student Portal</h1>
+          <h1 className="text-3xl font-bold tracking-tight">Academic Scheduler</h1>
           <nav>
             <ul className="flex space-x-6">
               <li>

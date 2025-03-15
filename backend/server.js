@@ -10,8 +10,8 @@ const allocationRoutes = require('./routes/allocations');
 const authRoutes = require('./routes/auth');
 const bookingRoutes = require("./routes/bookings");
 const timetableRoutes = require("./routes/timetableRoutes");
-const activityRoutes = require("./routes/activityRoutes");
-const moduleOverviewRoutes = require("./routes/moduleOverviewRoutes");
+const facilityIssueRoutes = require('./routes/facilityIssues');
+const settingsRoutes = require("./routes/settings"); // Ensure this is imported
 
 dotenv.config();
 
@@ -29,6 +29,7 @@ mongoose.connect(process.env.MONGO_URI, {
     .then(() => console.log('MongoDB Connected'))
     .catch(err => console.log(err));
 
+// Existing routes
 app.use('/api/batches', batchRoutes);
 app.use('/api/lecturers', lecturerRoutes);
 app.use('/api/rooms', roomRoutes);
@@ -37,6 +38,7 @@ app.use('/api/allocations', allocationRoutes);
 app.use('/api/auth', authRoutes);
 app.use("/api/timetable", timetableRoutes);
 app.use("/api/bookings", bookingRoutes);
-app.use("/api/activities", activityRoutes);
-app.use("/api/module-overviews", moduleOverviewRoutes);
+app.use('/api/facility-issues', facilityIssueRoutes);
+app.use('/api/settings', settingsRoutes); // Add this line
+
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

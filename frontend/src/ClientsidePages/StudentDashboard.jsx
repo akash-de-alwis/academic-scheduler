@@ -1,11 +1,12 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
-import { Calendar, BookOpen, Clock, User, Bell, Users, LogOut } from "lucide-react";
+import { Calendar, BookOpen, Clock, User, Bell, Users, LogOut, AlertTriangle, DoorOpen } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 
 export default function StudentDashboard() {
   const [timetable, setTimetable] = useState([]);
   const [subjects, setSubjects] = useState([]);
+  const [bookings, setBookings] = useState([]); // Added for bookings
   const [userInfo, setUserInfo] = useState(null);
   const [currentDate, setCurrentDate] = useState(new Date());
   const [error, setError] = useState("");
@@ -44,11 +45,11 @@ export default function StudentDashboard() {
         });
         setSubjects(subjectsResponse.data.filter((s) => s.year === userResponse.data.currentYear));
 
-        // Fetch recent activities
-        const activitiesResponse = await axios.get("http://localhost:5000/api/activities", {
+        // Fetch bookings (assuming an endpoint exists)
+        const bookingsResponse = await axios.get("http://localhost:5000/api/bookings", {
           headers: { Authorization: `Bearer ${token}` },
         });
-        setActivities(activitiesResponse.data.slice(0, 5)); // Limit to 5 recent activities
+        setBookings(bookingsResponse.data.filter(b => b.studentId === userResponse.data._id));
       } catch (err) {
         setError(err.response?.data?.message || "Failed to load dashboard data");
       }
@@ -295,6 +296,18 @@ export default function StudentDashboard() {
               >
                 <Users className="w-5 h-5" /> Batch Details
               </Link>
+              <Link
+                to="/RaisingIssues"
+                className="w-full text-left p-3 bg-[#F5F7FA] rounded-lg text-[#1B365D] hover:bg-[#1B365D]/10 flex items-center gap-2"
+              >
+                <AlertTriangle className="w-5 h-5" /> Facility Issues
+              </Link>
+              <Link
+                to="/MeetingRoomBooking"
+                className="w-full text-left p-3 bg-[#F5F7FA] rounded-lg text-[#1B365D] hover:bg-[#1B365D]/10 flex items-center gap-2"
+              >
+                <DoorOpen className="w-5 h-5" /> Meeting Room Booking
+              </Link>
             </div>
           </div>
 
@@ -324,6 +337,42 @@ export default function StudentDashboard() {
                 View All Subjects
               </Link>
             )}
+          </div>
+
+          {/* View Bookings */}
+          <div className="bg-white rounded-xl shadow-md p-6 border border-[#E2E8F0]">
+            <h2 className="text-xl font-semibold text-[#1B365D] mb-4 flex items-center gap-2">
+              <DoorOpen className="w-5 h-5" />
+              <Link to="/BookingManagement" >
+                View Bookings
+              </Link> 
+            </h2>
+            <div className="space-y-3 max-h-64 overflow-y-auto">
+              {bookings.slice(0, 5).map((booking) => (
+                <div
+                  key={booking._id}
+                  className="flex items-center gap-3 p-2 bg-[#F5F7FA] rounded-lg"
+                >
+                  <div className="bg-[#1B365D]/10 p-2 rounded-full">
+                    <DoorOpen className="w-4 h-4 text-[#1B365D]" />
+                  </div>
+                  <div>
+                    <p className="text-[#1B365D] font-medium">{booking.roomId}</p>
+                    <p className="text-xs text-gray-500">
+                      {new Date(booking.date).toLocaleDateString("en-GB")} | {formatTime(booking.startTime)}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+            {bookings.length > 5 && (
+              <Link to="" className="mt-4 text-[#1B365D] hover:text-[#1B365D]/70 text-sm">
+                View All Bookings
+              </Link>
+            )}
+            {/*bookings.length === 0 && (
+              <p className="text-gray-500 text-sm">No bookings found.</p>
+            )*/}
           </div>
 
           {/* Upcoming Events */}

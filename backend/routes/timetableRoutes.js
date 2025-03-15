@@ -1,7 +1,8 @@
 const express = require("express");
 const router = express.Router();
 const Timetable = require("../models/Timetable");
-const Allocation = require("../models/Allocation"); // Assuming you have an Allocation model
+const Allocation = require("../models/Allocation");
+const PublishedTimetable = require("../models/PublishedTimetable");
 
 // Create a schedule
 router.post("/", async (req, res) => {
@@ -19,7 +20,7 @@ router.post("/", async (req, res) => {
   }
 });
 
-// Read schedules
+// Read all schedules
 router.get("/", async (req, res) => {
   try {
     const schedules = await Timetable.find();
@@ -51,6 +52,50 @@ router.delete("/:id", async (req, res) => {
   try {
     await Timetable.findByIdAndDelete(req.params.id);
     res.json({ message: "Schedule deleted successfully" });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Delete schedules by batch
+router.delete("/batch", async (req, res) => {
+  try {
+    const { batch } = req.body;
+    console.log("Received batch for deletion:", batch); // Add this log
+    if (!batch) {
+      return res.status(400).json({ error: "Batch is required" });
+    }
+    await Timetable.deleteMany({ batch });
+    res.json({ message: `Schedules for batch ${batch} deleted successfully` });
+  } catch (error) {
+    console.log("Error in delete batch route:", error); // Add this log
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Publish timetable
+router.post("/published-timetable", async (req, res) => {
+  try {
+    const { batch, schedules } = req.body;
+    const existing = await PublishedTimetable.findOne({ batch });
+    if (existing) {
+      await PublishedTimetable.updateOne({ batch }, { schedules });
+    } else {
+      const newPublished = new PublishedTimetable({ batch, schedules });
+      await newPublished.save();
+    }
+    res.status(201).json({ message: "Timetable published successfully" });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// Get published timetable
+router.get("/published-timetable", async (req, res) => {
+  try {
+    const { batch } = req.query;
+    const timetable = await PublishedTimetable.findOne({ batch });
+    res.json(timetable || {});
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
