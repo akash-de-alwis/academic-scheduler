@@ -235,8 +235,15 @@ export default function LecturerWorkload() {
                     </div>
                 ) : (
                     filteredData.map(lecturer => (
-                        <div key={lecturer._id} className="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden hover:shadow-lg transition-all">
-                            <div className="bg-gradient-to-r from-[#1B365D] to-[#2A4A7F] p-4 text-white">
+                        <div
+                            key={lecturer._id}
+                            className={`rounded-xl shadow-md border overflow-hidden hover:shadow-lg transition-all duration-300 ${
+                                lecturer.courseCount > maxAllowedCourses
+                                    ? 'border-red-500 bg-red-50/30 shadow-lg shadow-red-200/50 hover:scale-105'
+                                    : 'border-gray-100 bg-white'
+                            }`}
+                        >
+                            <div className="bg-gradient-to-r from-[#1B365D] to-[#2A4A7F] p-4 text-white relative">
                                 <div className="flex justify-between items-center">
                                     <div className="flex items-center gap-2">
                                         <div className="bg-white/20 p-1.5 rounded-lg">
@@ -246,12 +253,22 @@ export default function LecturerWorkload() {
                                         </div>
                                         <h3 className="font-medium tracking-wider">{lecturer.name}</h3>
                                     </div>
-                                    <div className="bg-white/20 px-2 py-1 rounded-lg text-xs font-medium">
-                                        {lecturer.scheduleType}
+                                    <div className="flex items-center gap-2">
+                                        {lecturer.courseCount > maxAllowedCourses && (
+                                            <span className="bg-red-600 text-white text-xs font-semibold px-2 py-1 rounded-full flex items-center gap-1">
+                                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01M12 4a8 8 0 100 16 8 8 0 000-16z" />
+                                                </svg>
+                                                Overloaded
+                                            </span>
+                                        )}
+                                        <div className="bg-white/20 px-2 py-1 rounded-lg text-xs font-medium">
+                                            {lecturer.scheduleType}
+                                        </div>
                                     </div>
                                 </div>
                             </div>
-                            
+
                             <div className="p-5">
                                 <div className="mb-6">
                                     <div className="flex justify-between mb-2">
@@ -261,9 +278,9 @@ export default function LecturerWorkload() {
                                         </p>
                                     </div>
                                     <div className="relative h-4 w-full bg-[#F5F7FA] rounded-full overflow-hidden">
-                                        <div 
+                                        <div
                                             className={`h-full bg-gradient-to-r ${getWorkloadGradient(lecturer.workloadPercentage)} rounded-full transition-all duration-500 ease-in-out relative`}
-                                            style={{ width: `${Math.min(lecturer.workloadPercentage, 100)}%` }} // Cap visual at 100%
+                                            style={{ width: `${Math.min(lecturer.workloadPercentage, 100)}%` }}
                                         >
                                             {lecturer.workloadPercentage >= 80 && lecturer.workloadPercentage <= 100 && (
                                                 <div className="absolute inset-0 bg-white opacity-30 animate-pulse"></div>
@@ -281,8 +298,8 @@ export default function LecturerWorkload() {
                                     </div>
                                     <div className="flex justify-between text-xs text-gray-400 mt-1 px-1">
                                         {Array.from({ length: maxAllowedCourses }, (_, i) => i + 1).map((num) => (
-                                            <span 
-                                                key={num} 
+                                            <span
+                                                key={num}
                                                 className={`${lecturer.courseCount >= num ? getWorkloadTextColor(lecturer.workloadPercentage) : 'text-gray-400'} font-medium`}
                                             >
                                                 {num}
@@ -293,7 +310,7 @@ export default function LecturerWorkload() {
                                         )}
                                     </div>
                                 </div>
-                                
+
                                 <div className="flex items-start gap-3 mb-4">
                                     <div className="bg-[#F5F7FA] p-2 rounded-lg">
                                         <svg className="w-5 h-5 text-[#1B365D]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -306,7 +323,7 @@ export default function LecturerWorkload() {
                                         <p className="text-xs text-gray-500">{lecturer.department}</p>
                                     </div>
                                 </div>
-                                
+
                                 {/* Assigned Courses Section */}
                                 <div>
                                     <div className="flex justify-between items-center mb-2">
