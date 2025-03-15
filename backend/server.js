@@ -10,8 +10,7 @@ const allocationRoutes = require('./routes/allocations');
 const authRoutes = require('./routes/auth');
 const bookingRoutes = require("./routes/bookings");
 const timetableRoutes = require("./routes/timetableRoutes");
-const settingsRoutes = require("./routes/settings"); // New import
-const activityRoutes = require('./routes/activityRoutes'); // Add this with other imports
+const facilityIssueRoutes = require('./routes/facilityIssues');
 
 dotenv.config();
 
@@ -29,16 +28,16 @@ mongoose.connect(process.env.MONGO_URI, {
     .then(() => console.log('MongoDB Connected'))
     .catch(err => console.log(err));
 
-// Register routes
+// Existing routes
 app.use('/api/batches', batchRoutes);
 app.use('/api/lecturers', lecturerRoutes);
 app.use('/api/rooms', roomRoutes);
 app.use('/api/subjects', subjectRoutes);
 app.use('/api/allocations', allocationRoutes);
 app.use('/api/auth', authRoutes);
-app.use('/api/settings', settingsRoutes); // New route
 app.use("/api/timetable", timetableRoutes);
 app.use("/api/bookings", bookingRoutes);
-app.use("/api/activities", activityRoutes);
+// New facility issues route
+app.use('/api/facility-issues', facilityIssueRoutes);
 
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

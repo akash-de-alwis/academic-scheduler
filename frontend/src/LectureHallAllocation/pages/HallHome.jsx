@@ -54,7 +54,7 @@ const ActionButtons = () => {
     { title: "Add Venues", icon: Building, path: "/RoomList" },
     { title: "Bookings", icon: Calendar, path: "/BookingReview" },
     { title: "Book Meetings", icon: Users, path: "/MeetingRoomList" },
-    { title: "Report Issues", icon: AlertTriangle, path: "/report-issues" },
+    { title: "Report Issues", icon: AlertTriangle, path: "/HallIssues" },
   ];
 
   return (
