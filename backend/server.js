@@ -11,6 +11,7 @@ const authRoutes = require('./routes/auth');
 const bookingRoutes = require("./routes/bookings");
 const timetableRoutes = require("./routes/timetableRoutes");
 const facilityIssueRoutes = require('./routes/facilityIssues');
+const settingsRoutes = require("./routes/settings"); // Ensure this is imported
 
 dotenv.config();
 
@@ -37,7 +38,7 @@ app.use('/api/allocations', allocationRoutes);
 app.use('/api/auth', authRoutes);
 app.use("/api/timetable", timetableRoutes);
 app.use("/api/bookings", bookingRoutes);
-// New facility issues route
 app.use('/api/facility-issues', facilityIssueRoutes);
+app.use('/api/settings', settingsRoutes); // Add this line
 
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
