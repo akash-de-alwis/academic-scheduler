@@ -11,6 +11,7 @@ const authRoutes = require('./routes/auth');
 const bookingRoutes = require("./routes/bookings");
 const timetableRoutes = require("./routes/timetableRoutes");
 const settingsRoutes = require("./routes/settings"); // New import
+const activityRoutes = require('./routes/activityRoutes'); // Add this with other imports
 
 dotenv.config();
 
