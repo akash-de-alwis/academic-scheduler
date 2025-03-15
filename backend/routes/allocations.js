@@ -1,8 +1,15 @@
 const express = require("express");
 const Allocation = require("../models/Allocation");
 const Lecturer = require("../models/Lecturer");
+const Settings = require("../models/Settings");
 
 const router = express.Router();
+
+// Helper function to get max workload
+const getMaxWorkload = async () => {
+  const setting = await Settings.findOne({ key: "maxWorkload" });
+  return setting ? setting.value : 5; // Default to 5 if not set
+};
 
 // GET all allocations
 router.get("/", async (req, res) => {
@@ -17,12 +24,12 @@ router.get("/", async (req, res) => {
 // POST a new allocation
 router.post("/", async (req, res) => {
   try {
+    const maxWorkload = await getMaxWorkload();
     const existingBatch = await Allocation.findOne({ batchId: req.body.batchId });
     if (existingBatch) {
       return res.status(400).json({ message: "This batch is already allocated" });
     }
 
-    // Check workload for each lecturer assigned to subjects
     const allAllocations = await Allocation.find();
     const lecturerWorkloads = {};
     for (const subject of req.body.subjects) {
@@ -32,7 +39,7 @@ router.post("/", async (req, res) => {
           return count + alloc.subjects.filter(s => s.lecturerId === lecturerId).length;
         }, 0);
       }
-      if (lecturerWorkloads[lecturerId] >= 5) {
+      if (lecturerWorkloads[lecturerId] >= maxWorkload) {
         const selectedLecturer = await Lecturer.findOne({ lecturerId });
         const selectedSkills = selectedLecturer.skills;
         const allLecturers = await Lecturer.find();
@@ -41,10 +48,10 @@ router.post("/", async (req, res) => {
             return count + alloc.subjects.filter(s => s.lecturerId === lecturer.lecturerId).length;
           }, 0);
           const commonSkills = selectedSkills.filter(skill => lecturer.skills.includes(skill));
-          return currentCount < 5 && commonSkills.length >= 2;
+          return currentCount < maxWorkload && commonSkills.length >= 2;
         });
         return res.status(400).json({
-          message: `Lecturer ${selectedLecturer.name} is at full workload (5 subjects)`,
+          message: `Lecturer ${selectedLecturer.name} is at full workload (${maxWorkload} subjects)`,
           subject: subject.subjectName,
           suggestedLecturer: suitableLecturer ? {
             name: suitableLecturer.name,
@@ -70,6 +77,7 @@ router.post("/", async (req, res) => {
 // PUT (Update an allocation)
 router.put("/:id", async (req, res) => {
   try {
+    const maxWorkload = await getMaxWorkload();
     const existingBatch = await Allocation.findOne({
       batchId: req.body.batchId,
       _id: { $ne: req.params.id },
@@ -87,7 +95,7 @@ router.put("/:id", async (req, res) => {
           return count + alloc.subjects.filter(s => s.lecturerId === lecturerId).length;
         }, 0);
       }
-      if (lecturerWorkloads[lecturerId] >= 5) {
+      if (lecturerWorkloads[lecturerId] >= maxWorkload) {
         const selectedLecturer = await Lecturer.findOne({ lecturerId });
         const selectedSkills = selectedLecturer.skills;
         const allLecturers = await Lecturer.find();
@@ -96,10 +104,10 @@ router.put("/:id", async (req, res) => {
             return count + alloc.subjects.filter(s => s.lecturerId === lecturer.lecturerId).length;
           }, 0);
           const commonSkills = selectedSkills.filter(skill => lecturer.skills.includes(skill));
-          return currentCount < 5 && commonSkills.length >= 2;
+          return currentCount < maxWorkload && commonSkills.length >= 2;
         });
         return res.status(400).json({
-          message: `Lecturer ${selectedLecturer.name} is at full workload (5 subjects)`,
+          message: `Lecturer ${selectedLecturer.name} is at full workload (${maxWorkload} subjects)`,
           subject: subject.subjectName,
           suggestedLecturer: suitableLecturer ? {
             name: suitableLecturer.name,

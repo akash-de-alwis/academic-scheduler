@@ -10,6 +10,7 @@ const allocationRoutes = require('./routes/allocations');
 const authRoutes = require('./routes/auth');
 const bookingRoutes = require("./routes/bookings");
 const timetableRoutes = require("./routes/timetableRoutes");
+const settingsRoutes = require("./routes/settings"); // New import
 
 dotenv.config();
 
@@ -33,9 +34,7 @@ app.use('/api/rooms', roomRoutes);
 app.use('/api/subjects', subjectRoutes);
 app.use('/api/allocations', allocationRoutes);
 app.use('/api/auth', authRoutes);
-app.use("/api/batches", batchRoutes);
-app.use("/api/lecturers", lecturerRoutes);
-app.use("/api/rooms", roomRoutes);
+app.use('/api/settings', settingsRoutes); // New route
 app.use("/api/timetable", timetableRoutes);
 app.use("/api/bookings", bookingRoutes);
 

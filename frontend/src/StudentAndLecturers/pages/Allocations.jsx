@@ -22,6 +22,9 @@ export default function Allocations() {
   const [selectedBatchSchedule, setSelectedBatchSchedule] = useState(null);
   const [searchingLecturer, setSearchingLecturer] = useState({});
   const [toast, setToast] = useState({ message: "", visible: false });
+  const [showSettings, setShowSettings] = useState(false); // New state for settings modal
+  const [maxWorkload, setMaxWorkload] = useState(5); // Default max workload
+  const [tempMaxWorkload, setTempMaxWorkload] = useState(maxWorkload); // Temporary value for settings modal
 
   const location = useLocation();
   const navigate = useNavigate();
@@ -29,16 +32,19 @@ export default function Allocations() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [allocationsRes, subjectsRes, batchesRes, lecturersRes] = await Promise.all([
+        const [allocationsRes, subjectsRes, batchesRes, lecturersRes, settingsRes] = await Promise.all([
           axios.get("http://localhost:5000/api/allocations"),
           axios.get("http://localhost:5000/api/subjects"),
           axios.get("http://localhost:5000/api/batches"),
           axios.get("http://localhost:5000/api/lecturers"),
+          axios.get("http://localhost:5000/api/settings/max-workload"), // New endpoint
         ]);
         setAllocations(allocationsRes.data);
         setSubjects(subjectsRes.data);
         setBatches(batchesRes.data);
         setLecturers(lecturersRes.data);
+        setMaxWorkload(settingsRes.data.maxWorkload || 5); // Set max workload from backend
+        setTempMaxWorkload(settingsRes.data.maxWorkload || 5);
         console.log("Fetched lecturers:", lecturersRes.data);
       } catch (err) {
         console.error("Error fetching data:", err);
@@ -243,7 +249,7 @@ export default function Allocations() {
         );
         setLecturerErrors((prev) => ({
           ...prev,
-          [subjectIndex]: err.response.data.message,
+          [subjectIndex]: err.response.data.message.replace("5", maxWorkload), // Dynamic max workload
         }));
 
         const currentLecturerId = newAllocation.subjects[subjectIndex].lecturerId;
@@ -323,6 +329,18 @@ export default function Allocations() {
       }));
       setSelectedBatchSchedule(selectedBatch.scheduleType);
       setLecturerDropdownOpen({});
+    }
+  };
+
+  const handleSaveSettings = async () => {
+    try {
+      await axios.post("http://localhost:5000/api/settings/max-workload", { maxWorkload: tempMaxWorkload });
+      setMaxWorkload(tempMaxWorkload);
+      setShowSettings(false);
+      showToast("Maximum workload updated successfully!");
+    } catch (err) {
+      console.error("Error saving settings:", err);
+      showToast("Failed to update maximum workload.");
     }
   };
 
@@ -526,18 +544,35 @@ export default function Allocations() {
 
         <div className="flex justify-between items-center mb-8">
           <h2 className="text-3xl font-bold text-[#1B365D] tracking-tight">Subject Allocations</h2>
-          <button
-            onClick={() => {
-              setShowForm(true);
-              setEditingAllocation(null);
-            }}
-            className="bg-[#1B365D] text-white px-5 py-2 rounded-lg flex items-center gap-2 hover:bg-[#2A4A7F] transition-colors shadow-md"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
-            </svg>
-            Add Allocation
-          </button>
+          <div className="flex gap-4">
+            <button
+              onClick={() => {
+                setShowForm(true);
+                setEditingAllocation(null);
+              }}
+              className="bg-[#1B365D] text-white px-5 py-2 rounded-lg flex items-center gap-2 hover:bg-[#2A4A7F] transition-colors shadow-md"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
+              </svg>
+              Add Allocation
+            </button>
+            <button
+              onClick={() => setShowSettings(true)}
+              className="bg-[#1B365D] text-white px-3 py-2 rounded-lg hover:bg-[#2A4A7F] transition-colors shadow-md"
+              title="Settings"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
+                />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+            </button>
+          </div>
         </div>
 
         {toast.visible && (
@@ -872,6 +907,51 @@ export default function Allocations() {
                   className="px-5 py-2 bg-[#1B365D] text-white rounded-lg hover:bg-[#2A4A7F] transition-colors shadow-sm font-medium"
                 >
                   {editingAllocation ? "Save Changes" : "Create"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {showSettings && (
+          <div className="fixed inset-0 bg-[#1B365D]/30 backdrop-blur-sm flex justify-center items-center">
+            <div className="bg-white p-8 rounded-xl w-[400px] shadow-2xl">
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-xl font-semibold text-[#1B365D] tracking-tight">Settings</h3>
+                <button
+                  onClick={() => setShowSettings(false)}
+                  className="text-[#1B365D]/70 hover:text-[#1B365D] text-2xl font-medium"
+                >
+                  ✕
+                </button>
+              </div>
+              <div className="space-y-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-600 mb-2">
+                    Maximum Lecturer Workload
+                  </label>
+                  <input
+                    type="number"
+                    value={tempMaxWorkload}
+                    onChange={(e) => setTempMaxWorkload(Math.max(1, parseInt(e.target.value) || 1))}
+                    min="1"
+                    className="w-full p-3 border border-[#E2E8F0] rounded-lg bg-white text-sm text-[#1B365D] focus:ring-2 focus:ring-[#1B365D] shadow-sm"
+                    aria-label="Maximum lecturer workload"
+                  />
+                </div>
+              </div>
+              <div className="flex justify-end gap-4 mt-8">
+                <button
+                  onClick={() => setShowSettings(false)}
+                  className="px-5 py-2 text-[#1B365D] bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors shadow-sm font-medium"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSaveSettings}
+                  className="px-5 py-2 bg-[#1B365D] text-white rounded-lg hover:bg-[#2A4A7F] transition-colors shadow-sm font-medium"
+                >
+                  Save
                 </button>
               </div>
             </div>
