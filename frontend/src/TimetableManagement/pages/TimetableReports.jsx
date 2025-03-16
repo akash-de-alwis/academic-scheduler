@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import axios from "axios";
 import { ChevronDown, Download } from "lucide-react";
 import jsPDF from "jspdf";
-import "jspdf-autotable"; // For table generation in PDF
+import autoTable from "jspdf-autotable"; // Import autoTable explicitly
 
 export default function TimetableReports() {
   const [schedules, setSchedules] = useState([]);
@@ -22,7 +22,6 @@ export default function TimetableReports() {
     return hours;
   };
 
-  // Fetch schedules and unique batches on mount
   useEffect(() => {
     setLoading(true);
     axios
@@ -36,8 +35,6 @@ export default function TimetableReports() {
           })),
         }));
         setSchedules(updatedSchedules);
-
-        // Extract unique batches
         const uniqueBatches = [...new Set(updatedSchedules.map((s) => s.batch))];
         setBatches(uniqueBatches);
         setLoading(false);
@@ -48,7 +45,6 @@ export default function TimetableReports() {
       });
   }, []);
 
-  // Process schedules into a grid for display
   const processSchedulesForGrid = () => {
     const grid = {};
     weekDays.forEach((day) => {
@@ -104,7 +100,6 @@ export default function TimetableReports() {
 
   const grid = processSchedulesForGrid();
 
-  // Generate and download PDF
   const downloadPDF = () => {
     if (!selectedBatch) {
       alert("Please select a batch to download the timetable!");
@@ -113,12 +108,12 @@ export default function TimetableReports() {
 
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.getWidth();
-    
+
     // Add header
     doc.setFontSize(18);
     doc.setTextColor(27, 54, 93); // #1B365D
     doc.text(`Timetable Report - Batch ${selectedBatch}`, pageWidth / 2, 20, { align: "center" });
-    
+
     // Add date
     doc.setFontSize(10);
     doc.setTextColor(100);
@@ -141,8 +136,8 @@ export default function TimetableReports() {
       tableData.push(row);
     });
 
-    // Generate table in PDF
-    doc.autoTable({
+    // Use autoTable as a function
+    autoTable(doc, {
       startY: 40,
       head: [["Time", ...weekDays]],
       body: tableData,

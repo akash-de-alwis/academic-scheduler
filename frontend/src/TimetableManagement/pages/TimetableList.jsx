@@ -11,6 +11,7 @@ export default function TimetableList() {
   const [searchTerm, setSearchTerm] = useState("");
   const [userType, setUserType] = useState(null);
   const [allocations, setAllocations] = useState([]);
+  const [batches, setBatches] = useState([]); // Added to fetch batch details
   const [rooms, setRooms] = useState([]);
   const [newSchedule, setNewSchedule] = useState({
     allocationId: "",
@@ -20,6 +21,7 @@ export default function TimetableList() {
   const navigate = useNavigate();
 
   useEffect(() => {
+    // Fetch timetables
     axios
       .get("http://localhost:5000/api/timetable")
       .then((res) => {
@@ -36,6 +38,7 @@ export default function TimetableList() {
         console.error("Error fetching timetables:", err.response ? err.response.data : err.message)
       );
 
+    // Fetch allocations
     axios
       .get("http://localhost:5000/api/allocations")
       .then((res) => setAllocations(res.data))
@@ -43,6 +46,15 @@ export default function TimetableList() {
         console.error("Error fetching allocations:", err.response ? err.response.data : err.message)
       );
 
+    // Fetch batches to get semester and scheduleType
+    axios
+      .get("http://localhost:5000/api/batches")
+      .then((res) => setBatches(res.data))
+      .catch((err) =>
+        console.error("Error fetching batches:", err.response ? err.response.data : err.message)
+      );
+
+    // Fetch rooms
     axios
       .get("http://localhost:5000/api/rooms")
       .then((res) => setRooms(res.data))
@@ -92,14 +104,12 @@ export default function TimetableList() {
 
   const handleUploadTimetable = async () => {
     try {
-      // Filter schedules for the selected batch
       const batchSchedules = schedules.filter((s) => s.batch === selectedBatch);
       if (batchSchedules.length === 0) {
         alert("No schedules to upload for this batch!");
         return;
       }
 
-      // Validate that all subjects have required fields
       for (const schedule of batchSchedules) {
         for (const subject of schedule.subjects) {
           if (!subject.room || !subject.date || !subject.time) {
@@ -109,7 +119,6 @@ export default function TimetableList() {
         }
       }
 
-      // Step 1: Upload the timetable
       console.log("Uploading timetable for batch:", selectedBatch);
       const postResponse = await axios.post(
         "http://localhost:5000/api/timetable/published-timetable",
@@ -120,12 +129,10 @@ export default function TimetableList() {
       );
       console.log("Upload response:", postResponse.data);
 
-      // Verify successful upload
       if (postResponse.status !== 200 && postResponse.status !== 201) {
         throw new Error("Failed to upload timetable: Server returned an error status.");
       }
 
-      // Step 2: Attempt to delete schedules (non-critical step)
       try {
         console.log("Deleting schedules for batch:", selectedBatch);
         const deleteResponse = await axios.delete("http://localhost:5000/api/timetable/batch", {
@@ -137,20 +144,17 @@ export default function TimetableList() {
           console.warn("Delete step returned an unexpected status but upload succeeded.");
         }
       } catch (deleteErr) {
-        // Log the delete error but don’t fail the upload
         console.error(
           "Failed to delete schedules after upload:",
           deleteErr.response ? deleteErr.response.data : deleteErr.message
         );
       }
 
-      // Update local state and navigate regardless of delete success
       setSchedules(schedules.filter((s) => s.batch !== selectedBatch));
       setSelectedBatch("");
       alert(`Timetable for ${selectedBatch} uploaded successfully!`);
       navigate("/TimeView", { state: { batch: selectedBatch } });
     } catch (err) {
-      // Handle critical errors (e.g., POST failure)
       const errorMessage = err.response
         ? `Server Error: ${err.response.status} - ${JSON.stringify(err.response.data)}`
         : `Client Error: ${err.message}`;
@@ -306,12 +310,12 @@ export default function TimetableList() {
           <select
             value={selectedBatch}
             onChange={(e) => setSelectedBatch(e.target.value)}
-            className="appearance-none px-4 py-2 pr-8 bg-[#F5F7FA] border border-[#F5F7FA] rounded-lg text-[#1B365D]"
+            className="appearance-none px-4 py-2 pr-8 bg-[#F5F7FA] border border-[#F5F7FA] rounded-lg text-[#1B365D] w-72"
           >
             <option value="">Select Batch</option>
-            {allocations.map((allocation) => (
-              <option key={allocation._id} value={allocation.batchName}>
-                {allocation.batchName}
+            {batches.map((batch) => (
+              <option key={batch._id} value={batch.batchName}>
+                {`${batch.batchName} (${batch.semester}, ${batch.scheduleType})`}
               </option>
             ))}
           </select>

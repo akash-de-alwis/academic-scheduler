@@ -38,6 +38,7 @@ import PublishTimetable from "./ClientsidePages/PublishTimetable";
 import Timeview from "./TimetableManagement/pages/TimeView";
 import TimetableReports from "./TimetableManagement/pages/TimetableReports";
 
+
 import SubHome from "./CourseAllocation/pages/SubHome";
 import SubjectList from "./CourseAllocation/pages/SubjectList";
 import ReportGeneration from "./CourseAllocation/pages/ReportGeneration";
@@ -122,6 +123,8 @@ function App() {
         <Route path="/Timeview" element={<TimeLayout><Timeview /></TimeLayout>} />
         <Route path="/TimetableReports" element={<TimeLayout><TimetableReports /></TimeLayout>} />
         <Route path="/PublishTimetable" element={<PublishTimetable/>}/>
+        
+        
        
 
         {/* Routes with course Sidebar */}
