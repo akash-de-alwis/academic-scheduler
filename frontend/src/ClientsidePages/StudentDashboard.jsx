@@ -6,7 +6,7 @@ import { Link, useNavigate } from "react-router-dom";
 export default function StudentDashboard() {
   const [timetable, setTimetable] = useState([]);
   const [subjects, setSubjects] = useState([]);
-  const [bookings, setBookings] = useState([]); // Added for bookings
+  const [bookings, setBookings] = useState([]);
   const [userInfo, setUserInfo] = useState(null);
   const [currentDate, setCurrentDate] = useState(new Date());
   const [error, setError] = useState("");
@@ -45,11 +45,17 @@ export default function StudentDashboard() {
         });
         setSubjects(subjectsResponse.data.filter((s) => s.year === userResponse.data.currentYear));
 
-        // Fetch bookings (assuming an endpoint exists)
+        // Fetch bookings
         const bookingsResponse = await axios.get("http://localhost:5000/api/bookings", {
           headers: { Authorization: `Bearer ${token}` },
         });
-        setBookings(bookingsResponse.data.filter(b => b.studentId === userResponse.data._id));
+        setBookings(bookingsResponse.data.filter((b) => b.studentId === userResponse.data._id));
+
+        // Fetch activities
+        const activitiesResponse = await axios.get("http://localhost:5000/api/activities", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        setActivities(activitiesResponse.data);
       } catch (err) {
         setError(err.response?.data?.message || "Failed to load dashboard data");
       }
@@ -159,7 +165,7 @@ export default function StudentDashboard() {
                   </div>
                   {activities.length > 0 ? (
                     <div className="p-2">
-                      {activities.map((activity) => (
+                      {activities.slice(0, 5).map((activity) => (
                         <div
                           key={activity._id}
                           className="p-3 mb-2 bg-[#F5F7FA] rounded-lg flex items-start gap-3 hover:bg-[#1B365D]/5 transition-all duration-200"
@@ -370,9 +376,6 @@ export default function StudentDashboard() {
                 View All Bookings
               </Link>
             )}
-            {/*bookings.length === 0 && (
-              <p className="text-gray-500 text-sm">No bookings found.</p>
-            )*/}
           </div>
 
           {/* Upcoming Events */}

@@ -102,6 +102,23 @@ export default function SubjectList() {
     return Object.keys(newErrors).length === 0;
   };
 
+  const logActivity = async (type, subject) => {
+    const token = localStorage.getItem("token");
+    try {
+      await axios.post(
+        "http://localhost:5000/api/activities",
+        {
+          type,
+          subjectName: subject.subjectName,
+          subjectID: subject.subjectID,
+        },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+    } catch (err) {
+      console.error("Failed to log activity:", err.response?.data || err.message);
+    }
+  };
+
   const handleSaveSubject = async () => {
     setIsSubmitting(true);
     const token = localStorage.getItem("token");
@@ -114,8 +131,9 @@ export default function SubjectList() {
           timeDuration: Number(newSubject.timeDuration),
         };
 
+        let res;
         if (editingSubject) {
-          const res = await axios.put(
+          res = await axios.put(
             `http://localhost:5000/api/subjects/${editingSubject._id}`,
             subjectData,
             { headers: { Authorization: `Bearer ${token}` } }
@@ -123,14 +141,15 @@ export default function SubjectList() {
           setSubjects((prevSubjects) =>
             prevSubjects.map((subj) => (subj._id === editingSubject._id ? res.data : subj))
           );
+          await logActivity("edited", res.data); // Log edit activity
         } else {
-          const res = await axios.post("http://localhost:5000/api/subjects", subjectData, {
+          res = await axios.post("http://localhost:5000/api/subjects", subjectData, {
             headers: { Authorization: `Bearer ${token}` },
           });
           setSubjects((prevSubjects) => [...prevSubjects, res.data]);
+          await logActivity("added", res.data); // Log add activity
         }
 
-        // Navigate to /SubjectList after successful save
         navigate("/SubjectList");
         setShowForm(false);
         setNewSubject({
@@ -160,10 +179,12 @@ export default function SubjectList() {
     if (window.confirm("Are you sure you want to delete this subject?")) {
       try {
         const token = localStorage.getItem("token");
+        const subjectToDelete = subjects.find((subj) => subj._id === id);
         await axios.delete(`http://localhost:5000/api/subjects/${id}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         setSubjects(subjects.filter((subj) => subj._id !== id));
+        await logActivity("deleted", subjectToDelete); // Log delete activity
       } catch (err) {
         console.log(err.response ? err.response.data : err);
         alert("Failed to delete subject");

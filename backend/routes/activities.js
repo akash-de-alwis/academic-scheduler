@@ -12,4 +12,20 @@ router.get("/", async (req, res) => {
   }
 });
 
+// Post a new activity
+router.post("/", async (req, res) => {
+  const { type, subjectName, subjectID } = req.body;
+  try {
+    const activity = new Activity({
+      type,
+      subjectName,
+      subjectID,
+    });
+    await activity.save();
+    res.status(201).json(activity);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 module.exports = router;
