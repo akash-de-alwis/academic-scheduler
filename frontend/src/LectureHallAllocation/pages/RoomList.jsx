@@ -30,6 +30,16 @@ export default function RoomList() {
     });
   }, []);
 
+  const generateRoomId = () => {
+    const existingIds = rooms.map(room => {
+      const num = parseInt(room.LID.slice(1));
+      return isNaN(num) ? 0 : num;
+    });
+    const maxId = Math.max(...existingIds, 0);
+    const newIdNum = maxId + 1;
+    return `L${newIdNum.toString().padStart(3, '0')}`;
+  };
+
   const applyFilters = (roomsList, search, hallType) => {
     let filtered = [...roomsList];
     
@@ -72,37 +82,71 @@ export default function RoomList() {
   const validateForm = () => {
     const newErrors = {};
 
+    // Room ID validation
     if (!newRoom.LID.trim()) {
       newErrors.LID = "Room ID is required";
-    } else if (!/^[A-Za-z0-9-]+$/.test(newRoom.LID)) {
-      newErrors.LID = "Room ID can only contain letters, numbers, and hyphens";
+    } else if (!/^L\d{3}$/.test(newRoom.LID)) {
+      newErrors.LID = "Room ID must be in format 'L' followed by 3 digits";
+    } else if (!editingRoom && rooms.some(room => room.LID === newRoom.LID)) {
+      newErrors.LID = "Room ID already exists";
     }
 
+    // Hall Type validation
+    if (!["Lecturer Hall", "Laboratory", "Meeting Room"].includes(newRoom.hallType)) {
+      newErrors.hallType = "Please select a valid hall type";
+    }
+
+    // Department validation
+    if (!["Computer Faculty", "Engineer Faculty", "Business Faculty"].includes(newRoom.department)) {
+      newErrors.department = "Please select a valid department";
+    }
+
+    // Floor validation
     if (!newRoom.floor.trim()) {
       newErrors.floor = "Floor is required";
-    } else if (!/^[0-9]+$/.test(newRoom.floor)) {
+    } else if (!/^-?[0-9]+$/.test(newRoom.floor)) {
       newErrors.floor = "Floor must be a number";
+    } else {
+      const floorNum = parseInt(newRoom.floor);
+      if (floorNum < -5 || floorNum > 50) {
+        newErrors.floor = "Floor must be between -5 and 50";
+      }
     }
 
+    // Total Seats validation
     if (!newRoom.totalSeats) {
       newErrors.totalSeats = "Total Seats is required";
     } else if (isNaN(newRoom.totalSeats) || newRoom.totalSeats <= 0) {
       newErrors.totalSeats = "Total Seats must be a positive number";
+    } else if (newRoom.totalSeats > 500) {
+      newErrors.totalSeats = "Total Seats cannot exceed 500";
+    } else if (!Number.isInteger(Number(newRoom.totalSeats))) {
+      newErrors.totalSeats = "Total Seats must be a whole number";
     }
 
+    // Total Computers validation (for Laboratory)
     if (newRoom.hallType === "Laboratory") {
       if (!newRoom.totalComputers) {
         newErrors.totalComputers = "Total Computers is required for Laboratories";
       } else if (isNaN(newRoom.totalComputers) || newRoom.totalComputers <= 0) {
         newErrors.totalComputers = "Total Computers must be a positive number";
+      } else if (newRoom.totalComputers > newRoom.totalSeats) {
+        newErrors.totalComputers = "Computers cannot exceed total seats";
+      } else if (newRoom.totalComputers > 200) {
+        newErrors.totalComputers = "Total Computers cannot exceed 200";
+      } else if (!Number.isInteger(Number(newRoom.totalComputers))) {
+        newErrors.totalComputers = "Total Computers must be a whole number";
       }
     }
 
-    if (newRoom.hallType === "Lecturer Hall" && 
-        !newRoom.massHall && 
-        !newRoom.generalHall && 
-        !newRoom.miniHall) {
-      newErrors.hallCategory = "Please select a hall category";
+    // Lecturer Hall category validation
+    if (newRoom.hallType === "Lecturer Hall") {
+      const hallCategories = newRoom.massHall + newRoom.generalHall + newRoom.miniHall;
+      if (hallCategories === 0) {
+        newErrors.hallCategory = "Please select a hall category";
+      } else if (hallCategories > 1) {
+        newErrors.hallCategory = "Please select only one hall category";
+      }
     }
 
     setErrors(newErrors);
@@ -183,6 +227,10 @@ export default function RoomList() {
           </select>
           <button
             onClick={() => {
+              setNewRoom({
+                ...newRoom,
+                LID: generateRoomId(),
+              });
               setShowForm(true);
               setEditingRoom(null);
             }}
@@ -295,9 +343,14 @@ export default function RoomList() {
                   type="text"
                   value={newRoom.LID}
                   onChange={(e) => setNewRoom({ ...newRoom, LID: e.target.value })}
-                  className={`w-full p-2 border rounded-lg ${errors.LID ? 'border-red-500' : 'border-[#F5F7FA]'} bg-[#F5F7FA] text-[#1B365D]`}
+                  className={`w-full p-2 border rounded-lg ${
+                    errors.LID ? 'border-red-500' : 'border-[#1B365D]'
+                  } bg-[#F5F7FA] text-[#1B365D] font-medium cursor-not-allowed ring-2 ring-[#1B365D]/20`}
+                  disabled={true} // Always disabled since editingRoom can't change LID
                 />
                 {errors.LID && <p className="text-red-500 text-xs mt-1">{errors.LID}</p>}
+                {!editingRoom && <p className="text-gray-500 text-xs mt-1">Room ID is auto-generated</p>}
+                {editingRoom && <p className="text-gray-500 text-xs mt-1">Room ID cannot be modified</p>}
               </div>
 
               <div>
@@ -305,12 +358,13 @@ export default function RoomList() {
                 <select
                   value={newRoom.hallType}
                   onChange={(e) => setNewRoom({ ...newRoom, hallType: e.target.value })}
-                  className="w-full p-2 border border-[#F5F7FA] rounded-lg bg-[#F5F7FA] text-[#1B365D]"
+                  className={`w-full p-2 border rounded-lg ${errors.hallType ? 'border-red-500' : 'border-[#F5F7FA]'} bg-[#F5F7FA] text-[#1B365D]`}
                 >
                   <option value="Lecturer Hall">Lecturer Hall</option>
                   <option value="Laboratory">Laboratory</option>
                   <option value="Meeting Room">Meeting Room</option>
                 </select>
+                {errors.hallType && <p className="text-red-500 text-xs mt-1">{errors.hallType}</p>}
               </div>
 
               <div>
@@ -318,12 +372,13 @@ export default function RoomList() {
                 <select
                   value={newRoom.department}
                   onChange={(e) => setNewRoom({ ...newRoom, department: e.target.value })}
-                  className="w-full p-2 border border-[#F5F7FA] rounded-lg bg-[#F5F7FA] text-[#1B365D]"
+                  className={`w-full p-2 border rounded-lg ${errors.department ? 'border-red-500' : 'border-[#F5F7FA]'} bg-[#F5F7FA] text-[#1B365D]`}
                 >
-                  <option>Computer Faculty</option>
-                  <option>Engineer Faculty</option>
-                  <option>Business Faculty</option>
+                  <option value="Computer Faculty">Computer Faculty</option>
+                  <option value="Engineer Faculty">Engineer Faculty</option>
+                  <option value="Business Faculty">Business Faculty</option>
                 </select>
+                {errors.department && <p className="text-red-500 text-xs mt-1">{errors.department}</p>}
               </div>
 
               {newRoom.hallType === "Lecturer Hall" && (

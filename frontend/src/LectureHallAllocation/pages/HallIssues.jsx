@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
-import { AlertCircle, CheckCircle, Clock, BarChart2, FileText } from "lucide-react"; // Added FileText icon
+import { AlertCircle, CheckCircle, Clock, BarChart2, FileText, Download } from "lucide-react";
 import { Bar } from "react-chartjs-2";
 import {
   Chart as ChartJS,
@@ -11,6 +11,8 @@ import {
   Tooltip,
   Legend,
 } from "chart.js";
+import html2canvas from "html2canvas";
+import jsPDF from "jspdf";
 
 // Register Chart.js components
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
@@ -24,16 +26,16 @@ export default function HallIssues() {
   const [urgencyFilter, setUrgencyFilter] = useState("All");
   const [sortBy, setSortBy] = useState("urgency");
   const [showChart, setShowChart] = useState(false);
-  const [showReport, setShowReport] = useState(false); // State for report modal
+  const [showReport, setShowReport] = useState(false);
 
   const allIssueOptions = [
     "A/C malfunctions",
-    "Uncomfortable seating arrangements",
-    "Non-functional computers in laboratories",
-    "Projector, digital screen, or smart TV issues",
-    "Insufficient seat count",
-    "Sound and electrical problems",
-    "Other miscellaneous issues",
+    "Uncomfortable seating",
+    "Non-functional PCs",
+    "Projector/TV issues",
+    "Insufficient seats",
+    "Sound/electrical",
+    "Other issues",
   ];
 
   useEffect(() => {
@@ -137,7 +139,8 @@ export default function HallIssues() {
     allIssueOptions.forEach((issue) => (issueCounts[issue] = 0));
     filteredIssues.forEach((issue) => {
       issue.issues.forEach((singleIssue) => {
-        if (allIssueOptions.includes(singleIssue)) issueCounts[singleIssue] += 1;
+        const mappedIssue = allIssueOptions.find((opt) => singleIssue.includes(opt.split(" ")[0])) || "Other issues";
+        issueCounts[mappedIssue] += 1;
       });
     });
 
@@ -147,9 +150,12 @@ export default function HallIssues() {
         {
           label: "Number of Issues",
           data: allIssueOptions.map((issue) => issueCounts[issue]),
-          backgroundColor: "#1B365D",
+          backgroundColor: "rgba(27, 54, 93, 0.8)",
           borderColor: "#1B365D",
           borderWidth: 1,
+          borderRadius: 4,
+          barThickness: 60,
+          maxBarThickness: 70,
         },
       ],
     };
@@ -157,19 +163,38 @@ export default function HallIssues() {
 
   const chartOptions = {
     responsive: true,
+    maintainAspectRatio: false,
     plugins: {
-      legend: { position: "top" },
-      title: { display: true, text: "Facility Issues Count", color: "#1B365D", font: { size: 18 } },
+      legend: {
+        position: "top",
+        labels: { color: "#1B365D", font: { size: 14, weight: "bold" } },
+      },
+      title: {
+        display: true,
+        text: "Facility Issues Overview",
+        color: "#1B365D",
+        font: { size: 18, weight: "bold" },
+        padding: { top: 10, bottom: 20 },
+      },
+      tooltip: {
+        backgroundColor: "#1B365D",
+        titleColor: "#FFFFFF",
+        bodyColor: "#FFFFFF",
+        borderColor: "#EDEFF2",
+        borderWidth: 1,
+      },
     },
     scales: {
       x: {
-        title: { display: true, text: "Issues", color: "#1B365D" },
-        ticks: { autoSkip: false, maxRotation: 45, minRotation: 45 },
+        title: { display: true, text: "Issue Types", color: "#1B365D", font: { size: 14, weight: "bold" } },
+        ticks: { color: "#1B365D", font: { size: 12 }, maxRotation: 45, minRotation: 45 },
+        grid: { display: false },
       },
       y: {
-        title: { display: true, text: "Count", color: "#1B365D" },
+        title: { display: true, text: "Count", color: "#1B365D", font: { size: 14, weight: "bold" } },
+        ticks: { color: "#1B365D", font: { size: 12 }, stepSize: 1 },
         beginAtZero: true,
-        ticks: { stepSize: 1 },
+        grid: { color: "#EDEFF2" },
       },
     },
   };
@@ -198,6 +223,35 @@ export default function HallIssues() {
   };
 
   const { totalIssues, statusBreakdown, urgencyBreakdown, generatedDateTime } = getReportData();
+
+  // Download Report as PDF
+  const downloadReport = () => {
+    const reportContent = document.querySelector(".report-content");
+
+    html2canvas(reportContent, { scale: 2, useCORS: true }).then((canvas) => {
+      const imgData = canvas.toDataURL("image/png");
+      const pdf = new jsPDF("p", "mm", "a4");
+      const imgWidth = 210; // A4 width in mm
+      const pageHeight = 297; // A4 height in mm
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      let heightLeft = imgHeight;
+      let position = 0;
+
+      pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
+      heightLeft -= pageHeight;
+
+      while (heightLeft >= 0) {
+        position = heightLeft - imgHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
+        heightLeft -= pageHeight;
+      }
+
+      pdf.save("Facility_Issues_Report.pdf");
+    }).catch((error) => {
+      console.error("Error generating PDF:", error);
+    });
+  };
 
   return (
     <div className="min-h-screen p-8 bg-[#FFFFFF]">
@@ -269,9 +323,7 @@ export default function HallIssues() {
                   </div>
                   <div className="flex items-center space-x-4">
                     <span
-                      className={`text-xs px-2 py-1 rounded-full font-medium ${
-                        issue.status === "Pending" ? "bg-yellow-100 text-yellow-800" : "bg-green-100 text-green-800"
-                      }`}
+                      className={`text-xs px-2 py-1 rounded-full font-medium ${issue.status === "Pending" ? "bg-yellow-100 text-yellow-800" : "bg-green-100 text-green-800"}`}
                     >
                       {issue.status}
                     </span>
@@ -284,9 +336,7 @@ export default function HallIssues() {
                   </div>
                 </div>
                 <div
-                  className={`overflow-hidden transition-all duration-300 ease-in-out ${
-                    expandedId === issue._id ? "max-h-[600px] p-6 opacity-100" : "max-h-0 opacity-0"
-                  }`}
+                  className={`overflow-hidden transition-all duration-300 ease-in-out ${expandedId === issue._id ? "max-h-[600px] p-6 opacity-100" : "max-h-0 opacity-0"}`}
                 >
                   <div className="text-[#1B365D] space-y-6">
                     <section>
@@ -303,9 +353,7 @@ export default function HallIssues() {
                           <select
                             value={issue.status}
                             onChange={(e) => handleStatusChange(issue._id, e.target.value)}
-                            className={`ml-2 p-1 rounded-full text-xs border-none cursor-pointer focus:outline-none ${
-                              issue.status === "Pending" ? "bg-yellow-100 text-yellow-800" : "bg-green-100 text-green-800"
-                            }`}
+                            className={`ml-2 p-1 rounded-full text-xs border-none cursor-pointer focus:outline-none ${issue.status === "Pending" ? "bg-yellow-100 text-yellow-800" : "bg-green-100 text-green-800"}`}
                           >
                             <option value="Pending">Pending</option>
                             <option value="Resolved">Resolved</option>
@@ -364,12 +412,12 @@ export default function HallIssues() {
       {/* Chart Modal */}
       {showChart && (
         <div className="fixed inset-0 bg-[#1B365D]/30 backdrop-blur-sm flex justify-center items-center">
-          <div className="bg-[#FFFFFF] p-6 rounded-lg w-[800px] relative">
-            <button onClick={closeChart} className="absolute top-4 right-4 text-[#1B365D] hover:text-[#1B365D]/70">
+          <div className="bg-[#FFFFFF] p-6 rounded-xl shadow-lg w-[1000px] relative border border-[#EDEFF2]">
+            <button onClick={closeChart} className="absolute top-4 right-4 text-[#1B365D] hover:text-[#1B365D]/70 text-lg">
               ✕
             </button>
-            <h3 className="text-lg font-semibold text-[#1B365D] mb-4">Issues Distribution</h3>
-            <div className="h-[400px]">
+            <h3 className="text-xl font-bold text-[#1B365D] mb-6">Issues Distribution</h3>
+            <div className="h-[450px]">
               <Bar data={getChartData()} options={chartOptions} />
             </div>
           </div>
@@ -379,82 +427,108 @@ export default function HallIssues() {
       {/* Report Modal */}
       {showReport && (
         <div className="fixed inset-0 bg-[#1B365D]/30 backdrop-blur-sm flex justify-center items-center">
-          <div className="bg-[#FFFFFF] p-8 rounded-lg w-[900px] max-h-[90vh] overflow-y-auto relative">
-            <button onClick={closeReport} className="absolute top-4 right-4 text-[#1B365D] hover:text-[#1B365D]/70">
+          <div className="bg-[#FFFFFF] p-8 rounded-xl w-[1000px] max-h-[90vh] overflow-y-auto relative shadow-xl border border-[#EDEFF2]">
+            <button onClick={closeReport} className="absolute top-1 right-2 text-[#1B365D] hover:text-[#1B365D]/70 text-lg">
               ✕
             </button>
+            <button
+              onClick={downloadReport}
+              className="absolute top-12 left-10 bg-[#1B365D] text-white p-2 rounded-full hover:bg-[#1B365D]/90 transition-all duration-200"
+              title="Download Report as PDF"
+            >
+              <Download className="w-5 h-5" />
+            </button>
             <div className="report-content">
-              <h1 className="text-3xl font-bold text-[#1B365D] mb-6 text-center">Facility Issues Report</h1>
+              {/* Report Header */}
+              <header className="bg-gradient-to-r from-[#1B365D] to-[#2A4A7A] text-white p-6 rounded-t-xl shadow-md mb-8">
+                <div className="flex items-center justify-center gap-3">
+                  <FileText className="w-8 h-8" />
+                  <h1 className="text-3xl font-bold tracking-tight">Facility Issues Report</h1>
+                </div>
+              </header>
 
               {/* Summary Section */}
-              <section className="mb-8">
-                <h2 className="text-xl font-semibold text-[#1B365D] mb-4">Summary</h2>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="bg-[#F5F7FA] p-4 rounded-lg">
-                    <p className="text-[#1B365D] font-medium">Total Issues Reported:</p>
-                    <p className="text-2xl text-[#1B365D]">{totalIssues}</p>
+              <section className="mb-8 bg-white p-6 rounded-lg shadow-md border border-[#EDEFF2]">
+                <h2 className="text-xl font-semibold text-[#1B365D] mb-4 flex items-center">
+                  <CheckCircle className="w-5 h-5 mr-2" /> Summary
+                </h2>
+                <div className="grid grid-cols-2 gap-6">
+                  <div className="bg-[#F5F7FA] p-4 rounded-lg shadow-sm transition-all hover:shadow-md">
+                    <p className="text-[#1B365D] font-medium text-sm">Total Issues Reported</p>
+                    <p className="text-3xl font-bold text-[#1B365D]">{totalIssues}</p>
                   </div>
-                  <div className="bg-[#F5F7FA] p-4 rounded-lg">
-                    <p className="text-[#1B365D] font-medium">Status Breakdown:</p>
-                    <p className="text-[#1B365D]">Pending: {statusBreakdown.Pending}</p>
-                    <p className="text-[#1B365D]">Resolved: {statusBreakdown.Resolved}</p>
+                  <div className="bg-[#F5F7FA] p-4 rounded-lg shadow-sm transition-all hover:shadow-md">
+                    <p className="text-[#1B365D] font-medium text-sm">Status Breakdown</p>
+                    <p className="text-[#1B365D] text-lg">Pending: <span className="font-semibold">{statusBreakdown.Pending}</span></p>
+                    <p className="text-[#1B365D] text-lg">Resolved: <span className="font-semibold">{statusBreakdown.Resolved}</span></p>
                   </div>
-                  <div className="bg-[#F5F7FA] p-4 rounded-lg col-span-2">
-                    <p className="text-[#1B365D] font-medium">Urgency Breakdown:</p>
-                    <p className="text-[#1B365D]">Urgent: {urgencyBreakdown.Urgent}</p>
-                    <p className="text-[#1B365D]">Medium: {urgencyBreakdown.Medium}</p>
-                    <p className="text-[#1B365D]">Low: {urgencyBreakdown.Low}</p>
+                  <div className="bg-[#F5F7FA] p-4 rounded-lg shadow-sm col-span-2 transition-all hover:shadow-md">
+                    <p className="text-[#1B365D] font-medium text-sm">Urgency Breakdown</p>
+                    <div className="grid grid-cols-3 gap-2">
+                      <p className="text-[#1B365D] text-lg">Urgent: <span className="font-semibold">{urgencyBreakdown.Urgent}</span></p>
+                      <p className="text-[#1B365D] text-lg">Medium: <span className="font-semibold">{urgencyBreakdown.Medium}</span></p>
+                      <p className="text-[#1B365D] text-lg">Low: <span className="font-semibold">{urgencyBreakdown.Low}</span></p>
+                    </div>
                   </div>
                 </div>
               </section>
 
               {/* Chart Section */}
-              <section className="mb-8">
-                <h2 className="text-xl font-semibold text-[#1B365D] mb-4">Issues Distribution Chart</h2>
+              <section className="mb-8 bg-white p-6 rounded-lg shadow-md border border-[#EDEFF2]">
+                <h2 className="text-xl font-semibold text-[#1B365D] mb-4 flex items-center">
+                  <BarChart2 className="w-5 h-5 mr-2" /> Issues Distribution Chart
+                </h2>
                 <div className="h-[400px] w-full">
                   <Bar data={getChartData()} options={chartOptions} />
                 </div>
               </section>
 
               {/* Detailed List Section */}
-              <section className="mb-8">
-                <h2 className="text-xl font-semibold text-[#1B365D] mb-4">Detailed Issues List</h2>
-                <table className="w-full border-collapse">
-                  <thead>
-                    <tr className="bg-[#1B365D] text-[#FFFFFF]">
-                      <th className="p-2 text-left">Room ID</th>
-                      <th className="p-2 text-left">Facility Type</th>
-                      <th className="p-2 text-left">Department</th>
-                      <th className="p-2 text-left">Issues</th>
-                      <th className="p-2 text-left">Urgency</th>
-                      <th className="p-2 text-left">Status</th>
-                      <th className="p-2 text-left">Reported Date</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredIssues.map((issue) => {
-                      const { issues: issueItems, otherDescription } = formatIssues(issue.issues, issue.description);
-                      return (
-                        <tr key={issue._id} className="border-b border-[#EDEFF2]">
-                          <td className="p-2 text-[#1B365D]">{issue.roomId}</td>
-                          <td className="p-2 text-[#1B365D]">{issue.facilityType}</td>
-                          <td className="p-2 text-[#1B365D]">{issue.department}</td>
-                          <td className="p-2 text-[#1B365D]">
-                            {issueItems.length > 0 ? issueItems.join(", ") : "Other: " + otherDescription}
-                          </td>
-                          <td className="p-2 text-[#1B365D]">{issue.urgency}</td>
-                          <td className="p-2 text-[#1B365D]">{issue.status}</td>
-                          <td className="p-2 text-[#1B365D]">{new Date(issue.reportedDate).toLocaleDateString()}</td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
+              <section className="mb-8 bg-white p-6 rounded-lg shadow-md border border-[#EDEFF2]">
+                <h2 className="text-xl font-semibold text-[#1B365D] mb-4 flex items-center">
+                  <AlertCircle className="w-5 h-5 mr-2" /> Detailed Issues List
+                </h2>
+                <div className="overflow-x-auto">
+                  <table className="w-full border-collapse">
+                    <thead>
+                      <tr className="bg-[#1B365D] text-[#FFFFFF]">
+                        <th className="p-3 text-left text-sm font-semibold">Room ID</th>
+                        <th className="p-3 text-left text-sm font-semibold">Facility Type</th>
+                        <th className="p-3 text-left text-sm font-semibold">Department</th>
+                        <th className="p-3 text-left text-sm font-semibold">Issues</th>
+                        <th className="p-3 text-left text-sm font-semibold">Urgency</th>
+                        <th className="p-3 text-left text-sm font-semibold">Status</th>
+                        <th className="p-3 text-left text-sm font-semibold">Reported Date</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredIssues.map((issue, index) => {
+                        const { issues: issueItems, otherDescription } = formatIssues(issue.issues, issue.description);
+                        return (
+                          <tr
+                            key={issue._id}
+                            className={`border-b border-[#EDEFF2] transition-colors duration-200 ${index % 2 === 0 ? "bg-[#F5F7FA]" : "bg-white"} hover:bg-[#EDEFF2]`}
+                          >
+                            <td className="p-3 text-[#1B365D]">{issue.roomId}</td>
+                            <td className="p-3 text-[#1B365D]">{issue.facilityType}</td>
+                            <td className="p-3 text-[#1B365D]">{issue.department}</td>
+                            <td className="p-3 text-[#1B365D]">
+                              {issueItems.length > 0 ? issueItems.join(", ") : "Other: " + otherDescription}
+                            </td>
+                            <td className="p-3 text-[#1B365D]">{issue.urgency}</td>
+                            <td className="p-3 text-[#1B365D]">{issue.status}</td>
+                            <td className="p-3 text-[#1B365D]">{new Date(issue.reportedDate).toLocaleDateString()}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
               </section>
 
               {/* Generated Date and Time */}
-              <footer className="text-center text-[#1B365D] text-sm mt-8">
-                Generated on: {generatedDateTime}
+              <footer className="text-center text-[#1B365D] text-sm bg-[#F5F7FA] py-3 rounded-b-lg shadow-inner">
+                Generated on: <span className="font-semibold">{generatedDateTime}</span>
               </footer>
             </div>
           </div>
