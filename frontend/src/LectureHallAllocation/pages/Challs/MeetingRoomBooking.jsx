@@ -56,15 +56,71 @@ export default function MeetingRoomBooking() {
 
   const validateForm = () => {
     const newErrors = {};
+
+    // Basic field validations
     if (!formData.department) newErrors.department = "Department is required";
     if (!formData.floor) newErrors.floor = "Floor is required";
     if (!formData.meetingRoom) newErrors.meetingRoom = "Meeting Room is required";
-    if (!formData.date) newErrors.date = "Date is required";
-    if (!formData.startTime) newErrors.startTime = "Start time is required";
-    if (!formData.endTime) newErrors.endTime = "End time is required";
-    if (!formData.totalCount) newErrors.totalCount = "Total count is required";
-    else if (isNaN(formData.totalCount) || formData.totalCount <= 0) {
+    
+    // Date validation with Day Type check
+    if (!formData.date) {
+      newErrors.date = "Date is required";
+    } else {
+      const selectedDate = new Date(formData.date);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      if (selectedDate < today) {
+        newErrors.date = "Date cannot be in the past";
+      } else {
+        const dayOfWeek = selectedDate.getDay(); // 0 = Sunday, 6 = Saturday
+        const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+        if (formData.dayType === "Weekday" && isWeekend) {
+          newErrors.date = "Please select a weekday (Monday-Friday)";
+        } else if (formData.dayType === "Weekend" && !isWeekend) {
+          newErrors.date = "Please select a weekend day (Saturday or Sunday)";
+        }
+      }
+    }
+
+    // Time validations
+    if (!formData.startTime) {
+      newErrors.startTime = "Start time is required";
+    }
+    if (!formData.endTime) {
+      newErrors.endTime = "End time is required";
+    }
+    if (formData.startTime && formData.endTime) {
+      const start = new Date(`2000-01-01T${formData.startTime}`);
+      const end = new Date(`2000-01-01T${formData.endTime}`);
+      const minStart = new Date(`2000-01-01T09:00`);
+      const maxEnd = new Date(`2000-01-01T17:00`);
+      
+      if (start < minStart) {
+        newErrors.startTime = "Start time must be 9:00 AM or later";
+      }
+      if (end > maxEnd) {
+        newErrors.endTime = "End time must be 5:00 PM or earlier";
+      }
+      if (start >= end) {
+        newErrors.endTime = "End time must be after start time";
+      } else {
+        const durationMinutes = (end - start) / (1000 * 60);
+        if (durationMinutes < 30) {
+          newErrors.endTime = "Minimum booking duration is 30 minutes";
+        }
+        if (durationMinutes > 480) {
+          newErrors.endTime = "Maximum booking duration is 8 hours";
+        }
+      }
+    }
+
+    // Total count validation
+    if (!formData.totalCount) {
+      newErrors.totalCount = "Total count is required";
+    } else if (isNaN(formData.totalCount) || formData.totalCount <= 0) {
       newErrors.totalCount = "Total count must be a positive number";
+    } else if (!Number.isInteger(Number(formData.totalCount))) {
+      newErrors.totalCount = "Total count must be a whole number";
     } else if (
       formData.seatCount &&
       parseInt(formData.totalCount) > parseInt(formData.seatCount)
@@ -105,31 +161,39 @@ export default function MeetingRoomBooking() {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData({ ...formData, [name]: value });
+    setFormData((prev) => {
+      const newData = { ...prev, [name]: value };
 
-    if (name === "department") {
-      const filtered = meetingRooms.filter((room) => room.department === value);
-      setAvailableFloors([...new Set(filtered.map((room) => room.floor))]);
-      setAvailableRooms(filtered);
-      setFormData((prev) => ({
-        ...prev,
-        floor: "",
-        meetingRoom: "",
-        seatCount: "",
-        totalCount: "",
-      }));
-    } else if (name === "floor") {
-      const filtered = meetingRooms.filter(
-        (room) => room.department === formData.department && room.floor === value
-      );
-      setAvailableRooms(filtered);
-      setFormData((prev) => ({
-        ...prev,
-        meetingRoom: "",
-        seatCount: "",
-        totalCount: "",
-      }));
-    }
+      // Reset date when dayType changes to enforce validation
+      if (name === "dayType") {
+        newData.date = "";
+      }
+
+      if (name === "department") {
+        const filtered = meetingRooms.filter((room) => room.department === value);
+        setAvailableFloors([...new Set(filtered.map((room) => room.floor))]);
+        setAvailableRooms(filtered);
+        return {
+          ...newData,
+          floor: "",
+          meetingRoom: "",
+          seatCount: "",
+          totalCount: "",
+        };
+      } else if (name === "floor") {
+        const filtered = meetingRooms.filter(
+          (room) => room.department === newData.department && room.floor === value
+        );
+        setAvailableRooms(filtered);
+        return {
+          ...newData,
+          meetingRoom: "",
+          seatCount: "",
+          totalCount: "",
+        };
+      }
+      return newData;
+    });
   };
 
   const handleRoomSelect = (roomId) => {
@@ -146,6 +210,15 @@ export default function MeetingRoomBooking() {
     localStorage.removeItem("token");
     setUserInfo(null);
     navigate("/LoginPage");
+  };
+
+  const getMinEndTime = () => {
+    if (!formData.startTime) return "09:00";
+    const [hours, minutes] = formData.startTime.split(":");
+    const date = new Date();
+    date.setHours(parseInt(hours));
+    date.setMinutes(parseInt(minutes) + 30);
+    return date.toTimeString().slice(0, 5);
   };
 
   if (!userInfo) {
@@ -356,7 +429,7 @@ export default function MeetingRoomBooking() {
 
             <div>
               <label className="block text-sm font-semibold text-[#1B365D] mb-2">
-                Date *
+                Date * {formData.dayType === "Weekday" ? "(Mon-Fri)" : "(Sat-Sun)"}
               </label>
               <div className="relative">
                 <input
@@ -364,6 +437,7 @@ export default function MeetingRoomBooking() {
                   name="date"
                   value={formData.date}
                   onChange={handleChange}
+                  min={new Date().toISOString().split("T")[0]}
                   className={`w-full p-3 pl-10 border rounded-lg focus:ring-2 focus:ring-[#1B365D] focus:border-[#1B365D] transition-all duration-200 ${
                     errors.date ? "border-red-500" : "border-[#E2E8F0]"
                   } bg-[#F8FAFC] text-[#1B365D] shadow-sm`}
@@ -379,7 +453,7 @@ export default function MeetingRoomBooking() {
 
             <div>
               <label className="block text-sm font-semibold text-[#1B365D] mb-2">
-                Start Time *
+                Start Time * (9:00 AM - 4:30 PM)
               </label>
               <div className="relative">
                 <input
@@ -387,6 +461,9 @@ export default function MeetingRoomBooking() {
                   name="startTime"
                   value={formData.startTime}
                   onChange={handleChange}
+                  min="09:00"
+                  max="16:30"
+                  step="1800" // 30-minute intervals
                   className={`w-full p-3 pl-10 border rounded-lg focus:ring-2 focus:ring-[#1B365D] focus:border-[#1B365D] transition-all duration-200 ${
                     errors.startTime ? "border-red-500" : "border-[#E2E8F0]"
                   } bg-[#F8FAFC] text-[#1B365D] shadow-sm`}
@@ -402,7 +479,7 @@ export default function MeetingRoomBooking() {
 
             <div>
               <label className="block text-sm font-semibold text-[#1B365D] mb-2">
-                End Time *
+                End Time * (Max 5:00 PM)
               </label>
               <div className="relative">
                 <input
@@ -410,6 +487,9 @@ export default function MeetingRoomBooking() {
                   name="endTime"
                   value={formData.endTime}
                   onChange={handleChange}
+                  min={getMinEndTime()}
+                  max="17:00"
+                  step="1800" // 30-minute intervals
                   className={`w-full p-3 pl-10 border rounded-lg focus:ring-2 focus:ring-[#1B365D] focus:border-[#1B365D] transition-all duration-200 ${
                     errors.endTime ? "border-red-500" : "border-[#E2E8F0]"
                   } bg-[#F8FAFC] text-[#1B365D] shadow-sm`}
@@ -450,6 +530,7 @@ export default function MeetingRoomBooking() {
                 } bg-[#F8FAFC] text-[#1B365D] shadow-sm`}
                 min="1"
                 max={formData.seatCount}
+                step="1"
               />
               {errors.totalCount && (
                 <p className="text-red-500 text-xs mt-1">{errors.totalCount}</p>
