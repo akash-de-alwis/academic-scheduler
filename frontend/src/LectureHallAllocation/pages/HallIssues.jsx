@@ -428,12 +428,12 @@ export default function HallIssues() {
       {showReport && (
         <div className="fixed inset-0 bg-[#1B365D]/30 backdrop-blur-sm flex justify-center items-center">
           <div className="bg-[#FFFFFF] p-8 rounded-xl w-[1000px] max-h-[90vh] overflow-y-auto relative shadow-xl border border-[#EDEFF2]">
-            <button onClick={closeReport} className="absolute top-4 right-12 text-[#1B365D] hover:text-[#1B365D]/70 text-lg">
+            <button onClick={closeReport} className="absolute top-1 right-2 text-[#1B365D] hover:text-[#1B365D]/70 text-lg">
               ✕
             </button>
             <button
               onClick={downloadReport}
-              className="absolute top-4 right-4 bg-[#1B365D] text-white p-2 rounded-full hover:bg-[#1B365D]/90 transition-all duration-200"
+              className="absolute top-12 left-10 bg-[#1B365D] text-white p-2 rounded-full hover:bg-[#1B365D]/90 transition-all duration-200"
               title="Download Report as PDF"
             >
               <Download className="w-5 h-5" />
