@@ -22,9 +22,9 @@ export default function Allocations() {
   const [selectedBatchSchedule, setSelectedBatchSchedule] = useState(null);
   const [searchingLecturer, setSearchingLecturer] = useState({});
   const [toast, setToast] = useState({ message: "", visible: false });
-  const [showSettings, setShowSettings] = useState(false); // New state for settings modal
-  const [maxWorkload, setMaxWorkload] = useState(5); // Default max workload
-  const [tempMaxWorkload, setTempMaxWorkload] = useState(maxWorkload); // Temporary value for settings modal
+  const [showSettings, setShowSettings] = useState(false);
+  const [maxWorkload, setMaxWorkload] = useState(5);
+  const [tempMaxWorkload, setTempMaxWorkload] = useState(maxWorkload);
 
   const location = useLocation();
   const navigate = useNavigate();
@@ -37,15 +37,14 @@ export default function Allocations() {
           axios.get("http://localhost:5000/api/subjects"),
           axios.get("http://localhost:5000/api/batches"),
           axios.get("http://localhost:5000/api/lecturers"),
-          axios.get("http://localhost:5000/api/settings/max-workload"), // New endpoint
+          axios.get("http://localhost:5000/api/settings/max-workload"),
         ]);
         setAllocations(allocationsRes.data);
         setSubjects(subjectsRes.data);
         setBatches(batchesRes.data);
         setLecturers(lecturersRes.data);
-        setMaxWorkload(settingsRes.data.maxWorkload || 5); // Set max workload from backend
+        setMaxWorkload(settingsRes.data.maxWorkload || 5);
         setTempMaxWorkload(settingsRes.data.maxWorkload || 5);
-        console.log("Fetched lecturers:", lecturersRes.data);
       } catch (err) {
         console.error("Error fetching data:", err);
       }
@@ -79,7 +78,7 @@ export default function Allocations() {
     setToast({ message, visible: true });
     setTimeout(() => {
       setToast((prev) => ({ ...prev, visible: false }));
-    }, 3000); // Hide after 3 seconds
+    }, 3000);
   };
 
   useEffect(() => {
@@ -91,7 +90,7 @@ export default function Allocations() {
         setNewAllocation({
           allocationId: generateAllocationId(),
           subjects: [{ subjectName: "", subjectId: "", lecturerName: "", lecturerId: "" }],
-          batchName: `${selectedBatch.batchName} (${selectedBatch.intake})`,
+          batchName: `${selectedBatch.batchName} (${selectedBatch.intake}) - ${selectedBatch.semester}`,
           batchId: selectedBatch.batchNo,
         });
         setSelectedBatchSchedule(selectedBatch.scheduleType);
@@ -103,7 +102,7 @@ export default function Allocations() {
       if (batch) {
         setNewAllocation({
           ...editingAllocation,
-          batchName: `${batch.batchName} (${batch.intake})`,
+          batchName: `${batch.batchName} (${batch.intake}) - ${batch.semester}`,
           batchId: batch.batchNo,
           subjects: editingAllocation.subjects || [{ subjectName: "", subjectId: "", lecturerName: "", lecturerId: "" }],
         });
@@ -195,16 +194,16 @@ export default function Allocations() {
         } else {
           resolve(null);
         }
-      }, 6000); // 6-second delay
+      }, 6000);
     });
   };
 
   const handleSave = async () => {
     try {
-      const batchNameWithoutIntake = newAllocation.batchName.split(" (")[0];
+      const batchNameWithoutExtra = newAllocation.batchName.split(" (")[0]; // Extract just the batchName
       const saveData = {
         ...newAllocation,
-        batchName: batchNameWithoutIntake,
+        batchName: batchNameWithoutExtra,
       };
 
       if (!saveData.batchName) throw new Error("Batch is required");
@@ -249,7 +248,7 @@ export default function Allocations() {
         );
         setLecturerErrors((prev) => ({
           ...prev,
-          [subjectIndex]: err.response.data.message.replace("5", maxWorkload), // Dynamic max workload
+          [subjectIndex]: err.response.data.message.replace("5", maxWorkload),
         }));
 
         const currentLecturerId = newAllocation.subjects[subjectIndex].lecturerId;
@@ -319,11 +318,11 @@ export default function Allocations() {
   };
 
   const handleBatchChange = (e) => {
-    const selectedBatch = batches.find((b) => `${b.batchName} (${b.intake})` === e.target.value);
+    const selectedBatch = batches.find((b) => `${b.batchName} (${b.intake}) - ${b.semester}` === e.target.value);
     if (selectedBatch) {
       setNewAllocation((prev) => ({
         ...prev,
-        batchName: `${selectedBatch.batchName} (${selectedBatch.intake})`,
+        batchName: `${selectedBatch.batchName} (${selectedBatch.intake}) - ${selectedBatch.semester}`,
         batchId: selectedBatch.batchNo,
         subjects: prev.subjects.map((s) => ({ ...s, lecturerName: "", lecturerId: "" })),
       }));
@@ -585,102 +584,55 @@ export default function Allocations() {
         )}
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {allocations.map((allocation) => (
-            <div
-              key={allocation._id}
-              className="card bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden"
-            >
-              <div className="card-header p-4 text-white">
-                <div className="flex justify-between items-center">
-                  <div className="flex items-center gap-3">
-                    <div className="icon-circle">
-                      <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                      </svg>
+          {allocations.map((allocation) => {
+            const batch = batches.find((b) => b.batchNo === allocation.batchId);
+            const fullBatchName = batch 
+              ? `${allocation.batchName} (${batch.intake}) - ${batch.semester}` 
+              : allocation.batchName;
+            return (
+              <div
+                key={allocation._id}
+                className="card bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden"
+              >
+                <div className="card-header p-4 text-white">
+                  <div className="flex justify-between items-center">
+                    <div className="flex items-center gap-3">
+                      <div className="icon-circle">
+                        <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                        </svg>
+                      </div>
+                      <h3 className="font-semibold text-lg tracking-wide">{allocation.allocationId}</h3>
                     </div>
-                    <h3 className="font-semibold text-lg tracking-wide">{allocation.allocationId}</h3>
-                  </div>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => {
-                        setNewAllocation(allocation);
-                        setEditingAllocation(allocation);
-                        setShowForm(true);
-                      }}
-                      className="bg-white/20 p-1.5 rounded-lg hover:bg-white/30 transition-colors"
-                      title="Edit"
-                    >
-                      <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
-                        <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
-                      </svg>
-                    </button>
-                    <button
-                      onClick={() => handleDelete(allocation._id)}
-                      className="bg-white/20 p-1.5 rounded-lg hover:bg-red-400/40 transition-colors"
-                      title="Delete"
-                    >
-                      <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M3 6h18" />
-                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                      </svg>
-                    </button>
-                  </div>
-                </div>
-              </div>
-              <div className="p-6 space-y-5">
-                <div className="flex items-start gap-4">
-                  <div className="bg-[#E6ECF5] p-2 rounded-full flex-shrink-0">
-                    <svg
-                      className="w-6 h-6 text-[#1B365D]"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                    >
-                      <path d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-                    </svg>
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-sm font-medium text-gray-500 uppercase tracking-wider mb-2">
-                      Subjects
-                    </p>
-                    <div className="flex flex-wrap gap-2 max-h-24 overflow-y-auto">
-                      {allocation.subjects.map((subject, index) => (
-                        <div key={index} className="subject-chip">
-                          <span className="font-medium">{subject.subjectName}</span>
-                          <span className="text-gray-500">({subject.subjectId})</span>
-                          {subject.lecturerName && (
-                            <span className="ml-1 text-xs"> - {subject.lecturerName}</span>
-                          )}
-                        </div>
-                      ))}
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => {
+                          setNewAllocation(allocation);
+                          setEditingAllocation(allocation);
+                          setShowForm(true);
+                        }}
+                        className="bg-white/20 p-1.5 rounded-lg hover:bg-white/30 transition-colors"
+                        title="Edit"
+                      >
+                        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
+                          <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
+                        </svg>
+                      </button>
+                      <button
+                        onClick={() => handleDelete(allocation._id)}
+                        className="bg-white/20 p-1.5 rounded-lg hover:bg-red-400/40 transition-colors"
+                        title="Delete"
+                      >
+                        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path d="M3 6h18" />
+                          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                        </svg>
+                      </button>
                     </div>
                   </div>
                 </div>
-
-                <div className="flex items-start gap-4">
-                  <div className="bg-[#E6ECF5] p-2 rounded-full flex-shrink-0">
-                    <svg
-                      className="w-6 h-6 text-[#1B365D]"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                    >
-                      <path d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                    </svg>
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-sm font-medium text-gray-500 uppercase tracking-wider mb-1">
-                      Batch
-                    </p>
-                    <p className="text-[#1B365D] font-semibold text-lg">{allocation.batchName}</p>
-                    <p className="text-sm text-gray-600">{allocation.batchId}</p>
-                  </div>
-                </div>
-
-                {allocation.lecturerName && (
+                <div className="p-6 space-y-5">
                   <div className="flex items-start gap-4">
                     <div className="bg-[#E6ECF5] p-2 rounded-full flex-shrink-0">
                       <svg
@@ -690,21 +642,74 @@ export default function Allocations() {
                         stroke="currentColor"
                         strokeWidth="2"
                       >
-                        <path d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                        <path d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                      </svg>
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-gray-500 uppercase tracking-wider mb-2">
+                        Subjects
+                      </p>
+                      <div className="flex flex-wrap gap-2 max-h-24 overflow-y-auto">
+                        {allocation.subjects.map((subject, index) => (
+                          <div key={index} className="subject-chip">
+                            <span className="font-medium">{subject.subjectName}</span>
+                            <span className="text-gray-500">({subject.subjectId})</span>
+                            {subject.lecturerName && (
+                              <span className="ml-1 text-xs"> - {subject.lecturerName}</span>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-4">
+                    <div className="bg-[#E6ECF5] p-2 rounded-full flex-shrink-0">
+                      <svg
+                        className="w-6 h-6 text-[#1B365D]"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                      >
+                        <path d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                       </svg>
                     </div>
                     <div className="flex-1">
                       <p className="text-sm font-medium text-gray-500 uppercase tracking-wider mb-1">
-                        Lecturer
+                        Batch
                       </p>
-                      <p className="text-[#1B365D] font-semibold text-lg">{allocation.lecturerName}</p>
-                      <p className="text-sm text-gray-600">{allocation.lecturerId}</p>
+                      <p className="text-[#1B365D] font-semibold text-lg">{fullBatchName}</p>
+                      <p className="text-sm text-gray-600">{allocation.batchId}</p>
                     </div>
                   </div>
-                )}
+
+                  {allocation.lecturerName && (
+                    <div className="flex items-start gap-4">
+                      <div className="bg-[#E6ECF5] p-2 rounded-full flex-shrink-0">
+                        <svg
+                          className="w-6 h-6 text-[#1B365D]"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                        >
+                          <path d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                        </svg>
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-sm font-medium text-gray-500 uppercase tracking-wider mb-1">
+                          Lecturer
+                        </p>
+                        <p className="text-[#1B365D] font-semibold text-lg">{allocation.lecturerName}</p>
+                        <p className="text-sm text-gray-600">{allocation.lecturerId}</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
         {showForm && (
@@ -747,8 +752,8 @@ export default function Allocations() {
                       >
                         <option value="">Choose a batch</option>
                         {batches.map((batch) => (
-                          <option key={batch._id} value={`${batch.batchName} (${batch.intake})`}>
-                            {batch.batchName} ({batch.intake}) - {batch.scheduleType}
+                          <option key={batch._id} value={`${batch.batchName} (${batch.intake}) - ${batch.semester}`}>
+                            {batch.batchName} ({batch.intake}) - {batch.semester} - {batch.scheduleType}
                           </option>
                         ))}
                       </select>
