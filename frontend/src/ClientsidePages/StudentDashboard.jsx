@@ -6,7 +6,7 @@ import { Link, useNavigate } from "react-router-dom";
 export default function StudentDashboard() {
   const [timetable, setTimetable] = useState([]);
   const [subjects, setSubjects] = useState([]);
-  const [suggestedSubjects, setSuggestedSubjects] = useState([]);
+  const [suggestedSubjects, setSuggestedSubjects] = useState([]); // State for CGPA-based suggestions
   const [bookings, setBookings] = useState([]);
   const [userInfo, setUserInfo] = useState(null);
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -24,12 +24,6 @@ export default function StudentDashboard() {
       }
 
       try {
-        // Reset states to avoid duplication
-        setActivities([]);
-        setTimetable([]);
-        setSubjects([]);
-        setBookings([]);
-
         // Fetch user info
         const userResponse = await axios.get("http://localhost:5000/api/auth/me", {
           headers: { Authorization: `Bearer ${token}` },
@@ -46,13 +40,13 @@ export default function StudentDashboard() {
         }));
         setTimetable(updatedSchedules.filter((s) => s.batch === userResponse.data.batch));
 
-        // Fetch all subjects
+        // Fetch enrolled subjects and suggest based on CGPA
         const subjectsResponse = await axios.get("http://localhost:5000/api/subjects", {
           headers: { Authorization: `Bearer ${token}` },
         });
-        const allSubjects = subjectsResponse.data;
-        setSubjects(allSubjects.filter((s) => s.year === userResponse.data.currentYear));
-        fetchSuggestedSubjects(userResponse.data.cgpa || "", allSubjects);
+        const studentSubjects = subjectsResponse.data.filter((s) => s.year === userResponse.data.currentYear);
+        setSubjects(studentSubjects);
+        fetchSuggestedSubjects(subjectsResponse.data, userResponse.data.cgpa); // Suggest subjects based on CGPA
 
         // Fetch bookings
         const bookingsResponse = await axios.get("http://localhost:5000/api/bookings", {
@@ -60,44 +54,30 @@ export default function StudentDashboard() {
         });
         setBookings(bookingsResponse.data.filter((b) => b.studentId === userResponse.data._id));
 
-        // Fetch activities and ensure no duplicates
+        // Fetch activities
         const activitiesResponse = await axios.get("http://localhost:5000/api/activities", {
           headers: { Authorization: `Bearer ${token}` },
         });
-        const uniqueActivities = Array.from(
-          new Map(activitiesResponse.data.map((activity) => [activity._id, activity])).values()
-        );
-        setActivities(uniqueActivities);
+        setActivities(activitiesResponse.data);
       } catch (err) {
         setError(err.response?.data?.message || "Failed to load dashboard data");
       }
     };
 
     fetchData();
-  }, []); // Empty dependency array ensures this runs only once on mount
+  }, []);
 
-  // Function to suggest subjects based on CGPA
-  const fetchSuggestedSubjects = (cgpa, allSubjects) => {
+  // Suggest subjects where CGPA >= subject.credit
+  const fetchSuggestedSubjects = (allSubjects, cgpa) => {
     const cgpaNum = parseFloat(cgpa);
-    let suggestions = [];
-
-    if (!isNaN(cgpaNum) && allSubjects.length > 0) {
-      if (cgpaNum >= 3.5) {
-        suggestions = allSubjects
-          .filter((subject) => subject.year === "4 Year" || subject.credit >= 4)
-          .slice(0, 3);
-      } else if (cgpaNum >= 3.0) {
-        suggestions = allSubjects
-          .filter((subject) => subject.year === "3 Year" || (subject.credit >= 3 && subject.credit < 4))
-          .slice(0, 3);
-      } else {
-        suggestions = allSubjects
-          .filter((subject) => subject.year === "1 Year" || subject.year === "2 Year" || subject.credit <= 2)
-          .slice(0, 3);
-      }
+    if (!isNaN(cgpaNum)) {
+      const suggestions = allSubjects
+        .filter((subject) => cgpaNum >= subject.credit)
+        .sort((a, b) => b.credit - a.credit); // Sort by credit descending
+      setSuggestedSubjects(suggestions);
+    } else {
+      setSuggestedSubjects([]);
     }
-
-    setSuggestedSubjects(suggestions);
   };
 
   const getTodaySchedule = () => {
@@ -350,11 +330,11 @@ export default function StudentDashboard() {
             <h2 className="text-xl font-semibold text-[#1B365D] mb-4 flex items-center gap-2">
               <BookOpen className="w-5 h-5" /> Suggested Subjects (CGPA: {userInfo.cgpa || "Not set"})
             </h2>
-            <div className="space-y-3 max-h-64 overflow-y-auto">
+            <div className="space-y-3 h-[150px] overflow-y-auto"> {/* Fixed height for ~3 subjects */}
               {suggestedSubjects.length > 0 ? (
                 suggestedSubjects.map((subject) => (
                   <div
-                    key={subject._id}
+                    key={subject._id || subject.subjectID}
                     className="flex items-center gap-3 p-2 bg-[#F5F7FA] rounded-lg"
                   >
                     <div className="bg-[#1B365D]/10 p-2 rounded-full">
@@ -369,7 +349,9 @@ export default function StudentDashboard() {
                   </div>
                 ))
               ) : (
-                <p className="text-gray-500">No suggested subjects available. Update your CGPA or add subjects.</p>
+                <p className="text-gray-500">
+                  {userInfo.cgpa ? "No subjects available where CGPA ≥ credit." : "Update your CGPA in your profile."}
+                </p>
               )}
             </div>
             <Link to="/subjects" className="mt-4 text-[#1B365D] hover:text-[#1B365D]/70 text-sm block">
