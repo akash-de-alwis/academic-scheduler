@@ -6,6 +6,7 @@ import { Link, useNavigate } from "react-router-dom";
 export default function StudentDashboard() {
   const [timetable, setTimetable] = useState([]);
   const [subjects, setSubjects] = useState([]);
+  const [suggestedSubjects, setSuggestedSubjects] = useState([]);
   const [bookings, setBookings] = useState([]);
   const [userInfo, setUserInfo] = useState(null);
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -23,6 +24,12 @@ export default function StudentDashboard() {
       }
 
       try {
+        // Reset states to avoid duplication
+        setActivities([]);
+        setTimetable([]);
+        setSubjects([]);
+        setBookings([]);
+
         // Fetch user info
         const userResponse = await axios.get("http://localhost:5000/api/auth/me", {
           headers: { Authorization: `Bearer ${token}` },
@@ -39,11 +46,13 @@ export default function StudentDashboard() {
         }));
         setTimetable(updatedSchedules.filter((s) => s.batch === userResponse.data.batch));
 
-        // Fetch enrolled subjects
+        // Fetch all subjects
         const subjectsResponse = await axios.get("http://localhost:5000/api/subjects", {
           headers: { Authorization: `Bearer ${token}` },
         });
-        setSubjects(subjectsResponse.data.filter((s) => s.year === userResponse.data.currentYear));
+        const allSubjects = subjectsResponse.data;
+        setSubjects(allSubjects.filter((s) => s.year === userResponse.data.currentYear));
+        fetchSuggestedSubjects(userResponse.data.cgpa || "", allSubjects);
 
         // Fetch bookings
         const bookingsResponse = await axios.get("http://localhost:5000/api/bookings", {
@@ -51,18 +60,45 @@ export default function StudentDashboard() {
         });
         setBookings(bookingsResponse.data.filter((b) => b.studentId === userResponse.data._id));
 
-        // Fetch activities
+        // Fetch activities and ensure no duplicates
         const activitiesResponse = await axios.get("http://localhost:5000/api/activities", {
           headers: { Authorization: `Bearer ${token}` },
         });
-        setActivities(activitiesResponse.data);
+        const uniqueActivities = Array.from(
+          new Map(activitiesResponse.data.map((activity) => [activity._id, activity])).values()
+        );
+        setActivities(uniqueActivities);
       } catch (err) {
         setError(err.response?.data?.message || "Failed to load dashboard data");
       }
     };
 
     fetchData();
-  }, []);
+  }, []); // Empty dependency array ensures this runs only once on mount
+
+  // Function to suggest subjects based on CGPA
+  const fetchSuggestedSubjects = (cgpa, allSubjects) => {
+    const cgpaNum = parseFloat(cgpa);
+    let suggestions = [];
+
+    if (!isNaN(cgpaNum) && allSubjects.length > 0) {
+      if (cgpaNum >= 3.5) {
+        suggestions = allSubjects
+          .filter((subject) => subject.year === "4 Year" || subject.credit >= 4)
+          .slice(0, 3);
+      } else if (cgpaNum >= 3.0) {
+        suggestions = allSubjects
+          .filter((subject) => subject.year === "3 Year" || (subject.credit >= 3 && subject.credit < 4))
+          .slice(0, 3);
+      } else {
+        suggestions = allSubjects
+          .filter((subject) => subject.year === "1 Year" || subject.year === "2 Year" || subject.credit <= 2)
+          .slice(0, 3);
+      }
+    }
+
+    setSuggestedSubjects(suggestions);
+  };
 
   const getTodaySchedule = () => {
     const today = currentDate.toISOString().split("T")[0];
@@ -102,14 +138,10 @@ export default function StudentDashboard() {
 
   const getActivityIcon = (type) => {
     switch (type) {
-      case "added":
-        return <span className="text-green-500">➕</span>;
-      case "edited":
-        return <span className="text-blue-500">✏️</span>;
-      case "deleted":
-        return <span className="text-red-500">🗑️</span>;
-      default:
-        return <span className="text-gray-500">🔔</span>;
+      case "added": return <span className="text-green-500">➕</span>;
+      case "edited": return <span className="text-blue-500">✏️</span>;
+      case "deleted": return <span className="text-red-500">🗑️</span>;
+      default: return <span className="text-gray-500">🔔</span>;
     }
   };
 
@@ -170,9 +202,7 @@ export default function StudentDashboard() {
                           key={activity._id}
                           className="p-3 mb-2 bg-[#F5F7FA] rounded-lg flex items-start gap-3 hover:bg-[#1B365D]/5 transition-all duration-200"
                         >
-                          <div className="flex-shrink-0 mt-1">
-                            {getActivityIcon(activity.type)}
-                          </div>
+                          <div className="flex-shrink-0 mt-1">{getActivityIcon(activity.type)}</div>
                           <div className="flex-1">
                             <p className="text-[#1B365D] font-medium text-sm animate-pulse-once">
                               {activity.type === "added" && (
@@ -202,9 +232,7 @@ export default function StudentDashboard() {
                       ))}
                     </div>
                   ) : (
-                    <div className="p-4 text-center text-gray-500">
-                      No new notifications
-                    </div>
+                    <div className="p-4 text-center text-gray-500">No new notifications</div>
                   )}
                   <div className="p-2 border-t border-[#E2E8F0]">
                     <Link
@@ -317,41 +345,43 @@ export default function StudentDashboard() {
             </div>
           </div>
 
-          {/* Enrolled Subjects */}
+          {/* Suggested Subjects */}
           <div className="bg-white rounded-xl shadow-md p-6 border border-[#E2E8F0]">
             <h2 className="text-xl font-semibold text-[#1B365D] mb-4 flex items-center gap-2">
-              <BookOpen className="w-5 h-5" /> Enrolled Subjects
+              <BookOpen className="w-5 h-5" /> Suggested Subjects (CGPA: {userInfo.cgpa || "Not set"})
             </h2>
             <div className="space-y-3 max-h-64 overflow-y-auto">
-              {subjects.slice(0, 5).map((subject) => (
-                <div
-                  key={subject._id}
-                  className="flex items-center gap-3 p-2 bg-[#F5F7FA] rounded-lg"
-                >
-                  <div className="bg-[#1B365D]/10 p-2 rounded-full">
-                    <BookOpen className="w-4 h-4 text-[#1B365D]" />
+              {suggestedSubjects.length > 0 ? (
+                suggestedSubjects.map((subject) => (
+                  <div
+                    key={subject._id}
+                    className="flex items-center gap-3 p-2 bg-[#F5F7FA] rounded-lg"
+                  >
+                    <div className="bg-[#1B365D]/10 p-2 rounded-full">
+                      <BookOpen className="w-4 h-4 text-[#1B365D]" />
+                    </div>
+                    <div>
+                      <p className="text-[#1B365D] font-medium">{subject.subjectName}</p>
+                      <p className="text-xs text-gray-500">
+                        {subject.subjectID} | {subject.credit} credits | {subject.year}
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-[#1B365D] font-medium">{subject.subjectName}</p>
-                    <p className="text-xs text-gray-500">{subject.subjectID} | {subject.credit} credits</p>
-                  </div>
-                </div>
-              ))}
+                ))
+              ) : (
+                <p className="text-gray-500">No suggested subjects available. Update your CGPA or add subjects.</p>
+              )}
             </div>
-            {subjects.length > 5 && (
-              <Link to="/subjects" className="mt-4 text-[#1B365D] hover:text-[#1B365D]/70 text-sm">
-                View All Subjects
-              </Link>
-            )}
+            <Link to="/subjects" className="mt-4 text-[#1B365D] hover:text-[#1B365D]/70 text-sm block">
+              View All Subjects
+            </Link>
           </div>
 
           {/* View Bookings */}
           <div className="bg-white rounded-xl shadow-md p-6 border border-[#E2E8F0]">
             <h2 className="text-xl font-semibold text-[#1B365D] mb-4 flex items-center gap-2">
               <DoorOpen className="w-5 h-5" />
-              <Link to="/BookingManagement" >
-                View Bookings
-              </Link> 
+              <Link to="/BookingManagement">View Bookings</Link>
             </h2>
             <div className="space-y-3 max-h-64 overflow-y-auto">
               {bookings.slice(0, 5).map((booking) => (
