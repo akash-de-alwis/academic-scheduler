@@ -369,7 +369,7 @@ export default function SubjectList() {
                   type="number"
                   name="credit"
                   min="1"
-                  max="10"
+                  max="4"
                   value={newSubject.credit}
                   onChange={handleInputChange}
                   className={`w-full p-2 border rounded-lg ${
@@ -381,7 +381,7 @@ export default function SubjectList() {
                 {errors.credit && (
                   <p className="mt-1 text-sm text-red-600">{errors.credit}</p>
                 )}
-                <p className="text-xs text-gray-500 mt-1">Range: 1-10</p>
+                <p className="text-xs text-gray-500 mt-1">Range: 1-4</p>
               </div>
 
               <div>
