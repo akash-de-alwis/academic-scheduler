@@ -47,6 +47,7 @@ import SubHome from "./CourseAllocation/pages/SubHome";
 import SubjectList from "./CourseAllocation/pages/SubjectList";
 import ReportGeneration from "./CourseAllocation/pages/ReportGeneration";
 import NotificationList from "./ClientsidePages/NotificationList";
+import ModuleOverview from "./CourseAllocation/pages/ModuleOverview";
 
 
 
@@ -143,7 +144,9 @@ function App() {
         <Route path="/SubjectHome" element={<SubjectLayout><SubHome /></SubjectLayout>} />
         <Route path="/SubjectList" element={<SubjectLayout><SubjectList /></SubjectLayout>} />
         <Route path="/ReportGeneration" element={<SubjectLayout><ReportGeneration /></SubjectLayout>} />
+        <Route path="/ModuleOverview" element={<SubjectLayout><ModuleOverview /></SubjectLayout>} />
         <Route path="/NotificationList" element={<NotificationList />} />
+
 
         {/* Routes with course Sidebar */}
         

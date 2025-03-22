@@ -46,9 +46,9 @@ export default function SubSidebar() {
           </Link>
           
           <Link
-            to="/lecturers"
+            to="/ModuleOverview"
             className={`flex items-center py-3 px-4 rounded-lg text-[#1B365D] hover:bg-[#F5F7FA] hover:shadow-sm transition-all duration-300 ${
-              isActive("/lecturers")
+              isActive("/ModuleOverview")
                 ? "bg-[#1B365D] text-[#FFFFFF] hover:bg-[#1B365D]/90 font-semibold"
                 : "font-medium"
             }`}
@@ -58,13 +58,13 @@ export default function SubSidebar() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
               </svg>
             </div>
-            Lecturers
+            Overview
           </Link>
           
           <Link
-            to="/reports"
+            to="/ReportGeneration"
             className={`flex items-center py-3 px-4 rounded-lg text-[#1B365D] hover:bg-[#F5F7FA] hover:shadow-sm transition-all duration-300 ${
-              isActive("/reports")
+              isActive("/ReportGeneration")
                 ? "bg-[#1B365D] text-[#FFFFFF] hover:bg-[#1B365D]/90 font-semibold"
                 : "font-medium"
             }`}
