@@ -11,7 +11,9 @@ const authRoutes = require('./routes/auth');
 const bookingRoutes = require("./routes/bookings");
 const timetableRoutes = require("./routes/timetableRoutes");
 const facilityIssueRoutes = require('./routes/facilityIssues');
-const settingsRoutes = require("./routes/settings"); // Ensure this is imported
+const settingsRoutes = require("./routes/settings");
+const moduleOverviewRoutes = require('./routes/moduleOverviewRoutes');
+const activityRoutes = require("./routes/activities"); // Ensure this matches the file name
 
 dotenv.config();
 
@@ -29,7 +31,7 @@ mongoose.connect(process.env.MONGO_URI, {
     .then(() => console.log('MongoDB Connected'))
     .catch(err => console.log(err));
 
-// Existing routes
+// Routes
 app.use('/api/batches', batchRoutes);
 app.use('/api/lecturers', lecturerRoutes);
 app.use('/api/rooms', roomRoutes);
@@ -39,6 +41,8 @@ app.use('/api/auth', authRoutes);
 app.use("/api/timetable", timetableRoutes);
 app.use("/api/bookings", bookingRoutes);
 app.use('/api/facility-issues', facilityIssueRoutes);
-app.use('/api/settings', settingsRoutes); // Add this line
+app.use('/api/settings', settingsRoutes);
+app.use('/api/module-overviews', moduleOverviewRoutes);
+app.use('/api/activities', activityRoutes); // Register the activities route
 
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
