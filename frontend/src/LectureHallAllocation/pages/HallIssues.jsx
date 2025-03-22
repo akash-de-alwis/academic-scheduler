@@ -28,16 +28,6 @@ export default function HallIssues() {
   const [showChart, setShowChart] = useState(false);
   const [showReport, setShowReport] = useState(false);
 
-  const allIssueOptions = [
-    "A/C malfunctions",
-    "Uncomfortable seating",
-    "Non-functional PCs",
-    "Projector/TV issues",
-    "Insufficient seats",
-    "Sound/electrical",
-    "Other issues",
-  ];
-
   useEffect(() => {
     fetchIssues();
   }, []);
@@ -136,26 +126,27 @@ export default function HallIssues() {
   // Chart Data
   const getChartData = () => {
     const issueCounts = {};
-    allIssueOptions.forEach((issue) => (issueCounts[issue] = 0));
     filteredIssues.forEach((issue) => {
       issue.issues.forEach((singleIssue) => {
-        const mappedIssue = allIssueOptions.find((opt) => singleIssue.includes(opt.split(" ")[0])) || "Other issues";
-        issueCounts[mappedIssue] += 1;
+        issueCounts[singleIssue] = (issueCounts[singleIssue] || 0) + 1;
       });
     });
 
+    const uniqueIssues = Object.keys(issueCounts);
+    const issueFrequencies = Object.values(issueCounts);
+
     return {
-      labels: allIssueOptions,
+      labels: uniqueIssues.length > 0 ? uniqueIssues : ["No Issues Reported"],
       datasets: [
         {
           label: "Number of Issues",
-          data: allIssueOptions.map((issue) => issueCounts[issue]),
+          data: uniqueIssues.length > 0 ? issueFrequencies : [0],
           backgroundColor: "rgba(27, 54, 93, 0.8)",
           borderColor: "#1B365D",
           borderWidth: 1,
           borderRadius: 4,
-          barThickness: 60,
-          maxBarThickness: 70,
+          barThickness: uniqueIssues.length > 15 ? 30 : uniqueIssues.length > 10 ? 40 : 60,
+          maxBarThickness: 60,
         },
       ],
     };
@@ -171,7 +162,7 @@ export default function HallIssues() {
       },
       title: {
         display: true,
-        text: "Facility Issues Overview",
+        text: "Facility Issues Distribution",
         color: "#1B365D",
         font: { size: 18, weight: "bold" },
         padding: { top: 10, bottom: 20 },
@@ -186,12 +177,29 @@ export default function HallIssues() {
     },
     scales: {
       x: {
-        title: { display: true, text: "Issue Types", color: "#1B365D", font: { size: 14, weight: "bold" } },
-        ticks: { color: "#1B365D", font: { size: 12 }, maxRotation: 45, minRotation: 45 },
+        title: { 
+          display: true, 
+          text: "Issue Types", 
+          color: "#1B365D", 
+          font: { size: 14, weight: "bold" } 
+        },
+        ticks: { 
+          color: "#1B365D", 
+          font: { size: 10 }, // Reduced font size for better fit
+          maxRotation: 90,  // Rotate labels fully vertical if needed
+          minRotation: 45,  // Minimum rotation for readability
+          autoSkip: false,  // Ensure all labels are shown
+          padding: 5,       // Add padding to avoid overlap
+        },
         grid: { display: false },
       },
       y: {
-        title: { display: true, text: "Count", color: "#1B365D", font: { size: 14, weight: "bold" } },
+        title: { 
+          display: true, 
+          text: "Count", 
+          color: "#1B365D", 
+          font: { size: 14, weight: "bold" } 
+        },
         ticks: { color: "#1B365D", font: { size: 12 }, stepSize: 1 },
         beginAtZero: true,
         grid: { color: "#EDEFF2" },
@@ -231,8 +239,8 @@ export default function HallIssues() {
     html2canvas(reportContent, { scale: 2, useCORS: true }).then((canvas) => {
       const imgData = canvas.toDataURL("image/png");
       const pdf = new jsPDF("p", "mm", "a4");
-      const imgWidth = 210; // A4 width in mm
-      const pageHeight = 297; // A4 height in mm
+      const imgWidth = 210;
+      const pageHeight = 297;
       const imgHeight = (canvas.height * imgWidth) / canvas.width;
       let heightLeft = imgHeight;
       let position = 0;
@@ -255,12 +263,10 @@ export default function HallIssues() {
 
   return (
     <div className="min-h-screen p-8 bg-[#FFFFFF]">
-      {/* Page Header */}
       <div className="flex justify-between items-center mb-8">
         <h2 className="text-2xl font-bold text-[#1B365D]">Reported Facility Issues</h2>
       </div>
 
-      {/* Filters and Search */}
       <div className="flex justify-between gap-4 mb-8">
         <input
           type="text"
@@ -301,7 +307,6 @@ export default function HallIssues() {
         </div>
       </div>
 
-      {/* Issues List */}
       <div className="space-y-4">
         {filteredIssues.length === 0 ? (
           <p className="text-[#1B365D] text-center">No issues match the current filters.</p>
@@ -391,7 +396,6 @@ export default function HallIssues() {
         )}
       </div>
 
-      {/* Buttons */}
       <div className="mt-8 flex justify-center gap-4">
         <button
           onClick={handleViewChart}
@@ -409,25 +413,23 @@ export default function HallIssues() {
         </button>
       </div>
 
-      {/* Chart Modal */}
       {showChart && (
         <div className="fixed inset-0 bg-[#1B365D]/30 backdrop-blur-sm flex justify-center items-center">
-          <div className="bg-[#FFFFFF] p-6 rounded-xl shadow-lg w-[1000px] relative border border-[#EDEFF2]">
+          <div className="bg-[#FFFFFF] p-6 rounded-xl shadow-lg w-[1200px] relative border border-[#EDEFF2]">
             <button onClick={closeChart} className="absolute top-4 right-4 text-[#1B365D] hover:text-[#1B365D]/70 text-lg">
               ✕
             </button>
             <h3 className="text-xl font-bold text-[#1B365D] mb-6">Issues Distribution</h3>
-            <div className="h-[450px]">
+            <div className="h-[500px]">
               <Bar data={getChartData()} options={chartOptions} />
             </div>
           </div>
         </div>
       )}
 
-      {/* Report Modal */}
       {showReport && (
         <div className="fixed inset-0 bg-[#1B365D]/30 backdrop-blur-sm flex justify-center items-center">
-          <div className="bg-[#FFFFFF] p-8 rounded-xl w-[1000px] max-h-[90vh] overflow-y-auto relative shadow-xl border border-[#EDEFF2]">
+          <div className="bg-[#FFFFFF] p-8 rounded-xl w-[1200px] max-h-[90vh] overflow-y-auto relative shadow-xl border border-[#EDEFF2]">
             <button onClick={closeReport} className="absolute top-1 right-2 text-[#1B365D] hover:text-[#1B365D]/70 text-lg">
               ✕
             </button>
@@ -439,7 +441,6 @@ export default function HallIssues() {
               <Download className="w-5 h-5" />
             </button>
             <div className="report-content">
-              {/* Report Header */}
               <header className="bg-gradient-to-r from-[#1B365D] to-[#2A4A7A] text-white p-6 rounded-t-xl shadow-md mb-8">
                 <div className="flex items-center justify-center gap-3">
                   <FileText className="w-8 h-8" />
@@ -447,7 +448,6 @@ export default function HallIssues() {
                 </div>
               </header>
 
-              {/* Summary Section */}
               <section className="mb-8 bg-white p-6 rounded-lg shadow-md border border-[#EDEFF2]">
                 <h2 className="text-xl font-semibold text-[#1B365D] mb-4 flex items-center">
                   <CheckCircle className="w-5 h-5 mr-2" /> Summary
@@ -473,17 +473,15 @@ export default function HallIssues() {
                 </div>
               </section>
 
-              {/* Chart Section */}
               <section className="mb-8 bg-white p-6 rounded-lg shadow-md border border-[#EDEFF2]">
                 <h2 className="text-xl font-semibold text-[#1B365D] mb-4 flex items-center">
                   <BarChart2 className="w-5 h-5 mr-2" /> Issues Distribution Chart
                 </h2>
-                <div className="h-[400px] w-full">
+                <div className="h-[500px] w-full">
                   <Bar data={getChartData()} options={chartOptions} />
                 </div>
               </section>
 
-              {/* Detailed List Section */}
               <section className="mb-8 bg-white p-6 rounded-lg shadow-md border border-[#EDEFF2]">
                 <h2 className="text-xl font-semibold text-[#1B365D] mb-4 flex items-center">
                   <AlertCircle className="w-5 h-5 mr-2" /> Detailed Issues List
@@ -526,7 +524,6 @@ export default function HallIssues() {
                 </div>
               </section>
 
-              {/* Generated Date and Time */}
               <footer className="text-center text-[#1B365D] text-sm bg-[#F5F7FA] py-3 rounded-b-lg shadow-inner">
                 Generated on: <span className="font-semibold">{generatedDateTime}</span>
               </footer>
