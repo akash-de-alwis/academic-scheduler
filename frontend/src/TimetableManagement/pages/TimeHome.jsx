@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Calendar, Clock, BookOpen, AlertCircle, Plus, Eye, Wrench } from "lucide-react";
+import { Calendar, Clock, BookOpen, AlertCircle, Plus, Eye, Wrench, RefreshCw } from "lucide-react"; // Added RefreshCw
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 
@@ -23,33 +23,38 @@ const CardContent = ({ className, children }) => (
 const TimeHome = () => {
   const [schedules, setSchedules] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null); // Added error state
   const navigate = useNavigate();
 
-  useEffect(() => {
-    const fetchSchedules = async () => {
-      try {
-        const res = await axios.get("http://localhost:5000/api/timetable");
-        const updatedSchedules = res.data.map((schedule) => ({
-          ...schedule,
-          subjects: schedule.subjects.map((sub) => ({
-            ...sub,
-            duration: sub.duration || "1",
-          })),
-        }));
-        setSchedules(updatedSchedules);
-        setLoading(false);
-      } catch (err) {
-        console.error("Error fetching timetables:", err.response ? err.response.data : err.message);
-        setLoading(false);
-      }
-    };
+  // Function to fetch schedules
+  const fetchSchedules = async () => {
+    try {
+      setLoading(true);
+      setError(null); // Reset error state
+      const res = await axios.get("http://localhost:5000/api/timetable");
+      const updatedSchedules = res.data.map((schedule) => ({
+        ...schedule,
+        subjects: schedule.subjects.map((sub) => ({
+          ...sub,
+          duration: sub.duration || "1",
+        })),
+      }));
+      setSchedules(updatedSchedules);
+      setLoading(false);
+    } catch (err) {
+      console.error("Error fetching timetables:", err.response ? err.response.data : err.message);
+      setError(err.response ? err.response.data.message : "Failed to fetch schedules");
+      setLoading(false);
+    }
+  };
 
+  useEffect(() => {
     fetchSchedules();
-  }, []);
+  }, []); // Runs on mount
 
   // Calculate Statistics
   const getStats = () => {
-    // Total Schedules
+    // Total Schedules (number of unique timetable entries)
     const totalSchedules = schedules.length;
 
     // Total Hours Scheduled
@@ -71,7 +76,7 @@ const TimeHome = () => {
       })
     ).length;
 
-    // Conflicts (simplified: same room, same time, same date)
+    // Conflicts (same room, same time, same date)
     const conflicts = [];
     const timeRoomMap = {};
     schedules.forEach((s) => {
@@ -105,6 +110,11 @@ const TimeHome = () => {
 
   const stats = getStats();
 
+  // Refresh handler
+  const handleRefresh = () => {
+    fetchSchedules();
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen p-8 bg-white flex items-center justify-center">
@@ -113,13 +123,37 @@ const TimeHome = () => {
     );
   }
 
+  if (error) {
+    return (
+      <div className="min-h-screen p-8 bg-white flex items-center justify-center flex-col gap-4">
+        <p className="text-red-500 text-lg">Error: {error}</p>
+        <button
+          onClick={handleRefresh}
+          className="flex items-center gap-2 bg-[#1B365D] text-white px-4 py-2 rounded-lg hover:bg-[#152c4d]"
+        >
+          <RefreshCw className="h-5 w-5" />
+          Retry
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen">
       <div className="p-8">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-[#1B365D]">Timetable Management Dashboard</h1>
-          <p className="text-gray-600">Overview of scheduling and resource allocation</p>
+        <div className="mb-8 flex justify-between items-center">
+          <div>
+            <h1 className="text-3xl font-bold text-[#1B365D]">Timetable Management Dashboard</h1>
+            <p className="text-gray-600">Overview of scheduling and resource allocation</p>
+          </div>
+          <button
+            onClick={handleRefresh}
+            className="flex items-center gap-2 bg-[#1B365D] text-white px-4 py-2 rounded-lg hover:bg-[#152c4d]"
+          >
+            <RefreshCw className="h-5 w-5" />
+            Refresh
+          </button>
         </div>
 
         {/* Statistics Cards */}
@@ -172,21 +206,21 @@ const TimeHome = () => {
         {/* Action Buttons */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <button
-            onClick={() => navigate("/timetable-list")} // Assuming route to TimetableList
+            onClick={() => navigate("/timetable-list")}
             className="flex items-center justify-center gap-2 bg-[#1B365D] text-white p-4 rounded-lg hover:bg-[#152c4d] transition-colors"
           >
             <Plus className="h-5 w-5" />
             Add New Schedule
           </button>
           <button
-            onClick={() => navigate("/timetable-view")} // Assuming route to view timetables
+            onClick={() => navigate("/timetable-view")}
             className="flex items-center justify-center gap-2 bg-[#1B365D] text-white p-4 rounded-lg hover:bg-[#152c4d] transition-colors"
           >
             <Eye className="h-5 w-5" />
             View Timetables
           </button>
           <button
-            onClick={() => navigate("/resolve-conflicts")} // Placeholder route
+            onClick={() => navigate("/resolve-conflicts")}
             className="flex items-center justify-center gap-2 bg-[#1B365D] text-white p-4 rounded-lg hover:bg-[#152c4d] transition-colors"
           >
             <Wrench className="h-5 w-5" />

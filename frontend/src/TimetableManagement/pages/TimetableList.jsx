@@ -1,27 +1,27 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
-import { Search, ChevronDown, Upload, User, BookOpen } from "lucide-react";
+import { Search, ChevronDown, Upload, User } from "lucide-react"; // Added User icon
 import { useNavigate } from "react-router-dom";
 
 export default function TimetableList() {
   const [schedules, setSchedules] = useState([]);
   const [showForm, setShowForm] = useState(false);
   const [editingSchedule, setEditingSchedule] = useState(null);
+  const [editingSubjectIndex, setEditingSubjectIndex] = useState(null);
   const [selectedBatch, setSelectedBatch] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
-  const [userType, setUserType] = useState(null);
   const [allocations, setAllocations] = useState([]);
-  const [batches, setBatches] = useState([]); // Added to fetch batch details
+  const [batches, setBatches] = useState([]);
   const [rooms, setRooms] = useState([]);
   const [newSchedule, setNewSchedule] = useState({
     allocationId: "",
     batch: "",
     subjects: [],
   });
+  const [errors, setErrors] = useState({});
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Fetch timetables
     axios
       .get("http://localhost:5000/api/timetable")
       .then((res) => {
@@ -38,7 +38,6 @@ export default function TimetableList() {
         console.error("Error fetching timetables:", err.response ? err.response.data : err.message)
       );
 
-    // Fetch allocations
     axios
       .get("http://localhost:5000/api/allocations")
       .then((res) => setAllocations(res.data))
@@ -46,7 +45,6 @@ export default function TimetableList() {
         console.error("Error fetching allocations:", err.response ? err.response.data : err.message)
       );
 
-    // Fetch batches to get semester and scheduleType
     axios
       .get("http://localhost:5000/api/batches")
       .then((res) => setBatches(res.data))
@@ -54,21 +52,107 @@ export default function TimetableList() {
         console.error("Error fetching batches:", err.response ? err.response.data : err.message)
       );
 
-    // Fetch rooms
     axios
       .get("http://localhost:5000/api/rooms")
-      .then((res) => setRooms(res.data))
+      .then((res) => {
+        const nonMeetingRooms = res.data.filter((room) => room.hallType !== "Meeting Room");
+        setRooms(nonMeetingRooms);
+      })
       .catch((err) =>
         console.error("Error fetching rooms:", err.response ? err.response.data : err.message)
       );
   }, []);
 
+  const validateForm = () => {
+    const newErrors = {};
+
+    if (!editingSchedule && !newSchedule.allocationId) {
+      newErrors.allocationId = "Allocation ID is required";
+    }
+
+    newSchedule.subjects.forEach((subject, index) => {
+      const subjectErrors = {};
+
+      if (!subject.room) {
+        subjectErrors.room = "Room is required";
+      }
+
+      if (!subject.date) {
+        subjectErrors.date = "Date is required";
+      } else {
+        const selectedDate = new Date(subject.date);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        if (selectedDate < today) {
+          subjectErrors.date = "Date cannot be in the past";
+        }
+      }
+
+      if (!subject.time) {
+        subjectErrors.time = "Time is required";
+      } else {
+        const [hours] = subject.time.split(":").map(Number);
+        if (hours < 8 || hours > 17) {
+          subjectErrors.time = "Time must be between 08:00 and 17:00";
+        }
+      }
+
+      if (!subject.duration) {
+        subjectErrors.duration = "Duration is required";
+      } else if (isNaN(subject.duration) || subject.duration < 1 || subject.duration > 4) {
+        subjectErrors.duration = "Duration must be between 1 and 4 hours";
+      }
+
+      if (subject.room && subject.date && subject.time && subject.duration) {
+        const startTime = new Date(`${subject.date}T${subject.time}:00`);
+        const endTime = new Date(startTime);
+        endTime.setHours(endTime.getHours() + parseInt(subject.duration));
+
+        schedules.forEach((existingSchedule) => {
+          if (editingSchedule && existingSchedule._id === editingSchedule._id) return;
+
+          existingSchedule.subjects.forEach((existingSubject) => {
+            const existingStartTime = new Date(`${existingSubject.date}T${existingSubject.time}:00`);
+            const existingEndTime = new Date(existingStartTime);
+            existingEndTime.setHours(existingEndTime.getHours() + parseInt(existingSubject.duration));
+
+            const isSameRoom = existingSubject.room === subject.room;
+            const isOverlapping =
+              startTime < existingEndTime && endTime > existingStartTime;
+
+            if (isSameRoom && isOverlapping) {
+              subjectErrors.room = `Room ${subject.room} is already booked from ${existingSubject.time} to ${existingEndTime.toTimeString().slice(0, 5)} on ${existingSubject.date}`;
+            }
+          });
+        });
+      }
+
+      if (Object.keys(subjectErrors).length > 0) {
+        newErrors[`subject${index}`] = subjectErrors;
+      }
+    });
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
   const handleSaveSchedule = async () => {
+    if (!validateForm()) {
+      return;
+    }
+
     try {
       if (editingSchedule) {
+        let updatedSubjects = [...editingSchedule.subjects];
+        if (editingSubjectIndex !== null) {
+          updatedSubjects[editingSubjectIndex] = newSchedule.subjects[0];
+        } else {
+          updatedSubjects = newSchedule.subjects;
+        }
+        const updatedSchedule = { ...newSchedule, subjects: updatedSubjects };
         const res = await axios.put(
           `http://localhost:5000/api/timetable/${editingSchedule._id}`,
-          newSchedule
+          updatedSchedule
         );
         setSchedules((prev) =>
           prev.map((s) => (s._id === editingSchedule._id ? res.data : s))
@@ -80,6 +164,30 @@ export default function TimetableList() {
       setShowForm(false);
       resetForm();
       setEditingSchedule(null);
+      setEditingSubjectIndex(null);
+    } catch (err) {
+      console.log(err.response ? err.response.data : err);
+    }
+  };
+
+  const handleDeleteSubject = async (scheduleId, subjectIndex) => {
+    try {
+      const schedule = schedules.find((s) => s._id === scheduleId);
+      const updatedSubjects = schedule.subjects.filter((_, idx) => idx !== subjectIndex);
+      const updatedSchedule = { ...schedule, subjects: updatedSubjects };
+
+      if (updatedSubjects.length === 0) {
+        await axios.delete(`http://localhost:5000/api/timetable/${scheduleId}`);
+        setSchedules(schedules.filter((s) => s._id !== scheduleId));
+      } else {
+        const res = await axios.put(
+          `http://localhost:5000/api/timetable/${scheduleId}`,
+          updatedSchedule
+        );
+        setSchedules((prev) =>
+          prev.map((s) => (s._id === scheduleId ? res.data : s))
+        );
+      }
     } catch (err) {
       console.log(err.response ? err.response.data : err);
     }
@@ -91,6 +199,8 @@ export default function TimetableList() {
       batch: selectedBatch,
       subjects: [],
     });
+    setEditingSubjectIndex(null);
+    setErrors({});
   };
 
   const handleDeleteSchedule = async (id) => {
@@ -119,7 +229,6 @@ export default function TimetableList() {
         }
       }
 
-      console.log("Uploading timetable for batch:", selectedBatch);
       const postResponse = await axios.post(
         "http://localhost:5000/api/timetable/published-timetable",
         {
@@ -127,19 +236,15 @@ export default function TimetableList() {
           schedules: batchSchedules,
         }
       );
-      console.log("Upload response:", postResponse.data);
 
       if (postResponse.status !== 200 && postResponse.status !== 201) {
         throw new Error("Failed to upload timetable: Server returned an error status.");
       }
 
       try {
-        console.log("Deleting schedules for batch:", selectedBatch);
         const deleteResponse = await axios.delete("http://localhost:5000/api/timetable/batch", {
           data: { batch: selectedBatch },
         });
-        console.log("Delete response:", deleteResponse.data);
-
         if (deleteResponse.status !== 200) {
           console.warn("Delete step returned an unexpected status but upload succeeded.");
         }
@@ -163,12 +268,6 @@ export default function TimetableList() {
     }
   };
 
-  const handleUserTypeSelect = (type) => {
-    setUserType(type);
-    console.log(`Timetable identified for: ${type}`);
-    alert(`Timetable identified for: ${type}`);
-  };
-
   const handleAllocationChange = (e) => {
     const selectedAllocation = allocations.find((a) => a.allocationId === e.target.value);
     if (selectedAllocation) {
@@ -184,6 +283,7 @@ export default function TimetableList() {
           duration: "1",
         })),
       });
+      setErrors({});
     } else {
       resetForm();
     }
@@ -221,7 +321,7 @@ export default function TimetableList() {
       : schedules;
 
     filteredSchedules.forEach((schedule) => {
-      schedule.subjects.forEach((subject) => {
+      schedule.subjects.forEach((subject, subjectIndex) => {
         const scheduleDate = new Date(subject.date);
         const scheduleDay = scheduleDate.getDay();
         const day = weekDays[scheduleDay === 0 ? 6 : scheduleDay - 1];
@@ -232,7 +332,7 @@ export default function TimetableList() {
 
         if (grid[day] && grid[day][timeSlot]) {
           grid[day][timeSlot].isOccupied = true;
-          grid[day][timeSlot].schedule = schedule;
+          grid[day][timeSlot].schedule = { ...schedule, subjectIndex };
           grid[day][timeSlot].subject = subject;
           grid[day][timeSlot].isStart = true;
           grid[day][timeSlot].rowSpan = scheduleDuration;
@@ -243,7 +343,7 @@ export default function TimetableList() {
             const nextTimeSlot = `${nextHour.toString().padStart(2, "0")}:00`;
             if (grid[day][nextTimeSlot]) {
               grid[day][nextTimeSlot].isOccupied = true;
-              grid[day][nextTimeSlot].schedule = schedule;
+              grid[day][nextTimeSlot].schedule = { ...schedule, subjectIndex };
               grid[day][nextTimeSlot].subject = subject;
               grid[day][nextTimeSlot].isStart = false;
             }
@@ -256,41 +356,32 @@ export default function TimetableList() {
 
   const grid = processSchedulesForGrid();
 
+  // Function to navigate to LecturerSchedules
+  const handleViewLecturerSchedules = () => {
+    navigate("/LecturerSchedules");
+  };
+
   return (
     <div className="min-h-screen p-8 bg-white">
       <div className="flex justify-between items-center mb-8">
         <h2 className="text-2xl font-bold text-[#1B365D]">Timetable Management</h2>
         <div className="flex space-x-3">
           <button
-            onClick={() => handleUserTypeSelect("student")}
-            className={`px-4 py-2 rounded-lg flex items-center gap-2 transition-colors ${
-              userType === "student"
-                ? "bg-[#1B365D] text-white"
-                : "bg-[#F5F7FA] text-[#1B365D] hover:bg-[#1B365D]/10"
-            }`}
-          >
-            <BookOpen className="w-4 h-4" />
-            Student
-          </button>
-          <button
-            onClick={() => handleUserTypeSelect("lecturer")}
-            className={`px-4 py-2 rounded-lg flex items-center gap-2 transition-colors ${
-              userType === "lecturer"
-                ? "bg-[#1B365D] text-white"
-                : "bg-[#F5F7FA] text-[#1B365D] hover:bg-[#1B365D]/10"
-            }`}
-          >
-            <User className="w-4 h-4" />
-            Lecturer
-          </button>
-          <button
             onClick={() => {
               setShowForm(true);
               setEditingSchedule(null);
+              resetForm();
             }}
             className="bg-[#1B365D] text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-[#1B365D]/90"
           >
             + Add New Schedule
+          </button>
+          <button
+            onClick={handleViewLecturerSchedules}
+            className="bg-[#1B365D] text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-[#1B365D]/90"
+          >
+            <User className="w-5 h-5" />
+            View Lecturer Schedules
           </button>
         </div>
       </div>
@@ -386,9 +477,14 @@ export default function TimetableList() {
                             <div className="flex gap-2 mt-1 justify-end">
                               <button
                                 onClick={() => {
-                                  setNewSchedule(cell.schedule);
+                                  setNewSchedule({
+                                    ...cell.schedule,
+                                    subjects: [cell.subject],
+                                  });
                                   setEditingSchedule(cell.schedule);
+                                  setEditingSubjectIndex(cell.schedule.subjectIndex);
                                   setShowForm(true);
+                                  setErrors({});
                                 }}
                                 className="text-[#1B365D] hover:text-[#1B365D]/70 bg-gray-100 p-1 rounded"
                               >
@@ -404,7 +500,9 @@ export default function TimetableList() {
                                 </svg>
                               </button>
                               <button
-                                onClick={() => handleDeleteSchedule(cell.schedule._id)}
+                                onClick={() =>
+                                  handleDeleteSubject(cell.schedule._id, cell.schedule.subjectIndex)
+                                }
                                 className="text-red-500 hover:text-red-600 bg-gray-100 p-1 rounded"
                               >
                                 <svg
@@ -446,7 +544,11 @@ export default function TimetableList() {
           <div className="bg-white p-6 rounded-lg w-[600px] max-h-[80vh] flex flex-col overflow-y-auto">
             <div className="flex justify-between items-center mb-6">
               <h3 className="text-lg font-semibold text-[#1B365D]">
-                {editingSchedule ? "Edit Schedule" : "Add New Schedule"}
+                {editingSchedule && editingSubjectIndex !== null
+                  ? "Edit Subject"
+                  : editingSchedule
+                  ? "Edit Schedule"
+                  : "Add New Schedule"}
               </h3>
               <button
                 onClick={() => setShowForm(false)}
@@ -467,23 +569,32 @@ export default function TimetableList() {
                 />
               </div>
 
-              <div>
-                <label className="block text-sm font-medium mb-2 text-[#1B365D]">Allocation ID</label>
-                <select
-                  value={newSchedule.allocationId}
-                  onChange={handleAllocationChange}
-                  className="w-full p-2 border border-[#F5F7FA] rounded-lg bg-[#F5F7FA] text-[#1B365D]"
-                >
-                  <option value="">Select Allocation</option>
-                  {allocations
-                    .filter((a) => a.batchName === selectedBatch)
-                    .map((allocation) => (
-                      <option key={allocation._id} value={allocation.allocationId}>
-                        {allocation.allocationId}
-                      </option>
-                    ))}
-                </select>
-              </div>
+              {!editingSubjectIndex && (
+                <div>
+                  <label className="block text-sm font-medium mb-2 text-[#1B365D]">
+                    Allocation ID *
+                  </label>
+                  <select
+                    value={newSchedule.allocationId}
+                    onChange={handleAllocationChange}
+                    className={`w-full p-2 border rounded-lg bg-[#F5F7FA] text-[#1B365D] ${
+                      errors.allocationId ? "border-red-500" : "border-[#F5F7FA]"
+                    }`}
+                  >
+                    <option value="">Select Allocation</option>
+                    {allocations
+                      .filter((a) => a.batchName === selectedBatch)
+                      .map((allocation) => (
+                        <option key={allocation._id} value={allocation.allocationId}>
+                          {allocation.allocationId}
+                        </option>
+                      ))}
+                  </select>
+                  {errors.allocationId && (
+                    <p className="text-red-500 text-xs mt-1">{errors.allocationId}</p>
+                  )}
+                </div>
+              )}
 
               {newSchedule.subjects.map((subject, index) => (
                 <div key={index} className="border p-4 rounded-lg">
@@ -498,7 +609,7 @@ export default function TimetableList() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-2 text-[#1B365D]">Room</label>
+                    <label className="block text-sm font-medium mb-2 text-[#1B365D]">Room *</label>
                     <select
                       value={subject.room}
                       onChange={(e) =>
@@ -508,7 +619,9 @@ export default function TimetableList() {
                           return { ...prev, subjects: updatedSubjects };
                         })
                       }
-                      className="w-full p-2 border border-[#F5F7FA] rounded-lg bg-[#F5F7FA] text-[#1B365D]"
+                      className={`w-full p-2 border rounded-lg bg-[#F5F7FA] text-[#1B365D] ${
+                        errors[`subject${index}`]?.room ? "border-red-500" : "border-[#F5F7FA]"
+                      }`}
                     >
                       <option value="">Select Room</option>
                       {rooms.map((room) => (
@@ -517,9 +630,12 @@ export default function TimetableList() {
                         </option>
                       ))}
                     </select>
+                    {errors[`subject${index}`]?.room && (
+                      <p className="text-red-500 text-xs mt-1">{errors[`subject${index}`].room}</p>
+                    )}
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-2 text-[#1B365D]">Date</label>
+                    <label className="block text-sm font-medium mb-2 text-[#1B365D]">Date *</label>
                     <input
                       type="date"
                       value={subject.date}
@@ -530,11 +646,16 @@ export default function TimetableList() {
                           return { ...prev, subjects: updatedSubjects };
                         })
                       }
-                      className="w-full p-2 border border-[#F5F7FA] rounded-lg bg-[#F5F7FA] text-[#1B365D]"
+                      className={`w-full p-2 border rounded-lg bg-[#F5F7FA] text-[#1B365D] ${
+                        errors[`subject${index}`]?.date ? "border-red-500" : "border-[#F5F7FA]"
+                      }`}
                     />
+                    {errors[`subject${index}`]?.date && (
+                      <p className="text-red-500 text-xs mt-1">{errors[`subject${index}`].date}</p>
+                    )}
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-2 text-[#1B365D]">Time</label>
+                    <label className="block text-sm font-medium mb-2 text-[#1B365D]">Time *</label>
                     <input
                       type="time"
                       value={subject.time}
@@ -545,11 +666,18 @@ export default function TimetableList() {
                           return { ...prev, subjects: updatedSubjects };
                         })
                       }
-                      className="w-full p-2 border border-[#F5F7FA] rounded-lg bg-[#F5F7FA] text-[#1B365D]"
+                      className={`w-full p-2 border rounded-lg bg-[#F5F7FA] text-[#1B365D] ${
+                        errors[`subject${index}`]?.time ? "border-red-500" : "border-[#F5F7FA]"
+                      }`}
                     />
+                    {errors[`subject${index}`]?.time && (
+                      <p className="text-red-500 text-xs mt-1">{errors[`subject${index}`].time}</p>
+                    )}
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-2 text-[#1B365D]">Duration (hours)</label>
+                    <label className="block text-sm font-medium mb-2 text-[#1B365D]">
+                      Duration (hours) *
+                    </label>
                     <select
                       value={subject.duration}
                       onChange={(e) =>
@@ -559,13 +687,21 @@ export default function TimetableList() {
                           return { ...prev, subjects: updatedSubjects };
                         })
                       }
-                      className="w-full p-2 border border-[#F5F7FA] rounded-lg bg-[#F5F7FA] text-[#1B365D]"
+                      className={`w-full p-2 border rounded-lg bg-[#F5F7FA] text-[#1B365D] ${
+                        errors[`subject${index}`]?.duration ? "border-red-500" : "border-[#F5F7FA]"
+                      }`}
                     >
+                      <option value="">Select Duration</option>
                       <option value="1">1 hour</option>
                       <option value="2">2 hours</option>
                       <option value="3">3 hours</option>
                       <option value="4">4 hours</option>
                     </select>
+                    {errors[`subject${index}`]?.duration && (
+                      <p className="text-red-500 text-xs mt-1">
+                        {errors[`subject${index}`].duration}
+                      </p>
+                    )}
                   </div>
                 </div>
               ))}
@@ -575,7 +711,11 @@ export default function TimetableList() {
               onClick={handleSaveSchedule}
               className="w-full mt-6 bg-[#1B365D] text-white py-2 rounded-lg hover:bg-[#1B365D]/90"
             >
-              {editingSchedule ? "Save Changes" : "Create Schedule"}
+              {editingSchedule && editingSubjectIndex !== null
+                ? "Save Subject Changes"
+                : editingSchedule
+                ? "Save Schedule Changes"
+                : "Create Schedule"}
             </button>
           </div>
         </div>
