@@ -124,6 +124,27 @@ export default function RoomList() {
       newErrors.totalSeats = "Total Seats must be a whole number";
     }
 
+    // Lecturer Hall specific seat count validation
+    if (newRoom.hallType === "Lecturer Hall") {
+      const seats = Number(newRoom.totalSeats);
+      if (newRoom.massHall && (seats <= 50 || seats > 150)) {
+        newErrors.totalSeats = "Mass Hall must have between 51 and 150 seats";
+      }
+      if (newRoom.generalHall && (seats <= 20 || seats > 50)) {
+        newErrors.totalSeats = "General Hall must have between 21 and 50 seats";
+      }
+      if (newRoom.miniHall && (seats <= 10 || seats > 20)) {
+        newErrors.totalSeats = "Mini Hall must have between 10 and 20 seats";
+      }
+
+      const hallCategories = newRoom.massHall + newRoom.generalHall + newRoom.miniHall;
+      if (hallCategories === 0) {
+        newErrors.hallCategory = "Please select a hall category";
+      } else if (hallCategories > 1) {
+        newErrors.hallCategory = "Please select only one hall category";
+      }
+    }
+
     // Total Computers validation (for Laboratory)
     if (newRoom.hallType === "Laboratory") {
       if (!newRoom.totalComputers) {
@@ -136,16 +157,6 @@ export default function RoomList() {
         newErrors.totalComputers = "Total Computers cannot exceed 200";
       } else if (!Number.isInteger(Number(newRoom.totalComputers))) {
         newErrors.totalComputers = "Total Computers must be a whole number";
-      }
-    }
-
-    // Lecturer Hall category validation
-    if (newRoom.hallType === "Lecturer Hall") {
-      const hallCategories = newRoom.massHall + newRoom.generalHall + newRoom.miniHall;
-      if (hallCategories === 0) {
-        newErrors.hallCategory = "Please select a hall category";
-      } else if (hallCategories > 1) {
-        newErrors.hallCategory = "Please select only one hall category";
       }
     }
 
@@ -346,7 +357,7 @@ export default function RoomList() {
                   className={`w-full p-2 border rounded-lg ${
                     errors.LID ? 'border-red-500' : 'border-[#1B365D]'
                   } bg-[#F5F7FA] text-[#1B365D] font-medium cursor-not-allowed ring-2 ring-[#1B365D]/20`}
-                  disabled={true} // Always disabled since editingRoom can't change LID
+                  disabled={true}
                 />
                 {errors.LID && <p className="text-red-500 text-xs mt-1">{errors.LID}</p>}
                 {!editingRoom && <p className="text-gray-500 text-xs mt-1">Room ID is auto-generated</p>}
