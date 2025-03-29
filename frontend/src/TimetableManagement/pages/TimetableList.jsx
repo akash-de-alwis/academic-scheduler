@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
-import { Search, ChevronDown, Upload, User, RefreshCw } from "lucide-react";
+import { Search, ChevronDown, User, RefreshCw } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -61,6 +61,7 @@ export default function TimetableList() {
 
     const selectedBatchData = batches.find((b) => b.batchName === newSchedule.batch);
     const isWeekendBatch = selectedBatchData?.scheduleType === "Weekend";
+    const isWeekdaysBatch = selectedBatchData?.scheduleType === "Weekdays";
 
     newSchedule.subjects.forEach((subject, index) => {
       const subjectErrors = {};
@@ -74,6 +75,8 @@ export default function TimetableList() {
         if (selectedDate < today) subjectErrors.date = "Date cannot be in the past";
         else if (isWeekendBatch && ![0, 6].includes(selectedDate.getDay()))
           subjectErrors.date = "Weekend batches can only be scheduled on Saturday or Sunday";
+        else if (isWeekdaysBatch && ![1, 2, 3, 4, 5].includes(selectedDate.getDay()))
+          subjectErrors.date = "Weekdays batches can only be scheduled on Monday to Friday";
       }
 
       if (!subject.time) {
@@ -170,29 +173,6 @@ export default function TimetableList() {
     setErrors({});
   };
 
-  const handleUploadTimetable = async () => {
-    const batchSchedules = schedules.filter((s) => s.batch === selectedBatch);
-    if (batchSchedules.length === 0) return alert("No schedules to upload for this batch!");
-    if (batchSchedules.some((s) => s.subjects.some((sub) => !sub.room || !sub.date || !sub.time))) {
-      return alert("All subjects must have a room, date, and time.");
-    }
-
-    try {
-      await axios.post("http://localhost:5000/api/timetable/published-timetable", {
-        batch: selectedBatch,
-        schedules: batchSchedules,
-      });
-      await axios.delete("http://localhost:5000/api/timetable/batch", { data: { batch: selectedBatch } });
-      setSchedules(schedules.filter((s) => s.batch !== selectedBatch));
-      setSelectedBatch("");
-      alert(`Timetable for ${selectedBatch} uploaded successfully!`);
-      navigate("/TimeView", { state: { batch: selectedBatch } });
-    } catch (err) {
-      console.error("Upload error:", err.response ? err.response.data : err.message);
-      alert("Failed to upload timetable. Check console for details.");
-    }
-  };
-
   const handleAllocationChange = (e) => {
     const selectedAllocation = allocations.find((a) => a.allocationId === e.target.value);
     if (selectedAllocation) {
@@ -227,7 +207,19 @@ export default function TimetableList() {
       });
     });
 
-    const filteredSchedules = selectedBatch ? schedules.filter((s) => s.batch === selectedBatch) : schedules;
+    let filteredSchedules = selectedBatch ? schedules.filter((s) => s.batch === selectedBatch) : schedules;
+    if (searchTerm.trim()) {
+      const lowerSearchTerm = searchTerm.toLowerCase();
+      filteredSchedules = filteredSchedules.filter((schedule) =>
+        schedule.batch.toLowerCase().includes(lowerSearchTerm) ||
+        schedule.subjects.some((subject) =>
+          subject.subjectName.toLowerCase().includes(lowerSearchTerm) ||
+          subject.lecturer.toLowerCase().includes(lowerSearchTerm) ||
+          subject.room.toLowerCase().includes(lowerSearchTerm)
+        )
+      );
+    }
+
     filteredSchedules.forEach((schedule) => {
       schedule.subjects.forEach((subject, subjectIndex) => {
         const scheduleDate = new Date(subject.date);
@@ -280,7 +272,11 @@ export default function TimetableList() {
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            onClick={() => { setShowForm(true); setEditingSchedule(null); resetForm(); }}
+            onClick={() => {
+              setShowForm(true);
+              setEditingSchedule(null);
+              resetForm();
+            }}
             className="bg-gradient-to-r from-[#1B365D] to-[#2A4A7A] text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:from-[#1B365D]/80 hover:to-[#2A4A7A]/80 transition-all shadow-md"
           >
             + Add New Schedule
@@ -344,17 +340,17 @@ export default function TimetableList() {
           transition={{ delay: 0.4, duration: 0.5 }}
           className="overflow-x-auto"
         >
-          <div className="min-w-[1200px] shadow-lg rounded-lg overflow-hidden border-2 border-[#1B365D]/20">
-            <table className="w-full border-collapse bg-white">
+          <div className="min-w-[1200px] shadow-xl rounded-xl overflow-hidden bg-white border border-gray-200">
+            <table className="w-full border-collapse">
               <thead className="bg-gradient-to-r from-[#1B365D] to-[#2A4A7A] text-white">
                 <tr>
-                  <th className="p-4 font-semibold text-left border-b-2 border-r-2 border-[#2A4A7A] sticky left-0 bg-gradient-to-r from-[#1B365D] to-[#2A4A7A] z-10">
+                  <th className="p-4 font-semibold text-left sticky left-0 z-20 bg-gradient-to-r from-[#1B365D] to-[#2A4A7A] border-b border-r border-[#2A4A7A]">
                     Time
                   </th>
                   {weekDays.map((day, index) => (
                     <th
                       key={day}
-                      className={`p-4 font-semibold text-center border-b-2 ${index < weekDays.length - 1 ? "border-r-2" : ""} border-[#2A4A7A]`}
+                      className={`p-4 font-semibold text-center border-b ${index < weekDays.length - 1 ? "border-r" : ""} border-[#2A4A7A]`}
                     >
                       {day}
                     </th>
@@ -363,9 +359,12 @@ export default function TimetableList() {
               </thead>
               <tbody>
                 {timeSlots.map((time, timeIndex) => (
-                  <tr key={`time-${time}`} className="hover:bg-gray-50 transition-colors">
+                  <tr
+                    key={`time-${time}`}
+                    className={`transition-colors ${timeIndex % 2 === 0 ? "bg-gray-50" : "bg-white"} hover:bg-gray-100`}
+                  >
                     <td
-                      className={`p-4 text-[#1B365D] font-medium border-r-2 ${timeIndex < timeSlots.length - 1 ? "border-b-2" : ""} border-[#1B365D]/40 sticky left-0 bg-white z-10 shadow-sm`}
+                      className="p-4 text-[#1B365D] font-semibold text-sm sticky left-0 z-10 bg-inherit border-r border-b border-gray-200"
                     >
                       {time}
                     </td>
@@ -375,7 +374,7 @@ export default function TimetableList() {
                       return (
                         <td
                           key={`${day}-${time}`}
-                          className={`p-3 ${dayIndex < weekDays.length - 1 ? "border-r-2" : ""} ${timeIndex < timeSlots.length - 1 ? "border-b-2" : ""} border-[#1B365D]/40 align-top`}
+                          className={`p-3 border-b border-r border-gray-200 align-top`}
                           rowSpan={cell.isStart ? cell.rowSpan : 1}
                         >
                           {cell.isStart && cell.schedule && cell.subject && (
@@ -383,14 +382,24 @@ export default function TimetableList() {
                               initial={{ opacity: 0, scale: 0.95 }}
                               animate={{ opacity: 1, scale: 1 }}
                               transition={{ duration: 0.3 }}
-                              className="bg-gradient-to-br from-white to-gray-50 rounded-lg p-4 shadow-md border-l-4 border-[#1B365D] hover:shadow-lg transition-all"
+                              className="bg-gradient-to-br from-[#F9FAFB] to-[#E5E7EB] rounded-lg p-4 shadow-sm border-l-4 border-[#1B365D] hover:shadow-md transition-all transform hover:-translate-y-1"
                             >
-                              <div className="font-semibold text-[#1B365D] mb-2 text-lg">{cell.subject.subjectName}</div>
-                              <div className="text-sm text-gray-700 mb-1"><span className="font-medium">Lecturer:</span> {cell.subject.lecturer}</div>
-                              <div className="text-sm text-gray-700 mb-1"><span className="font-medium">Room:</span> {cell.subject.room}</div>
-                              <div className="text-sm text-gray-700 mb-1"><span className="font-medium">Batch:</span> {cell.schedule.batch}</div>
-                              <div className="text-sm text-gray-700 mb-3"><span className="font-medium">Duration:</span> {cell.subject.duration} hr(s)</div>
-                              <div className="flex gap-3 justify-end">
+                              <div className="flex justify-between items-start">
+                                <div className="font-bold text-[#1B365D] text-lg mb-2">{cell.subject.subjectName}</div>
+                                <span className="text-xs bg-[#1B365D] text-white px-2 py-1 rounded-full">
+                                  {cell.subject.duration} hr{cell.subject.duration > 1 ? "s" : ""}
+                                </span>
+                              </div>
+                              <div className="text-sm text-gray-800 mb-1">
+                                <span className="font-medium text-[#2A4A7A]">Lecturer:</span> {cell.subject.lecturer}
+                              </div>
+                              <div className="text-sm text-gray-800 mb-1">
+                                <span className="font-medium text-[#2A4A7A]">Room:</span> {cell.subject.room}
+                              </div>
+                              <div className="text-sm text-gray-800 mb-3">
+                                <span className="font-medium text-[#2A4A7A]">Batch:</span> {cell.schedule.batch}
+                              </div>
+                              <div className="flex gap-2 justify-end">
                                 <motion.button
                                   whileHover={{ scale: 1.1 }}
                                   onClick={() => {
@@ -400,9 +409,9 @@ export default function TimetableList() {
                                     setShowForm(true);
                                     setErrors({});
                                   }}
-                                  className="text-[#1B365D] bg-gray-100 p-2 rounded-full hover:bg-gray-200 transition-colors"
+                                  className="text-[#1B365D] bg-gray-200 p-2 rounded-full hover:bg-[#1B365D] hover:text-white transition-colors"
                                 >
-                                  <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                     <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
                                     <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
                                   </svg>
@@ -410,9 +419,9 @@ export default function TimetableList() {
                                 <motion.button
                                   whileHover={{ scale: 1.1 }}
                                   onClick={() => handleDeleteSubject(cell.schedule._id, cell.schedule.subjectIndex)}
-                                  className="text-red-500 bg-gray-100 p-2 rounded-full hover:bg-red-100 transition-colors"
+                                  className="text-red-500 bg-gray-200 p-2 rounded-full hover:bg-red-500 hover:text-white transition-colors"
                                 >
-                                  <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                     <path d="M3 6h18" />
                                     <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
                                   </svg>
@@ -430,22 +439,6 @@ export default function TimetableList() {
           </div>
         </motion.div>
       )}
-
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.6, duration: 0.5 }}
-        className="flex justify-end mt-6"
-      >
-        <motion.button
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          onClick={handleUploadTimetable}
-          className="bg-gradient-to-r from-[#1B365D] to-[#2A4A7A] text-white px-6 py-2 rounded-lg flex items-center gap-2 hover:from-[#1B365D]/80 hover:to-[#2A4A7A]/80 transition-all shadow-md"
-        >
-          <Upload className="w-5 h-5" /> Upload Timetable
-        </motion.button>
-      </motion.div>
 
       <AnimatePresence>
         {showForm && (
@@ -465,7 +458,9 @@ export default function TimetableList() {
                 <h3 className="text-xl font-semibold text-[#1B365D]">
                   {editingSchedule && editingSubjectIndex !== null ? "Edit Subject" : editingSchedule ? "Edit Schedule" : "Add New Schedule"}
                 </h3>
-                <button onClick={() => setShowForm(false)} className="text-[#1B365D] hover:text-[#1B365D]/70 text-2xl">✕</button>
+                <button onClick={() => setShowForm(false)} className="text-[#1B365D] hover:text-[#1B365D]/70 text-2xl">
+                  ✕
+                </button>
               </div>
 
               <div className="space-y-6">
@@ -485,12 +480,18 @@ export default function TimetableList() {
                     <select
                       value={newSchedule.allocationId}
                       onChange={handleAllocationChange}
-                      className={`w-full p-3 border rounded-lg bg-white text-[#1B365D] shadow-sm focus:outline-none focus:ring-2 focus:ring-[#1B365D] ${errors.allocationId ? "border-red-500" : "border-gray-200"}`}
+                      className={`w-full p-3 border rounded-lg bg-white text-[#1B365D] shadow-sm focus:outline-none focus:ring-2 focus:ring-[#1B365D] ${
+                        errors.allocationId ? "border-red-500" : "border-gray-200"
+                      }`}
                     >
                       <option value="">Select Allocation</option>
-                      {allocations.filter((a) => a.batchName === selectedBatch).map((allocation) => (
-                        <option key={allocation._id} value={allocation.allocationId}>{allocation.allocationId}</option>
-                      ))}
+                      {allocations
+                        .filter((a) => a.batchName === selectedBatch)
+                        .map((allocation) => (
+                          <option key={allocation._id} value={allocation.allocationId}>
+                            {allocation.allocationId}
+                          </option>
+                        ))}
                     </select>
                     {errors.allocationId && <p className="text-red-500 text-xs mt-1">{errors.allocationId}</p>}
                   </div>
@@ -519,65 +520,93 @@ export default function TimetableList() {
                         <label className="block text-sm font-medium mb-1 text-[#1B365D]">Room *</label>
                         <select
                           value={subject.room}
-                          onChange={(e) => setNewSchedule((prev) => {
-                            const updatedSubjects = [...prev.subjects];
-                            updatedSubjects[index].room = e.target.value;
-                            return { ...prev, subjects: updatedSubjects };
-                          })}
-                          className={`w-full p-3 border rounded-lg bg-white text-[#1B365D] shadow-sm focus:outline-none focus:ring-2 focus:ring-[#1B365D] ${errors[`subject${index}`]?.room ? "border-red-500" : "border-gray-200"}`}
+                          onChange={(e) =>
+                            setNewSchedule((prev) => {
+                              const updatedSubjects = [...prev.subjects];
+                              updatedSubjects[index].room = e.target.value;
+                              return { ...prev, subjects: updatedSubjects };
+                            })
+                          }
+                          className={`w-full p-3 border rounded-lg bg-white text-[#1B365D] shadow-sm focus:outline-none focus:ring-2 focus:ring-[#1B365D] ${
+                            errors[`subject${index}`]?.room ? "border-red-500" : "border-gray-200"
+                          }`}
                         >
                           <option value="">Select Room</option>
                           {rooms.map((room) => (
-                            <option key={room._id} value={room.LID}>{room.LID} ({room.hallType})</option>
+                            <option key={room._id} value={room.LID}>
+                              {room.LID} ({room.hallType})
+                            </option>
                           ))}
                         </select>
-                        {errors[`subject${index}`]?.room && <p className="text-red-500 text-xs mt-1">{errors[`subject${index}`].room}</p>}
+                        {errors[`subject${index}`]?.room && (
+                          <p className="text-red-500 text-xs mt-1">{errors[`subject${index}`].room}</p>
+                        )}
                       </div>
                       <div>
                         <label className="block text-sm font-medium mb-1 text-[#1B365D]">Date *</label>
                         <input
                           type="date"
                           value={subject.date}
-                          onChange={(e) => setNewSchedule((prev) => {
-                            const updatedSubjects = [...prev.subjects];
-                            updatedSubjects[index].date = e.target.value;
-                            return { ...prev, subjects: updatedSubjects };
-                          })}
-                          className={`w-full p-3 border rounded-lg bg-white text-[#1B365D] shadow-sm focus:outline-none focus:ring-2 focus:ring-[#1B365D] ${errors[`subject${index}`]?.date ? "border-red-500" : "border-gray-200"}`}
+                          onChange={(e) =>
+                            setNewSchedule((prev) => {
+                              const updatedSubjects = [...prev.subjects];
+                              updatedSubjects[index].date = e.target.value;
+                              return { ...prev, subjects: updatedSubjects };
+                            })
+                          }
+                          className={`w-full p-3 border rounded-lg bg-white text-[#1B365D] shadow-sm focus:outline-none focus:ring-2 focus:ring-[#1B365D] ${
+                            errors[`subject${index}`]?.date ? "border-red-500" : "border-gray-200"
+                          }`}
                         />
-                        {errors[`subject${index}`]?.date && <p className="text-red-500 text-xs mt-1">{errors[`subject${index}`].date}</p>}
+                        {errors[`subject${index}`]?.date && (
+                          <p className="text-red-500 text-xs mt-1">{errors[`subject${index}`].date}</p>
+                        )}
                       </div>
                       <div>
                         <label className="block text-sm font-medium mb-1 text-[#1B365D]">Time *</label>
                         <input
                           type="time"
                           value={subject.time}
-                          onChange={(e) => setNewSchedule((prev) => {
-                            const updatedSubjects = [...prev.subjects];
-                            updatedSubjects[index].time = e.target.value;
-                            return { ...prev, subjects: updatedSubjects };
-                          })}
-                          className={`w-full p-3 border rounded-lg bg-white text-[#1B365D] shadow-sm focus:outline-none focus:ring-2 focus:ring-[#1B365D] ${errors[`subject${index}`]?.time ? "border-red-500" : "border-gray-200"}`}
+                          onChange={(e) =>
+                            setNewSchedule((prev) => {
+                              const updatedSubjects = [...prev.subjects];
+                              updatedSubjects[index].time = e.target.value;
+                              return { ...prev, subjects: updatedSubjects };
+                            })
+                          }
+                          className={`w-full p-3 border rounded-lg bg-white text-[#1B365D] shadow-sm focus:outline-none focus:ring-2 focus:ring-[#1B365D] ${
+                            errors[`subject${index}`]?.time ? "border-red-500" : "border-gray-200"
+                          }`}
                         />
-                        {errors[`subject${index}`]?.time && <p className="text-red-500 text-xs mt-1">{errors[`subject${index}`].time}</p>}
+                        {errors[`subject${index}`]?.time && (
+                          <p className="text-red-500 text-xs mt-1">{errors[`subject${index}`].time}</p>
+                        )}
                       </div>
                       <div>
                         <label className="block text-sm font-medium mb-1 text-[#1B365D]">Duration (hours) *</label>
                         <select
                           value={subject.duration}
-                          onChange={(e) => setNewSchedule((prev) => {
-                            const updatedSubjects = [...prev.subjects];
-                            updatedSubjects[index].duration = e.target.value;
-                            return { ...prev, subjects: updatedSubjects };
-                          })}
-                          className={`w-full p-3 border rounded-lg bg-white text-[#1B365D] shadow-sm focus:outline-none focus:ring-2 focus:ring-[#1B365D] ${errors[`subject${index}`]?.duration ? "border-red-500" : "border-gray-200"}`}
+                          onChange={(e) =>
+                            setNewSchedule((prev) => {
+                              const updatedSubjects = [...prev.subjects];
+                              updatedSubjects[index].duration = e.target.value;
+                              return { ...prev, subjects: updatedSubjects };
+                            })
+                          }
+                          className={`w-full p-3 border rounded-lg bg-white text-[#1B365D] shadow-sm focus:outline-none focus:ring-2 focus:ring-[#1B365D] ${
+                            errors[`subject${index}`]?.duration ? "border-red-500" : "border-gray-200"
+                          }`}
                         >
                           <option value="">Select Duration</option>
                           {[1, 2, 3, 4].map((h) => (
-                            <option key={h} value={h}>{h} hour{h > 1 ? "s" : ""}</option>
+                            <option key={h} value={h}>
+                              {h} hour{h > 1 ? "s" : ""}
+                            </option>
                           ))}
                         </select>
-                        {errors[`subject${index}`]?.duration && <p className="text-red-500 text-xs mt-1">{errors[`subject${index}`].duration}</p>}
+                        {errors[`subject${index}`]?.duration && (
+                          <p className="text-red-500 text-xs mt-1">{errors[`subject${index}`].duration}</p>
+                        )}
                       </div>
                     </div>
                   </motion.div>
@@ -589,12 +618,22 @@ export default function TimetableList() {
                 whileTap={{ scale: 0.98 }}
                 onClick={handleSaveSchedule}
                 disabled={loading}
-                className={`w-full mt-6 bg-gradient-to-r from-[#1B365D] to-[#2A4A7A] text-white py-3 rounded-lg flex items-center justify-center gap-2 hover:from-[#1B365D]/80 hover:to-[#2A4A7A]/80 transition-all shadow-md ${loading ? "opacity-50 cursor-not-allowed" : ""}`}
+                className={`w-full mt-6 bg-gradient-to-r from-[#1B365D] to-[#2A4A7A] text-white py-3 rounded-lg flex items-center justify-center gap-2 hover:from-[#1B365D]/80 hover:to-[#2A4A7A]/80 transition-all shadow-md ${
+                  loading ? "opacity-50 cursor-not-allowed" : ""
+                }`}
               >
                 {loading ? (
-                  <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1 }} className="w-5 h-5 border-2 border-t-white border-gray-300 rounded-full" />
+                  <motion.div
+                    animate={{ rotate: 360 }}
+                    transition={{ repeat: Infinity, duration: 1 }}
+                    className="w-5 h-5 border-2 border-t-white border-gray-300 rounded-full"
+                  />
+                ) : editingSchedule && editingSubjectIndex !== null ? (
+                  "Save Subject Changes"
+                ) : editingSchedule ? (
+                  "Save Schedule Changes"
                 ) : (
-                  editingSchedule && editingSubjectIndex !== null ? "Save Subject Changes" : editingSchedule ? "Save Schedule Changes" : "Create Schedule"
+                  "Create Schedule"
                 )}
               </motion.button>
             </motion.div>

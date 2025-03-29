@@ -43,6 +43,9 @@ import TimetableReports from "./TimetableManagement/pages/TimetableReports";
 import LecturerSchedules from "./TimetableManagement/pages/LecturerSchedules";
 import TimeConflicts from "./TimetableManagement/pages/TimeConflicts";
 import TimeLecture from "./ClientsidePages/TimeLecture";
+import TimeAuto from "./TimetableManagement/pages/TimeAuto";
+import TimeAvailable from "./TimetableManagement/pages/TimeAvailable";
+
 
 
 import SubHome from "./CourseAllocation/pages/SubHome";
@@ -135,6 +138,8 @@ function App() {
         <Route path="/TimetableReports" element={<TimeLayout><TimetableReports /></TimeLayout>} />
         <Route path="/LecturerSchedules" element={<TimeLayout><LecturerSchedules /></TimeLayout>} />
         <Route path="/TimeConflicts" element={<TimeLayout><TimeConflicts /></TimeLayout>} />
+        <Route path="/TimeAuto" element={<TimeLayout><TimeAuto /></TimeLayout>} />
+        <Route path="/TimeAvailable" element={<TimeLayout><TimeAvailable /></TimeLayout>} />
         <Route path="/PublishTimetable" element={<PublishTimetable/>}/>
         <Route path="/TimeLecture" element={<TimeLecture/>}/>
         
