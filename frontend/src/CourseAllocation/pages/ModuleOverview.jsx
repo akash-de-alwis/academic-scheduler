@@ -47,8 +47,8 @@ export default function ModuleOverview() {
     } else if (newModule.description.length < 10) {
       newErrors.description = "Description must be at least 10 characters";
     }
-    if (newModule.labSessionCount < 0 || newModule.labSessionCount > 50) {
-      newErrors.labSessionCount = "Lab sessions must be between 0 and 50";
+    if (newModule.labSessionCount < 1 || newModule.labSessionCount > 40) {
+      newErrors.labSessionCount = "Lab sessions must be between 1 and 40";
     }
     if (newModule.vivaSessionCount < 0 || newModule.vivaSessionCount > 20) {
       newErrors.vivaSessionCount = "Viva sessions must be between 0 and 20";
@@ -287,7 +287,7 @@ export default function ModuleOverview() {
                   } text-[#1B365D]`}
                 />
                 {errors.labSessionCount && <p className="mt-1 text-sm text-red-600">{errors.labSessionCount}</p>}
-                <p className="text-xs text-gray-500 mt-1">Range: 0-50</p>
+                <p className="text-xs text-gray-500 mt-1">Range: 1-40</p>
               </div>
 
               <div>
