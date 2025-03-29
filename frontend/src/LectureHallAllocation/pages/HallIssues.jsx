@@ -207,9 +207,9 @@ export default function HallIssues() {
 
     // Function to add page number
     const addPageNumber = () => {
-      pdf.setFontSize(10);
-      pdf.setTextColor(100, 100, 100);
-      pdf.text(`Page ${pageNumber}`, width - margin - 10, height - 10, { align: "right" });
+      pdf.setFontSize(8);
+      pdf.setTextColor(80, 80, 80);
+      pdf.text(`Page ${pageNumber}`, width - margin - 10, height - 8, { align: "right" });
     };
 
     // Function to check and add new page if needed
@@ -222,102 +222,100 @@ export default function HallIssues() {
       }
     };
 
-    // Header
+    // Header Design
     pdf.setFillColor(27, 54, 93);
-    pdf.rect(0, 0, width, 25, "F");
+    pdf.rect(0, 0, width, 30, "F");
     pdf.setTextColor(255, 255, 255);
-    pdf.setFontSize(18);
+    pdf.setFontSize(20);
     pdf.setFont("helvetica", "bold");
-    pdf.text("Facility Issues Report", width / 2, 15, { align: "center" });
-    yPosition += 30;
+    pdf.text("Facility Issues Report", margin, 20);
+    
+    // Date stamp
+    pdf.setFontSize(10);
+    pdf.setFont("helvetica", "normal");
+    pdf.text(`Generated: ${new Date().toLocaleString()}`, width - margin, 20, { align: "right" });
+
+    yPosition += 40;
+
+    // Section Header Styling Function
+    const addSectionHeader = (title) => {
+      checkPageBreak(20);
+      pdf.setFillColor(240, 245, 250);
+      pdf.rect(margin, yPosition - 4, contentWidth, 12, "F");
+      pdf.setTextColor(27, 54, 93);
+      pdf.setFontSize(14);
+      pdf.setFont("helvetica", "bold");
+      pdf.text(title, margin + 5, yPosition + 4);
+      yPosition += 15;
+    };
 
     // Summary Section
-    pdf.setTextColor(27, 54, 93);
-    pdf.setFontSize(14);
+    addSectionHeader("Summary");
+    
+    pdf.setFontSize(11);
+    pdf.setTextColor(0, 0, 0);
+    pdf.setFont("helvetica", "normal");
+    
+    // Summary Boxes
+    pdf.setFillColor(245, 247, 250);
+    pdf.rect(margin, yPosition, contentWidth/2 - 5, 40, "F");
+    pdf.text("Total Issues Reported", margin + 5, yPosition + 10);
+    pdf.setFontSize(16);
     pdf.setFont("helvetica", "bold");
-    pdf.text("1. Summary", margin, yPosition);
-    yPosition += 8;
-
-    pdf.setDrawColor(27, 54, 93);
-    pdf.setLineWidth(0.5);
-    pdf.line(margin, yPosition, margin + 30, yPosition);
-    yPosition += 8;
-
+    pdf.text(`${totalIssues}`, margin + 5, yPosition + 25);
+    
     pdf.setFontSize(11);
     pdf.setFont("helvetica", "normal");
-    pdf.setTextColor(0, 0, 0);
-    pdf.text(`Total Issues Reported: ${totalIssues}`, margin + 5, yPosition);
-    yPosition += 6;
-    pdf.text("Status Breakdown:", margin + 5, yPosition);
-    yPosition += 6;
-    pdf.text(`- Pending: ${statusBreakdown.Pending}`, margin + 10, yPosition);
-    yPosition += 6;
-    pdf.text(`- Resolved: ${statusBreakdown.Resolved}`, margin + 10, yPosition);
-    yPosition += 6;
-    pdf.text("Urgency Breakdown:", margin + 5, yPosition);
-    yPosition += 6;
-    pdf.text(`- Urgent: ${urgencyBreakdown.Urgent}`, margin + 10, yPosition);
-    yPosition += 6;
-    pdf.text(`- Medium: ${urgencyBreakdown.Medium}`, margin + 10, yPosition);
-    yPosition += 6;
-    pdf.text(`- Low: ${urgencyBreakdown.Low}`, margin + 10, yPosition);
-    yPosition += 15;
+    pdf.setFillColor(245, 247, 250);
+    pdf.rect(margin + contentWidth/2 + 5, yPosition, contentWidth/2 - 5, 40, "F");
+    pdf.text("Status Breakdown", margin + contentWidth/2 + 10, yPosition + 10);
+    pdf.text(`Pending: ${statusBreakdown.Pending}`, margin + contentWidth/2 + 10, yPosition + 20);
+    pdf.text(`Resolved: ${statusBreakdown.Resolved}`, margin + contentWidth/2 + 10, yPosition + 30);
+    
+    yPosition += 50;
+    
+    pdf.setFillColor(245, 247, 250);
+    pdf.rect(margin, yPosition, contentWidth, 30, "F");
+    pdf.text("Urgency Breakdown", margin + 5, yPosition + 10);
+    pdf.text(`Urgent: ${urgencyBreakdown.Urgent}  |  Medium: ${urgencyBreakdown.Medium}  |  Low: ${urgencyBreakdown.Low}`, 
+      margin + 5, yPosition + 20);
+    yPosition += 40;
 
     // Issues Distribution Chart
-    checkPageBreak(110); // Approximate height for chart
-    pdf.setTextColor(27, 54, 93);
-    pdf.setFontSize(14);
-    pdf.setFont("helvetica", "bold");
-    pdf.text("2. Issues Distribution Chart", margin, yPosition);
-    yPosition += 8;
-
-    pdf.setDrawColor(27, 54, 93);
-    pdf.setLineWidth(0.5);
-    pdf.line(margin, yPosition, margin + 60, yPosition);
-    yPosition += 8;
-
+    addSectionHeader("Issues Distribution Chart");
+    
     const chartElement = document.querySelector(".chart-container");
     html2canvas(chartElement, { scale: 2 }).then((canvas) => {
       const imgData = canvas.toDataURL("image/png");
       const imgHeight = (canvas.height * contentWidth) / canvas.width;
-      const maxChartHeight = 100;
+      const maxChartHeight = 120;
 
       pdf.addImage(imgData, "PNG", margin, yPosition, contentWidth, Math.min(imgHeight, maxChartHeight));
-      yPosition += Math.min(imgHeight, maxChartHeight) + 15;
+      yPosition += Math.min(imgHeight, maxChartHeight) + 20;
 
       // Detailed Issues List
-      checkPageBreak(50); // For table header and some rows
-      pdf.setTextColor(27, 54, 93);
-      pdf.setFontSize(14);
-      pdf.setFont("helvetica", "bold");
-      pdf.text("3. Detailed Issues List", margin, yPosition);
-      yPosition += 8;
-
-      pdf.setDrawColor(27, 54, 93);
-      pdf.setLineWidth(0.5);
-      pdf.line(margin, yPosition, margin + 50, yPosition);
-      yPosition += 8;
+      addSectionHeader("Detailed Issues List");
 
       // Table Header
+      pdf.setFillColor(27, 54, 93);
+      pdf.rect(margin, yPosition, contentWidth, 10, "F");
       pdf.setFontSize(10);
       pdf.setFont("helvetica", "bold");
       pdf.setTextColor(255, 255, 255);
-      pdf.setFillColor(27, 54, 93);
-      pdf.rect(margin, yPosition, contentWidth, 8, "F");
-      pdf.text("Room ID", margin + 2, yPosition + 6);
-      pdf.text("Facility", margin + 25, yPosition + 6);
-      pdf.text("Dept", margin + 50, yPosition + 6);
-      pdf.text("Issues", margin + 70, yPosition + 6);
-      pdf.text("Urgency", margin + 120, yPosition + 6);
-      pdf.text("Status", margin + 145, yPosition + 6);
-      pdf.text("Date", margin + 165, yPosition + 6);
-      yPosition += 10;
+      pdf.text("Room", margin + 2, yPosition + 7);
+      pdf.text("Facility", margin + 25, yPosition + 7);
+      pdf.text("Dept", margin + 55, yPosition + 7);
+      pdf.text("Issues", margin + 80, yPosition + 7);
+      pdf.text("Urgency", margin + 130, yPosition + 7);
+      pdf.text("Status", margin + 150, yPosition + 7);
+      pdf.text("Date", margin + 170, yPosition + 7);
+      yPosition += 12;
 
       // Table Content
       pdf.setFont("helvetica", "normal");
       pdf.setTextColor(0, 0, 0);
       pdf.setFontSize(9);
-      filteredIssues.forEach((issue) => {
+      filteredIssues.forEach((issue, index) => {
         const { issues: issueItems, otherDescription } = formatIssues(issue.issues, issue.description);
         const issueText = issueItems.length > 0 ? issueItems.join(", ") : `Other: ${otherDescription}`;
         const lines = pdf.splitTextToSize(issueText, 50);
@@ -325,29 +323,24 @@ export default function HallIssues() {
 
         checkPageBreak(rowHeight + 2);
         
-        pdf.setFillColor(245, 247, 250);
+        pdf.setFillColor(index % 2 === 0 ? 245 : 255, 247, 250);
         pdf.rect(margin, yPosition - 2, contentWidth, rowHeight + 2, "F");
         
         pdf.text(issue.roomId, margin + 2, yPosition + 3);
-        pdf.text(issue.facilityType.slice(0, 12) + (issue.facilityType.length > 12 ? "..." : ""), margin + 25, yPosition + 3);
-        pdf.text(issue.department.slice(0, 12) + (issue.department.length > 12 ? "..." : ""), margin + 50, yPosition + 3);
+        pdf.text(issue.facilityType.slice(0, 15) + (issue.facilityType.length > 15 ? "..." : ""), margin + 25, yPosition + 3);
+        pdf.text(issue.department.slice(0, 15) + (issue.department.length > 15 ? "..." : ""), margin + 55, yPosition + 3);
         lines.forEach((line, index) => {
-          pdf.text(line, margin + 70, yPosition + 3 + (index * 5));
+          pdf.text(line, margin + 80, yPosition + 3 + (index * 5));
         });
-        pdf.text(issue.urgency, margin + 120, yPosition + 3);
-        pdf.text(issue.status, margin + 145, yPosition + 3);
-        pdf.text(new Date(issue.reportedDate).toLocaleDateString(), margin + 165, yPosition + 3);
+        pdf.text(issue.urgency, margin + 130, yPosition + 3);
+        pdf.text(issue.status, margin + 150, yPosition + 3);
+        // Modified date format to show 2-digit year
+        const date = new Date(issue.reportedDate);
+        const formattedDate = `${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear().toString().slice(-2)}`;
+        pdf.text(formattedDate, margin + 170, yPosition + 3);
         
         yPosition += rowHeight + 2;
       });
-
-      // Footer with Generated Date/Time
-      checkPageBreak(20);
-      yPosition = height - margin - 10;
-      pdf.setFontSize(10);
-      pdf.setTextColor(27, 54, 93);
-      pdf.setFont("helvetica", "italic");
-      pdf.text(`Generated on: ${generatedDateTime}`, width / 2, yPosition, { align: "center" });
 
       // Add page numbers to all pages
       for (let i = 1; i <= pageNumber; i++) {
