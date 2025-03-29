@@ -303,12 +303,12 @@ export default function HallIssues() {
       pdf.setFont("helvetica", "bold");
       pdf.setTextColor(255, 255, 255);
       pdf.text("Room", margin + 2, yPosition + 7);
-      pdf.text("Facility", margin + 25, yPosition + 7);
-      pdf.text("Dept", margin + 55, yPosition + 7);
-      pdf.text("Issues", margin + 80, yPosition + 7);
-      pdf.text("Urgency", margin + 130, yPosition + 7);
-      pdf.text("Status", margin + 150, yPosition + 7);
-      pdf.text("Date", margin + 170, yPosition + 7);
+      pdf.text("Facility", margin + 20, yPosition + 7);
+     // pdf.text("Dept", margin + 55, yPosition + 7);
+      pdf.text("Issues", margin + 50, yPosition + 7);
+      pdf.text("Urgency", margin + 110, yPosition + 7);
+      pdf.text("Status", margin + 135, yPosition + 7);
+      pdf.text("Date", margin + 160, yPosition + 7);
       yPosition += 12;
 
       // Table Content
@@ -327,17 +327,17 @@ export default function HallIssues() {
         pdf.rect(margin, yPosition - 2, contentWidth, rowHeight + 2, "F");
         
         pdf.text(issue.roomId, margin + 2, yPosition + 3);
-        pdf.text(issue.facilityType.slice(0, 15) + (issue.facilityType.length > 15 ? "..." : ""), margin + 25, yPosition + 3);
-        pdf.text(issue.department.slice(0, 15) + (issue.department.length > 15 ? "..." : ""), margin + 55, yPosition + 3);
+        pdf.text(issue.facilityType.slice(0, 15) + (issue.facilityType.length > 15 ? "..." : ""), margin + 20, yPosition + 3);
+       // pdf.text(issue.department.slice(0, 15) + (issue.department.length > 15 ? "..." : ""), margin + 55, yPosition + 3);
         lines.forEach((line, index) => {
-          pdf.text(line, margin + 80, yPosition + 3 + (index * 5));
+          pdf.text(line, margin + 50, yPosition + 3 + (index * 5));
         });
-        pdf.text(issue.urgency, margin + 130, yPosition + 3);
-        pdf.text(issue.status, margin + 150, yPosition + 3);
+        pdf.text(issue.urgency, margin + 110, yPosition + 3);
+        pdf.text(issue.status, margin + 135, yPosition + 3);
         // Modified date format to show 2-digit year
         const date = new Date(issue.reportedDate);
-        const formattedDate = `${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear().toString().slice(-2)}`;
-        pdf.text(formattedDate, margin + 170, yPosition + 3);
+        const formattedDate = `${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear()}`;
+        pdf.text(formattedDate, margin + 160, yPosition + 3);
         
         yPosition += rowHeight + 2;
       });
