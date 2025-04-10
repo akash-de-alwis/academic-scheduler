@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
-import { RefreshCw } from "lucide-react";
-import { motion } from "framer-motion";
+import { RefreshCw, ChevronDown } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 
 export default function TimeAvailable() {
   const [availabilityGrid, setAvailabilityGrid] = useState({});
@@ -102,30 +102,40 @@ export default function TimeAvailable() {
   }, [selectedBatch]); // Re-fetch when selectedBatch changes
 
   const getCellBackground = (availableRoomsCount) => {
-    if (availableRoomsCount === 0) return "bg-red-100";
-    if (availableRoomsCount <= 2) return "bg-yellow-100";
-    return "bg-green-100";
+    if (availableRoomsCount === 0) return "bg-red-50 border-red-200";
+    if (availableRoomsCount <= 2) return "bg-amber-50 border-amber-200";
+    return "bg-emerald-50 border-emerald-200";
+  };
+
+  const getCellTextColor = (availableRoomsCount) => {
+    if (availableRoomsCount === 0) return "text-red-600";
+    if (availableRoomsCount <= 2) return "text-amber-600";
+    return "text-emerald-600";
   };
 
   return (
-    <div className="min-h-screen p-8 bg-gradient-to-br from-gray-100 to-gray-50">
+    <div className="min-h-screen p-8 bg-gradient-to-br from-slate-50 to-white">
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
+        transition={{ duration: 0.6, ease: "easeOut" }}
         className="flex justify-between items-center mb-8"
       >
-        <h2 className="text-3xl font-bold text-[#1B365D] tracking-tight">Available Time Slots</h2>
-        <div className="flex space-x-4">
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={fetchAvailabilityData}
-            className="bg-[#1B365D] text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-[#1B365D]/80 transition-colors shadow-md"
-          >
-            <RefreshCw className="w-5 h-5" /> Refresh
-          </motion.button>
+        <div>
+          <h2 className="text-4xl font-bold text-[#1B365D] tracking-tight mb-2">
+            Available Time Slots
+          </h2>
+          <p className="text-slate-600">View and manage available time slots for scheduling</p>
         </div>
+        <motion.button
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+          onClick={fetchAvailabilityData}
+          className="bg-gradient-to-r from-[#1B365D] to-[#2A4A7A] text-white px-6 py-3 rounded-xl flex items-center gap-2 hover:shadow-lg transition-all duration-300 font-medium"
+        >
+          <RefreshCw className="w-5 h-5" />
+          Refresh Schedule
+        </motion.button>
       </motion.div>
 
       <motion.div
@@ -134,118 +144,135 @@ export default function TimeAvailable() {
         transition={{ delay: 0.2, duration: 0.5 }}
         className="mb-8"
       >
-        <div className="relative w-72">
-          <select
-            value={selectedBatch}
-            onChange={(e) => setSelectedBatch(e.target.value)}
-            className="appearance-none px-4 py-2 pr-8 bg-white border border-gray-200 rounded-lg text-[#1B365D] w-full shadow-sm focus:outline-none focus:ring-2 focus:ring-[#1B365D] transition-all"
-          >
-            <option value="">Select Batch</option>
-            {batches.map((batch) => (
-              <option key={batch._id} value={batch.batchName}>
-                {`${batch.batchName} (${batch.semester}, ${batch.scheduleType})`}
-              </option>
-            ))}
-          </select>
-          <svg
-            className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
-          </svg>
+        <div className="relative w-80">
+          <div className="relative">
+            <select
+              value={selectedBatch}
+              onChange={(e) => setSelectedBatch(e.target.value)}
+              className="appearance-none w-full px-5 py-3 bg-white border-2 border-slate-200 rounded-xl text-[#1B365D] shadow-sm focus:outline-none focus:ring-2 focus:ring-[#1B365D] focus:border-transparent transition-all duration-200 font-medium"
+            >
+              <option value="">Select a Batch</option>
+              {batches.map((batch) => (
+                <option key={batch._id} value={batch.batchName}>
+                  {`${batch.batchName} (${batch.semester}, ${batch.scheduleType})`}
+                </option>
+              ))}
+            </select>
+            <ChevronDown className="absolute right-4 top-1/2 transform -translate-y-1/2 text-slate-400 w-5 h-5 pointer-events-none" />
+          </div>
         </div>
       </motion.div>
 
-      {loading ? (
-        <div className="flex justify-center items-center h-64">
+      <AnimatePresence>
+        {loading ? (
           <motion.div
-            animate={{ rotate: 360 }}
-            transition={{ repeat: Infinity, duration: 1 }}
-            className="w-10 h-10 border-4 border-t-[#1B365D] border-gray-200 rounded-full"
-          />
-        </div>
-      ) : (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.4, duration: 0.5 }}
-          className="overflow-x-auto"
-        >
-          <div className="min-w-[1200px] shadow-lg rounded-lg overflow-hidden border-2 border-[#1B365D]/20">
-            <table className="w-full border-collapse bg-white">
-              <thead className="bg-gradient-to-r from-[#1B365D] to-[#2A4A7A] text-white">
-                <tr>
-                  <th className="p-4 font-semibold text-left border-b-2 border-r-2 border-[#2A4A7A] sticky left-0 bg-gradient-to-r from-[#1B365D] to-[#2A4A7A] z-10">
-                    Time
-                  </th>
-                  {weekDays.map((day) => (
-                    <th
-                      key={day}
-                      className="p-4 font-semibold text-center border-b-2 border-r-2 border-[#2A4A7A]"
-                    >
-                      {day}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="flex flex-col items-center justify-center h-64 gap-4"
+          >
+            <motion.div
+              animate={{ rotate: 360 }}
+              transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
+              className="w-12 h-12 border-4 border-t-[#1B365D] border-slate-200 rounded-full"
+            />
+            <p className="text-slate-600 font-medium">Loading schedule...</p>
+          </motion.div>
+        ) : (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4, duration: 0.6 }}
+            className="overflow-x-auto rounded-2xl shadow-xl border border-slate-200"
+          >
+            <div className="min-w-[1200px]">
+              <table className="w-full border-collapse bg-white">
+                <thead>
+                  <tr className="bg-gradient-to-r from-[#1B365D] to-[#2A4A7A]">
+                    <th className="p-5 font-semibold text-left text-white border-b border-r border-slate-700/20 sticky left-0 bg-gradient-to-r from-[#1B365D] to-[#2A4A7A] z-10">
+                      Time
                     </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {timeSlots.map((time, timeIndex) => (
-                  <tr key={`time-${time}`} className="hover:bg-gray-50 transition-colors">
-                    <td
-                      className={`p-4 text-[#1B365D] font-medium border-r-2 ${
-                        timeIndex < timeSlots.length - 1 ? "border-b-2" : ""
-                      } border-[#1B365D]/40 sticky left-0 bg-white z-10 shadow-sm`}
-                    >
-                      {time}
-                    </td>
-                    {weekDays.map((day, dayIndex) => {
-                      const cell = availabilityGrid[day]?.[time] || {};
-                      const availableRoomsCount = cell.availableRooms?.length || 0;
-                      const availableLecturersCount = cell.availableLecturers?.length || 0;
-
-                      return (
-                        <td
-                          key={`${day}-${time}`}
-                          className={`p-3 ${
-                            dayIndex < weekDays.length - 1 ? "border-r-2" : ""
-                          } ${
-                            timeIndex < timeSlots.length - 1 ? "border-b-2" : ""
-                          } border-[#1B365D]/40 ${getCellBackground(availableRoomsCount)}`}
-                        >
-                          {cell.occupied ? (
-                            <div className="text-red-600 font-medium">
-                              Occupied
-                              <p className="text-xs text-gray-600">No rooms available</p>
-                            </div>
-                          ) : (
-                            <div className="text-green-600 font-medium">
-                              Available
-                              <p className="text-xs text-gray-700 mt-1">
-                                <span className="font-medium">Rooms ({availableRoomsCount}):</span>{" "}
-                                {availableRoomsCount > 0
-                                  ? cell.availableRooms.map((r) => r.LID).join(", ")
-                                  : "None"}
-                              </p>
-                              <p className="text-xs text-gray-700 mt-1">
-                                <span className="font-medium">Lecturers ({availableLecturersCount}):</span>{" "}
-                                {availableLecturersCount > 0
-                                  ? cell.availableLecturers.map((l) => l.name).join(", ")
-                                  : "None"}
-                              </p>
-                            </div>
-                          )}
-                        </td>
-                      );
-                    })}
+                    {weekDays.map((day) => (
+                      <th
+                        key={day}
+                        className="p-5 font-semibold text-center text-white border-b border-r border-slate-700/20"
+                      >
+                        {day}
+                      </th>
+                    ))}
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </motion.div>
-      )}
+                </thead>
+                <tbody>
+                  {timeSlots.map((time, timeIndex) => (
+                    <tr key={`time-${time}`} className="group">
+                      <td
+                        className={`p-5 text-[#1B365D] font-medium border-r ${
+                          timeIndex < timeSlots.length - 1 ? "border-b" : ""
+                        } border-slate-200 sticky left-0 bg-white z-10 shadow-sm group-hover:bg-slate-50 transition-colors duration-200`}
+                      >
+                        {time}
+                      </td>
+                      {weekDays.map((day, dayIndex) => {
+                        const cell = availabilityGrid[day]?.[time] || {};
+                        const availableRoomsCount = cell.availableRooms?.length || 0;
+                        const availableLecturersCount = cell.availableLecturers?.length || 0;
+
+                        return (
+                          <td
+                            key={`${day}-${time}`}
+                            className={`p-4 ${dayIndex < weekDays.length - 1 ? "border-r" : ""} 
+                            ${timeIndex < timeSlots.length - 1 ? "border-b" : ""} 
+                            border-slate-200 ${getCellBackground(availableRoomsCount)}
+                            transition-all duration-200 hover:shadow-inner`}
+                          >
+                            {cell.occupied ? (
+                              <div className="space-y-2">
+                                <div className="text-red-600 font-semibold flex items-center gap-2">
+                                  <span className="inline-block w-2 h-2 bg-red-500 rounded-full"></span>
+                                  Occupied
+                                </div>
+                                <p className="text-xs text-slate-500">No rooms available</p>
+                              </div>
+                            ) : (
+                              <div className="space-y-2">
+                                <div className={`font-semibold flex items-center gap-2 ${getCellTextColor(availableRoomsCount)}`}>
+                                  <span className={`inline-block w-2 h-2 rounded-full ${
+                                    availableRoomsCount === 0 ? "bg-red-500" :
+                                    availableRoomsCount <= 2 ? "bg-amber-500" : "bg-emerald-500"
+                                  }`}></span>
+                                  Available
+                                </div>
+                                <div className="space-y-1.5">
+                                  <p className="text-xs text-slate-600">
+                                    <span className="font-medium">Rooms ({availableRoomsCount}):</span>{" "}
+                                    <span className="text-slate-700">
+                                      {availableRoomsCount > 0
+                                        ? cell.availableRooms.map((r) => r.LID).join(", ")
+                                        : "None"}
+                                    </span>
+                                  </p>
+                                  <p className="text-xs text-slate-600">
+                                    <span className="font-medium">Lecturers ({availableLecturersCount}):</span>{" "}
+                                    <span className="text-slate-700">
+                                      {availableLecturersCount > 0
+                                        ? cell.availableLecturers.map((l) => l.name).join(", ")
+                                        : "None"}
+                                    </span>
+                                  </p>
+                                </div>
+                              </div>
+                            )}
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

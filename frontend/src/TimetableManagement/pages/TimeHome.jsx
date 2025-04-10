@@ -208,18 +208,18 @@ const TimeHome = () => {
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <button
-            onClick={() => navigate("/timetable-list")}
+            onClick={() => navigate("/TimetableList")}
             className="flex items-center justify-center gap-2 bg-[#1B365D] text-white p-4 rounded-lg hover:bg-[#152c4d] transition-colors"
           >
             <Plus className="h-5 w-5" />
             Add New Schedule
           </button>
           <button
-            onClick={() => navigate("/timetable-view")}
+            onClick={() => navigate("/TimetableReports")}
             className="flex items-center justify-center gap-2 bg-[#1B365D] text-white p-4 rounded-lg hover:bg-[#152c4d] transition-colors"
           >
             <Eye className="h-5 w-5" />
-            View Timetables
+            View Reports
           </button>
           <button
             onClick={handleResolveConflicts}

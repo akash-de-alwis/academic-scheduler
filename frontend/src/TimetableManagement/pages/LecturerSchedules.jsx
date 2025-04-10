@@ -1,11 +1,14 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
-import { ChevronDown, Mail } from "lucide-react";
+import { ChevronDown, Search } from "lucide-react";
+import { motion } from "framer-motion";
 
 export default function LecturerSchedules() {
   const [schedules, setSchedules] = useState([]);
   const [lecturers, setLecturers] = useState([]);
   const [selectedLecturer, setSelectedLecturer] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [sortBy, setSortBy] = useState("date"); // Default sort by date
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -26,9 +29,7 @@ export default function LecturerSchedules() {
         const lecturerSet = new Set();
         updatedSchedules.forEach((schedule) => {
           schedule.subjects.forEach((subject) => {
-            if (subject.lecturer) {
-              lecturerSet.add(subject.lecturer);
-            }
+            if (subject.lecturer) lecturerSet.add(subject.lecturer);
           });
         });
         setLecturers([...lecturerSet].sort());
@@ -42,112 +43,91 @@ export default function LecturerSchedules() {
     fetchSchedules();
   }, []);
 
-  const filteredSchedules = schedules.filter((schedule) =>
-    schedule.subjects.some((subject) => subject.lecturer === selectedLecturer)
-  );
+  // Filter schedules by selected lecturer and search query
+  const filteredSchedules = schedules
+    .filter((schedule) =>
+      schedule.subjects.some((subject) => subject.lecturer === selectedLecturer)
+    )
+    .map((schedule) => ({
+      ...schedule,
+      subjects: schedule.subjects.filter(
+        (subject) =>
+          subject.lecturer === selectedLecturer &&
+          (subject.subjectName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            schedule.batch.toLowerCase().includes(searchQuery.toLowerCase()))
+      ),
+    }))
+    .filter((schedule) => schedule.subjects.length > 0);
 
-  const handleLecturerChange = (e) => {
-    setSelectedLecturer(e.target.value);
-  };
-
-  // Function to generate HTML email content for Outlook
-  const generateEmailContent = () => {
-    if (!selectedLecturer || filteredSchedules.length === 0) return "";
-
-    let htmlContent = `
-      <html>
-        <body style="font-family: Arial, sans-serif; color: #333;">
-          <h2 style="color: #1B365D;">Timetable for ${selectedLecturer}</h2>
-          <p style="margin-bottom: 20px;">Below is your allocated schedule:</p>
-          <table style="width: 100%; border-collapse: collapse; background-color: #fff; border: 1px solid #ddd;">
-            <thead>
-              <tr style="background-color: #1B365D; color: white;">
-                <th style="padding: 12px; text-align: left; border-bottom: 2px solid #ddd;">Batch</th>
-                <th style="padding: 12px; text-align: left; border-bottom: 2px solid #ddd;">Subject</th>
-                <th style="padding: 12px; text-align: left; border-bottom: 2px solid #ddd;">Room</th>
-                <th style="padding: 12px; text-align: left; border-bottom: 2px solid #ddd;">Date</th>
-                <th style="padding: 12px; text-align: left; border-bottom: 2px solid #ddd;">Time</th>
-                <th style="padding: 12px; text-align: left; border-bottom: 2px solid #ddd;">Duration</th>
-              </tr>
-            </thead>
-            <tbody>
-    `;
-
-    filteredSchedules.forEach((schedule, scheduleIndex) => {
-      schedule.subjects
-        .filter((subject) => subject.lecturer === selectedLecturer)
-        .forEach((subject, subjectIndex) => {
-          const rowBgColor = (scheduleIndex + subjectIndex) % 2 === 0 ? "#F5F7FA" : "#FFFFFF";
-          htmlContent += `
-            <tr style="background-color: ${rowBgColor};">
-              <td style="padding: 12px; border-bottom: 1px solid #ddd; color: #1B365D;">${schedule.batch}</td>
-              <td style="padding: 12px; border-bottom: 1px solid #ddd; color: #1B365D;">${subject.subjectName}</td>
-              <td style="padding: 12px; border-bottom: 1px solid #ddd; color: #1B365D;">${subject.room}</td>
-              <td style="padding: 12px; border-bottom: 1px solid #ddd; color: #1B365D;">${subject.date}</td>
-              <td style="padding: 12px; border-bottom: 1px solid #ddd; color: #1B365D;">${subject.time}</td>
-              <td style="padding: 12px; border-bottom: 1px solid #ddd; color: #1B365D;">${subject.duration} hr(s)</td>
-            </tr>
-          `;
-        });
-    });
-
-    htmlContent += `
-            </tbody>
-          </table>
-          <p style="margin-top: 20px; font-size: 12px; color: #666;">This email was generated from the Timetable Management System.</p>
-        </body>
-      </html>
-    `;
-
-    return encodeURIComponent(htmlContent);
-  };
-
-  // Function to open Outlook with timetable
-  const handleSendEmail = () => {
-    if (!selectedLecturer) {
-      alert("Please select a lecturer first.");
-      return;
+  // Sort schedules based on selected criteria
+  const sortedSchedules = [...filteredSchedules].sort((a, b) => {
+    const subjectA = a.subjects[0];
+    const subjectB = b.subjects[0];
+    if (sortBy === "date") {
+      return new Date(subjectA.date) - new Date(subjectB.date);
+    } else if (sortBy === "batch") {
+      return a.batch.localeCompare(b.batch);
+    } else if (sortBy === "subject") {
+      return subjectA.subjectName.localeCompare(subjectB.subjectName);
     }
-    if (filteredSchedules.length === 0) {
-      alert("No schedules available to send.");
-      return;
-    }
+    return 0;
+  });
 
-    const subject = encodeURIComponent(`Timetable for ${selectedLecturer}`);
-    const body = generateEmailContent();
-    const mailtoLink = `mailto:?subject=${subject}&body=${body}`;
-
-    // Open Outlook (or default email client)
-    window.location.href = mailtoLink;
-  };
+  // Calculate total hours for the selected lecturer
+  const totalHours = filteredSchedules.reduce((acc, schedule) => {
+    return (
+      acc +
+      schedule.subjects.reduce((sum, subject) => sum + parseInt(subject.duration || "1"), 0)
+    );
+  }, 0);
 
   if (loading) {
     return (
-      <div className="min-h-screen p-8 bg-white flex justify-center items-center">
-        <p className="text-[#1B365D] text-lg">Loading schedules...</p>
+      <div className="min-h-screen p-8 bg-gradient-to-br from-blue-50 to-gray-100 flex justify-center items-center">
+        <motion.div
+          animate={{ rotate: 360 }}
+          transition={{ repeat: Infinity, duration: 1 }}
+          className="w-12 h-12 border-4 border-t-blue-900 border-gray-200 rounded-full"
+        />
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="min-h-screen p-8 bg-white flex justify-center items-center">
-        <p className="text-red-500 text-lg">Error: {error}</p>
+      <div className="min-h-screen p-8 bg-gradient-to-br from-blue-50 to-gray-100 flex justify-center items-center">
+        <p className="text-red-600 text-lg font-medium bg-white p-4 rounded-lg shadow-md">
+          Error: {error}
+        </p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen p-8 bg-white">
-      <h2 className="text-2xl font-bold text-[#1B365D] mb-8">Lecturer Schedules</h2>
+    <div className="min-h-screen p-8 bg-gradient-to-br from-blue-50 to-gray-100">
+      {/* Header */}
+      <motion.h2
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6 }}
+        className="text-4xl font-extrabold text-blue-900 mb-8 tracking-wide"
+      >
+        Lecturer Schedules
+      </motion.h2>
 
-      {/* Lecturer Selection and Email Button */}
-      <div className="flex justify-between gap-4 mb-8">
-        <div className="relative w-72">
+      {/* Controls Section */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.2, duration: 0.6 }}
+        className="flex flex-col md:flex-row gap-6 mb-10"
+      >
+        {/* Lecturer Selection */}
+        <div className="relative w-full md:w-80">
           <select
             value={selectedLecturer}
-            onChange={handleLecturerChange}
-            className="appearance-none w-full px-4 py-2 pr-8 bg-[#F5F7FA] border border-[#F5F7FA] rounded-lg text-[#1B365D] shadow-sm focus:outline-none focus:ring-2 focus:ring-[#1B365D] focus:border-transparent"
+            onChange={(e) => setSelectedLecturer(e.target.value)}
+            className="appearance-none w-full px-5 py-3 bg-white border-2 border-blue-200 rounded-full text-blue-900 font-medium shadow-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
           >
             <option value="">Select a Lecturer</option>
             {lecturers.map((lecturer) => (
@@ -156,64 +136,116 @@ export default function LecturerSchedules() {
               </option>
             ))}
           </select>
-          <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+          <ChevronDown className="absolute right-4 top-1/2 transform -translate-y-1/2 text-blue-500 w-6 h-6" />
         </div>
-        <button
-          onClick={handleSendEmail}
-          className="bg-[#1B365D] text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-[#1B365D]/90 transition-colors duration-200"
-        >
-          <Mail className="w-5 h-5" />
-          Send via Outlook
-        </button>
-      </div>
 
-      {/* Display Schedules */}
+        {/* Search Bar */}
+        <div className="relative w-full md:w-80">
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search by subject or batch..."
+            className="w-full px-5 py-3 pl-10 bg-white border-2 border-blue-200 rounded-full text-blue-900 font-medium shadow-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+          />
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-blue-500 w-5 h-5" />
+        </div>
+
+        {/* Sort Dropdown */}
+        <div className="relative w-full md:w-60">
+          <select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value)}
+            className="appearance-none w-full px-5 py-3 bg-white border-2 border-blue-200 rounded-full text-blue-900 font-medium shadow-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+          >
+            <option value="date">Sort by Date</option>
+            <option value="batch">Sort by Batch</option>
+            <option value="subject">Sort by Subject</option>
+          </select>
+          <ChevronDown className="absolute right-4 top-1/2 transform -translate-y-1/2 text-blue-500 w-6 h-6" />
+        </div>
+      </motion.div>
+
+      {/* Summary Section */}
+      {selectedLecturer && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.4, duration: 0.6 }}
+          className="mb-8 bg-white p-6 rounded-xl shadow-lg border border-blue-100"
+        >
+          <h3 className="text-xl font-semibold text-blue-900 mb-2">
+            Summary for {selectedLecturer}
+          </h3>
+          <p className="text-gray-700">
+            Total Scheduled Hours: <span className="font-medium text-blue-900">{totalHours} hr(s)</span>
+          </p>
+          <p className="text-gray-700">
+            Number of Classes: <span className="font-medium text-blue-900">{filteredSchedules.reduce((acc, s) => acc + s.subjects.length, 0)}</span>
+          </p>
+        </motion.div>
+      )}
+
+      {/* Schedules Table */}
       {selectedLecturer ? (
-        filteredSchedules.length > 0 ? (
-          <div className="overflow-x-auto">
-            <table className="w-full bg-white rounded-lg shadow-md border border-gray-200">
-              <thead className="bg-[#1B365D] text-white">
+        sortedSchedules.length > 0 ? (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.6, duration: 0.6 }}
+            className="overflow-x-auto"
+          >
+            <table className="w-full bg-white rounded-xl shadow-lg border border-blue-100">
+              <thead className="bg-gradient-to-r from-blue-900 to-indigo-900 text-white">
                 <tr>
-                  <th className="p-4 font-semibold text-left rounded-tl-lg">Batch</th>
+                  <th className="p-4 font-semibold text-left rounded-tl-xl">Batch</th>
                   <th className="p-4 font-semibold text-left">Subject</th>
                   <th className="p-4 font-semibold text-left">Room</th>
                   <th className="p-4 font-semibold text-left">Date</th>
                   <th className="p-4 font-semibold text-left">Time</th>
-                  <th className="p-4 font-semibold text-left rounded-tr-lg">Duration</th>
+                  <th className="p-4 font-semibold text-left rounded-tr-xl">Duration</th>
                 </tr>
               </thead>
               <tbody>
-                {filteredSchedules.map((schedule, scheduleIndex) =>
-                  schedule.subjects
-                    .filter((subject) => subject.lecturer === selectedLecturer)
-                    .map((subject, subjectIndex) => (
-                      <tr
-                        key={`${schedule._id}-${subjectIndex}`}
-                        className={`border-b border-gray-200 ${
-                          (scheduleIndex + subjectIndex) % 2 === 0 ? "bg-[#F5F7FA]" : "bg-white"
-                        } hover:bg-[#1B365D]/10 transition-colors duration-200`}
-                      >
-                        <td className="p-4 text-[#1B365D] font-medium">{schedule.batch}</td>
-                        <td className="p-4 text-[#1B365D]">{subject.subjectName}</td>
-                        <td className="p-4 text-[#1B365D]">{subject.room}</td>
-                        <td className="p-4 text-[#1B365D]">{subject.date}</td>
-                        <td className="p-4 text-[#1B365D]">{subject.time}</td>
-                        <td className="p-4 text-[#1B365D]">{subject.duration} hr(s)</td>
-                      </tr>
-                    ))
+                {sortedSchedules.map((schedule, scheduleIndex) =>
+                  schedule.subjects.map((subject, subjectIndex) => (
+                    <tr
+                      key={`${schedule._id}-${subjectIndex}`}
+                      className={`border-b border-blue-100 ${
+                        (scheduleIndex + subjectIndex) % 2 === 0 ? "bg-blue-50" : "bg-white"
+                      } hover:bg-blue-200/50 transition-colors duration-200`}
+                    >
+                      <td className="p-4 text-blue-900 font-medium">{schedule.batch}</td>
+                      <td className="p-4 text-blue-900">{subject.subjectName}</td>
+                      <td className="p-4 text-blue-900">{subject.room}</td>
+                      <td className="p-4 text-blue-900">{subject.date}</td>
+                      <td className="p-4 text-blue-900">{subject.time}</td>
+                      <td className="p-4 text-blue-900">{subject.duration} hr(s)</td>
+                    </tr>
+                  ))
                 )}
               </tbody>
             </table>
-          </div>
+          </motion.div>
         ) : (
-          <p className="text-[#1B365D] text-lg bg-[#F5F7FA] p-4 rounded-lg shadow-sm">
-            No schedules found for {selectedLecturer}.
-          </p>
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.4, duration: 0.6 }}
+            className="text-blue-900 text-lg bg-white p-6 rounded-xl shadow-md border border-blue-100"
+          >
+            No schedules found for {selectedLecturer} matching your search.
+          </motion.p>
         )
       ) : (
-        <p className="text-[#1B365D] text-lg bg-[#F5F7FA] p-4 rounded-lg shadow-sm">
+        <motion.p
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.4, duration: 0.6 }}
+          className="text-blue-900 text-lg bg-white p-6 rounded-xl shadow-md border border-blue-100"
+        >
           Please select a lecturer to view their schedules.
-        </p>
+        </motion.p>
       )}
     </div>
   );
