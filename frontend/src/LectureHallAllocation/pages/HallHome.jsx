@@ -54,7 +54,7 @@ const ActionButtons = () => {
     { title: "Add Venues", icon: Building, path: "/RoomList" },
     { title: "Bookings", icon: Calendar, path: "/BookingReview" },
     { title: "Book Meetings", icon: Users, path: "/MeetingRoomList" },
-    { title: "Report Issues", icon: AlertTriangle, path: "/report-issues" },
+    { title: "Report Issues", icon: AlertTriangle, path: "/HallIssues" },
   ];
 
   return (
@@ -77,7 +77,8 @@ const HallHome = () => {
   const [stats, setStats] = useState({
     totalVenues: 0,
     activeBookings: 0,
-    todaysSessions: 0,
+    pendingBookings: 0,
+    pendingIssues: 0,
   });
   const [rooms, setRooms] = useState([]);
 
@@ -93,19 +94,21 @@ const HallHome = () => {
         const bookingsResponse = await axios.get("http://localhost:5000/api/bookings");
         const bookingsData = bookingsResponse.data;
 
+        // Fetch facility issues
+        const issuesResponse = await axios.get("http://localhost:5000/api/facility-issues");
+        const issuesData = issuesResponse.data;
+
         // Calculate stats
         const totalVenues = roomsData.length;
         const activeBookings = bookingsData.filter(booking => booking.status === "Approved").length;
-        const today = new Date().toISOString().split("T")[0];
-        const todaysSessions = bookingsData.filter(booking => 
-          booking.status === "Approved" && 
-          new Date(booking.date).toISOString().split("T")[0] === today
-        ).length;
+        const pendingBookings = bookingsData.filter(booking => booking.status === "Pending").length;
+        const pendingIssues = issuesData.filter(issue => issue.status === "Pending").length;
 
         setStats({
           totalVenues,
           activeBookings,
-          todaysSessions,
+          pendingBookings,
+          pendingIssues,
         });
       } catch (err) {
         console.error("Failed to fetch dashboard data:", err);
@@ -137,14 +140,14 @@ const HallHome = () => {
         <DashboardStats
           icon={AlertTriangle}
           title="Pending Issues"
-          value="3" // Static as requested
+          value={stats.pendingIssues} // Dynamically updated
           subtitle="Maintenance & repairs"
         />
         <DashboardStats
           icon={BookOpen}
-          title="Today's Sessions"
-          value={stats.todaysSessions}
-          subtitle="Scheduled classes & labs"
+          title="Pending Bookings"
+          value={stats.pendingBookings}
+          subtitle="Awaiting review"
         />
       </div>
       <ResourceAllocation rooms={rooms} />
@@ -154,5 +157,3 @@ const HallHome = () => {
 };
 
 export default HallHome;
-
-

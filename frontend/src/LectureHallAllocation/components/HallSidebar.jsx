@@ -1,69 +1,83 @@
 import { Link, useLocation } from "react-router-dom";
 import { Home, Building, Calendar, Users, AlertTriangle } from "lucide-react";
+import { useState } from "react";
 
 export default function HallSidebar() {
   const location = useLocation();
-  
+  const [isCollapsed, setIsCollapsed] = useState(false);
+
   const isActive = (path) => {
     return location.pathname === path;
   };
 
   const navItems = [
-    {
-      path: "/HallHome",
-      name: "Home",
-      icon: (
-        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-        </svg>
-      )
-    },
-    {
-      path: "/RoomList",
-      name: "Venues",
-      icon: <Building className="h-5 w-5" />
-    },
-    {
-      path: "/BookingReview",
-      name: "Bookings",
-      icon: <Calendar className="h-5 w-5" />
-    },
-    {
-      path: "/MeetingRoomList",
-      name: "Meetings",
-      icon: <Users className="h-5 w-5" />
-    },
-    {
-      path: "/report",
-      name: "Report",
-      icon: <AlertTriangle className="h-5 w-5" />
-    }
+    { path: "/HallHome", name: "Dashboard", icon: <Home className="h-5 w-5" /> },
+    { path: "/RoomList", name: "Venues", icon: <Building className="h-5 w-5" /> },
+    { path: "/BookingReview", name: "Bookings", icon: <Calendar className="h-5 w-5" /> },
+    { path: "/MeetingRoomList", name: "Meetings", icon: <Users className="h-5 w-5" /> },
+    { path: "/HallIssues", name: "Reports", icon: <AlertTriangle className="h-5 w-5" /> },
   ];
 
+  const toggleSidebar = () => {
+    setIsCollapsed(!isCollapsed);
+  };
+
   return (
-    <div className="fixed top-0 left-0 h-screen bg-[#FFFFFF] border-r border-[#E2E8F0] w-64 shadow-md overflow-y-auto z-10">
-      <div className="p-6">
-        <h2 className="text-2xl font-bold text-[#1B365D] mb-8">Academic Scheduler</h2>
-        
-        <nav className="space-y-2">
-          {navItems.map((item) => (
-            <Link
-              key={item.path}
-              to={item.path}
-              className={`flex items-center py-3 px-4 rounded-lg text-[#1B365D] hover:bg-[#F5F7FA] hover:shadow-sm transition-all duration-300 ${
-                isActive(item.path)
-                  ? "bg-[#1B365D] text-[#FFFFFF] hover:bg-[#1B365D]/90 font-semibold"
-                  : "font-medium"
-              }`}
-            >
-              <div className="w-8 h-8 flex items-center justify-center mr-3">
-                {item.icon}
-              </div>
-              {item.name}
-            </Link>
-          ))}
-        </nav>
+    <div
+      className={`fixed top-0 left-0 h-screen bg-[#FFFFFF] border-r border-[#EDEFF2] shadow-lg transition-all duration-300 z-10 ${
+        isCollapsed ? "w-16" : "w-72"
+      }`}
+    >
+      {/* Header */}
+      <div className="flex items-center justify-between p-4 bg-gradient-to-r from-[#1B365D] to-[#2A4A7A] text-white shadow-md">
+        {!isCollapsed && (
+          <h2 className="text-xl font-semibold tracking-tight">Academic Scheduler</h2>
+        )}
+        <button
+          onClick={toggleSidebar}
+          className="p-1 rounded-full hover:bg-[#FFFFFF]/10 focus:outline-none"
+        >
+          <svg
+            className="h-5 w-5"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d={isCollapsed ? "M9 5h10M9 12h10M9 19h10" : "M4 6h16M4 12h16M4 18h16"}
+            />
+          </svg>
+        </button>
       </div>
+
+      {/* Navigation */}
+      <nav className="mt-6 space-y-1 px-2">
+        {navItems.map((item) => (
+          <Link
+            key={item.path}
+            to={item.path}
+            className={`flex items-center py-3 px-4 rounded-lg text-[#1B365D] transition-all duration-200 ${
+              isActive(item.path)
+                ? "bg-[#1B365D] text-white shadow-md"
+                : "hover:bg-[#F5F7FA] hover:text-[#1B365D]/90"
+            }`}
+            title={isCollapsed ? item.name : ""}
+          >
+            <div className="flex items-center justify-center w-8 h-8">
+              {item.icon}
+            </div>
+            {!isCollapsed && (
+              <span className={`ml-3 text-sm ${isActive(item.path) ? "font-semibold" : "font-medium"}`}>
+                {item.name}
+              </span>
+            )}
+          </Link>
+        ))}
+      </nav>
     </div>
   );
 }

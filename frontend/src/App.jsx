@@ -28,17 +28,31 @@ import AllocationReport from "./StudentAndLecturers/pages/AllocationReport";
 import HallHome from "./LectureHallAllocation/pages/HallHome";
 import RoomList from "./LectureHallAllocation/pages/RoomList";
 import MeetingRoomList from "./LectureHallAllocation/pages/MeetingRoomList";
-import MeetingRoomBooking from "./LectureHallAllocation/pages/MeetingRoomBooking";
-import BookingManagement from "./LectureHallAllocation/pages/BookingManagement";
+import MeetingRoomBooking from "./LectureHallAllocation/pages/Challs/MeetingRoomBooking";
+import BookingManagement from "./LectureHallAllocation/pages/Challs/BookingManagement";
 import BookingReview from "./LectureHallAllocation/pages/BookingReview";
+import RaisingIssues from "./LectureHallAllocation/pages/Challs/RaisingIssues";
+import HallIssues from "./LectureHallAllocation/pages/HallIssues";
+import BookingHistory from "./LectureHallAllocation/pages/BookingHistory";
 
 import TimeHome from "./TimetableManagement/pages/TimeHome";
 import TimetableList from "./TimetableManagement/pages/TimetableList";
+import PublishTimetable from "./ClientsidePages/PublishTimetable";
+import Timeview from "./TimetableManagement/pages/TimeView";
+import TimetableReports from "./TimetableManagement/pages/TimetableReports";
+import LecturerSchedules from "./TimetableManagement/pages/LecturerSchedules";
+import TimeConflicts from "./TimetableManagement/pages/TimeConflicts";
+import TimeLecture from "./ClientsidePages/TimeLecture";
+import TimeAuto from "./TimetableManagement/pages/TimeAuto";
+import TimeAvailable from "./TimetableManagement/pages/TimeAvailable";
+
+
 
 import SubHome from "./CourseAllocation/pages/SubHome";
 import SubjectList from "./CourseAllocation/pages/SubjectList";
 import ReportGeneration from "./CourseAllocation/pages/ReportGeneration";
 import NotificationList from "./ClientsidePages/NotificationList";
+import ModuleOverview from "./CourseAllocation/pages/ModuleOverview";
 
 
 
@@ -112,12 +126,26 @@ function App() {
         <Route path="/MeetingRoomBooking" element={<MeetingRoomBooking/>}/>
         <Route path="/BookingReview" element={<HallLayout><BookingReview/></HallLayout>}/>
         <Route path="/BookingManagement" element={<BookingManagement/>}/>
-        
+        <Route path="/RaisingIssues" element={<RaisingIssues/>}/>
+        <Route path="/HallIssues" element={<HallLayout><HallIssues/></HallLayout>}/>
+        <Route path="/BookingHistory" element={<HallLayout><BookingHistory/></HallLayout>}/>
+
 
         {/* Routes with Time Sidebar */}
         <Route path="/TimeHome" element={<TimeLayout><TimeHome /></TimeLayout>} />
         <Route path="/TimetableList" element={<TimeLayout><TimetableList /></TimeLayout>} />
-
+        <Route path="/Timeview" element={<TimeLayout><Timeview /></TimeLayout>} />
+        <Route path="/TimetableReports" element={<TimeLayout><TimetableReports /></TimeLayout>} />
+        <Route path="/LecturerSchedules" element={<TimeLayout><LecturerSchedules /></TimeLayout>} />
+        <Route path="/TimeConflicts" element={<TimeLayout><TimeConflicts /></TimeLayout>} />
+        <Route path="/TimeAuto" element={<TimeLayout><TimeAuto /></TimeLayout>} />
+        <Route path="/TimeAvailable" element={<TimeLayout><TimeAvailable /></TimeLayout>} />
+        <Route path="/PublishTimetable" element={<PublishTimetable/>}/>
+        <Route path="/TimeLecture" element={<TimeLecture/>}/>
+        
+        
+        
+       
 
         {/* Routes with course Sidebar */}
         <Route path="/SubjectHome" element={<SubjectLayout>< SubHome /></SubjectLayout>} />
@@ -125,7 +153,9 @@ function App() {
         <Route path="/SubjectHome" element={<SubjectLayout><SubHome /></SubjectLayout>} />
         <Route path="/SubjectList" element={<SubjectLayout><SubjectList /></SubjectLayout>} />
         <Route path="/ReportGeneration" element={<SubjectLayout><ReportGeneration /></SubjectLayout>} />
+        <Route path="/ModuleOverview" element={<SubjectLayout><ModuleOverview /></SubjectLayout>} />
         <Route path="/NotificationList" element={<NotificationList />} />
+
 
         {/* Routes with course Sidebar */}
         

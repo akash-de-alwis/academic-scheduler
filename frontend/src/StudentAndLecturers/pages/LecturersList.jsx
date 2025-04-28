@@ -15,12 +15,21 @@ export default function LecturerList() {
   });
   const [skillInput, setSkillInput] = useState("");
   const [formErrors, setFormErrors] = useState({});
+  const [toast, setToast] = useState({ message: "", visible: false });
+  const [searchQuery, setSearchQuery] = useState(""); // New state for search input
 
   useEffect(() => {
     axios.get("http://localhost:5000/api/lecturers").then((res) => {
       setLecturers(res.data);
     });
   }, []);
+
+  const showToast = (message) => {
+    setToast({ message, visible: true });
+    setTimeout(() => {
+      setToast((prev) => ({ ...prev, visible: false }));
+    }, 3000);
+  };
 
   const validateForm = () => {
     const errors = {};
@@ -54,9 +63,11 @@ export default function LecturerList() {
         setLecturers((prevLecturers) =>
           prevLecturers.map((lect) => (lect._id === editingLecturer._id ? res.data : lect))
         );
+        showToast("Lecturer updated successfully!");
       } else {
         const res = await axios.post("http://localhost:5000/api/lecturers", newLecturer);
         setLecturers((prevLecturers) => [...prevLecturers, res.data]);
+        showToast("Lecturer created successfully!");
       }
       setShowForm(false);
       setNewLecturer({
@@ -105,27 +116,29 @@ export default function LecturerList() {
     const idArray = newLecturer.lecturerId.split("");
     while (idArray.length < 6) idArray.push("");
     
-    // Only allow changes for the number positions (3, 4, 5)
     if (index > 2 && value && !/^\d$/.test(value)) return;
-    if (index <= 2) return; // Prevent changes to L, E, C
+    if (index <= 2) return;
     
     idArray[index] = value;
     setNewLecturer({ ...newLecturer, lecturerId: idArray.join("") });
   };
 
-  // Lecturer stats
-  const totalLecturers = lecturers.length;
-  const deptCounts = {
-    "Faculty of Computing": lecturers.filter((lect) => lect.department === "Faculty of Computing").length,
-    "Faculty of Engineering": lecturers.filter((lect) => lect.department === "Faculty of Engineering").length,
-    "Faculty of Business Studies": lecturers.filter((lect) => lect.department === "Faculty of Business Studies").length,
-  };
-  const weekdaysCount = lecturers.filter((lect) => lect.scheduleType === "Weekdays").length;
-  const weekendCount = lecturers.filter((lect) => lect.scheduleType === "Weekend").length;
+  // Filter lecturers based on search query
+  const filteredLecturers = lecturers.filter((lecturer) =>
+    lecturer.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
-  // Skills Distribution calculation
+  const totalLecturers = filteredLecturers.length; // Updated to use filtered list
+  const deptCounts = {
+    "Faculty of Computing": filteredLecturers.filter((lect) => lect.department === "Faculty of Computing").length,
+    "Faculty of Engineering": filteredLecturers.filter((lect) => lect.department === "Faculty of Engineering").length,
+    "Faculty of Business Studies": filteredLecturers.filter((lect) => lect.department === "Faculty of Business Studies").length,
+  };
+  const weekdaysCount = filteredLecturers.filter((lect) => lect.scheduleType === "Weekdays").length;
+  const weekendCount = filteredLecturers.filter((lect) => lect.scheduleType === "Weekend").length;
+
   const skillsCount = {};
-  lecturers.forEach((lecturer) => {
+  filteredLecturers.forEach((lecturer) => { // Updated to use filtered list
     lecturer.skills.forEach((skill) => {
       skillsCount[skill] = (skillsCount[skill] || 0) + 1;
     });
@@ -135,7 +148,56 @@ export default function LecturerList() {
     .slice(0, 2);
 
   return (
-    <div className="min-h-screen p-8 bg-[#FFFFFF]">
+    <div className="min-h-screen p-8 bg-[#FFFFFF] relative">
+      <style>
+        {`
+          @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+          }
+          .animate-fade-in {
+            animation: fadeIn 0.3s ease-out;
+          }
+          @keyframes popIn {
+            0% { transform: translateX(100%) scale(0.8); opacity: 0; }
+            60% { transform: translateX(0) scale(1.05); opacity: 1; }
+            100% { transform: translateX(0) scale(1); opacity: 1; }
+          }
+          @keyframes popOut {
+            0% { transform: translateX(0) scale(1); opacity: 1; }
+            40% { transform: translateX(0) scale(1.05); opacity: 1; }
+            100% { transform: translateX(100%) scale(0.8); opacity: 0; }
+          }
+          .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 12px 20px;
+            background: linear-gradient(135deg, #1B365D 0%, #3B5A9A 100%);
+            color: #E6ECF5;
+            border-radius: 8px;
+            box-shadow: 0 6px 16px rgba(27, 54, 93, 0.4);
+            font-size: 0.95rem;
+            font-weight: 600;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+          }
+          .toast.show {
+            animation: popIn 0.5s ease-out forwards;
+          }
+          .toast.hide {
+            animation: popOut 0.5s ease-out forwards;
+          }
+          .toast-icon {
+            width: 20px;
+            height: 20px;
+          }
+        `}
+      </style>
+
       <div className="flex justify-between items-center mb-8">
         <h2 className="text-2xl font-bold text-[#1B365D]">Lecturer Management</h2>
         <div className="flex gap-3">
@@ -159,6 +221,15 @@ export default function LecturerList() {
           </button>
         </div>
       </div>
+
+      {toast.visible && (
+        <div className={`toast ${toast.visible ? "show" : "hide"}`}>
+          <svg className="toast-icon" fill="none" stroke="#E6ECF5" viewBox="0 0 24 24" strokeWidth="2">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+          </svg>
+          {toast.message}
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         <div className="bg-white rounded-xl shadow-md p-6 border border-[#E2E8F0] flex items-center gap-4 hover:shadow-lg transition-all duration-300">
@@ -231,9 +302,11 @@ export default function LecturerList() {
         <input
           type="text"
           placeholder="Search lecturers..."
-          className="flex-1 px-4 py-2 border border-[#F5F7FA] rounded-lg bg-[#F5F7FA] text-[#1B365D]"
+          value={searchQuery} // Bind value to searchQuery state
+          onChange={(e) => setSearchQuery(e.target.value)} // Update searchQuery on input change
+          className="flex-1 px-4 py-2 border border-[#F5F7FA] rounded-lg bg-[#F5F7FA] text-[#1B365D] focus:outline-none focus:ring-2 focus:ring-[#1B365D] focus:border-transparent"
         />
-        <button className="px-4 py-2 bg-[#F5F7FA] border border-[#F5F7FA] rounded-lg flex items-center gap-2 text-[#1B365D]">
+        <button className="px-4 py-2 bg-[#F5F7FA] border border-[#F5F7FA] rounded-lg flex items-center gap-2 text-[#1B365D] hover:bg-[#E6ECF5]">
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
           </svg>
@@ -241,33 +314,50 @@ export default function LecturerList() {
         </button>
       </div>
 
-      <div className="bg-[#F5F7FA] rounded-lg">
-        <table className="w-full">
+      <div className="bg-[#F5F7FA] rounded-lg shadow-md overflow-hidden">
+        <table className="w-full table-auto">
           <thead>
-            <tr className="border-b border-[#FFFFFF]">
-              <th className="text-left p-4 font-medium text-[#1B365D]">Name</th>
-              <th className="text-left p-4 font-medium text-[#1B365D]">Lecturer ID</th>
-              <th className="text-left p-4 font-medium text-[#1B365D]">Department</th>
-              <th className="text-left p-4 font-medium text-[#1B365D]">Availability</th>
-              <th className="text-left p-4 font-medium text-[#1B365D]">Skills</th>
-              <th className="text-left p-4 font-medium text-[#1B365D]">Actions</th>
+            <tr className="bg-[#1B365D] text-[#E6ECF5]">
+              <th className="text-left p-4 font-semibold text-sm uppercase tracking-wide">Name</th>
+              <th className="text-left p-4 font-semibold text-sm uppercase tracking-wide">Lecturer ID</th>
+              <th className="text-left p-4 font-semibold text-sm uppercase tracking-wide">Department</th>
+              <th className="text-left p-4 font-semibold text-sm uppercase tracking-wide">Availability</th>
+              <th className="text-left p-4 font-semibold text-sm uppercase tracking-wide">Skills</th>
+              <th className="text-left p-4 font-semibold text-sm uppercase tracking-wide">Actions</th>
             </tr>
           </thead>
           <tbody>
-            {lecturers.map((lecturer) => (
-              <tr key={lecturer._id} className="border-b border-[#FFFFFF]">
-                <td className="p-4 text-[#1B365D]">{lecturer.name}</td>
+            {filteredLecturers.map((lecturer, index) => ( // Use filteredLecturers instead of lecturers
+              <tr 
+                key={lecturer._id} 
+                className={`${
+                  index % 2 === 0 ? 'bg-white' : 'bg-[#F9FAFB]'
+                } hover:bg-[#E6ECF5]/50 transition-colors duration-200 border-b border-[#E2E8F0] last:border-b-0`}
+              >
+                <td className="p-4 text-[#1B365D] font-medium">{lecturer.name}</td>
                 <td className="p-4">
-                  <span className="text-[#1B365D] font-medium">{lecturer.lecturerId}</span>
+                  <span className="text-[#1B365D] font-mono bg-[#E6ECF5] px-2 py-1 rounded-md">
+                    {lecturer.lecturerId}
+                  </span>
                 </td>
                 <td className="p-4 text-[#1B365D]">{lecturer.department}</td>
-                <td className="p-4 text-[#1B365D]">{lecturer.scheduleType}</td>
+                <td className="p-4">
+                  <span 
+                    className={`${
+                      lecturer.scheduleType === "Weekdays" 
+                        ? 'bg-green-100 text-green-800' 
+                        : 'bg-blue-100 text-blue-800'
+                    } px-2 py-1 rounded-full text-xs font-medium`}
+                  >
+                    {lecturer.scheduleType}
+                  </span>
+                </td>
                 <td className="p-4">
                   <div className="flex flex-wrap gap-2">
                     {lecturer.skills.map((skill, index) => (
                       <span
                         key={index}
-                        className="bg-[#1B365D] text-white text-xs px-2 py-1 rounded-full"
+                        className="bg-[#1B365D] text-white text-xs px-2.5 py-1 rounded-full shadow-sm"
                       >
                         {skill}
                       </span>
@@ -282,7 +372,8 @@ export default function LecturerList() {
                         setEditingLecturer(lecturer);
                         setShowForm(true);
                       }}
-                      className="text-[#1B365D] hover:text-[#1B365D]/70"
+                      className="text-[#1B365D] hover:text-[#3B5A9A] transition-colors duration-150"
+                      title="Edit"
                     >
                       <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                         <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
@@ -291,7 +382,8 @@ export default function LecturerList() {
                     </button>
                     <button
                       onClick={() => handleDeleteLecturer(lecturer._id)}
-                      className="text-red-500 hover:text-red-600"
+                      className="text-red-500 hover:text-red-600 transition-colors duration-150"
+                      title="Delete"
                     >
                       <svg
                         xmlns="http://www.w3.org/2000/svg"

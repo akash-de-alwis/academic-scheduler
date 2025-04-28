@@ -1,193 +1,110 @@
-import { Link, useLocation, useNavigate } from "react-router-dom"; // Added useNavigate
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Home, Users, Calendar, Briefcase, FileText, LogOut } from "lucide-react";
+import { useState } from "react";
 
 export default function Sidebar() {
   const location = useLocation();
-  const navigate = useNavigate(); // Added navigate hook
+  const navigate = useNavigate();
+  const [isCollapsed, setIsCollapsed] = useState(false);
 
   const isActive = (path) => {
     return location.pathname === path;
   };
 
-  // Logout handler
   const handleLogout = () => {
-    localStorage.removeItem('token'); // Remove token from localStorage
-    navigate('/LoginPage'); // Redirect to login page
+    localStorage.removeItem('token');
+    navigate('/LoginPage');
+  };
+
+  const navItems = [
+    { path: "/lecHome", name: "Home", icon: <Home className="h-5 w-5" /> },
+    { path: "/lecturers", name: "Lecturers", icon: <Users className="h-5 w-5" /> },
+    { path: "/batches", name: "Batches", icon: <Calendar className="h-5 w-5" /> },
+    { path: "/allocations", name: "Allocations", icon: <Calendar className="h-5 w-5" /> },
+    { path: "/LecturerWorkload", name: "Workload", icon: <Briefcase className="h-5 w-5" /> },
+    { path: "/PrintableReports", name: "Reports", icon: <FileText className="h-5 w-5" /> },
+  ];
+
+  const toggleSidebar = () => {
+    setIsCollapsed(!isCollapsed);
   };
 
   return (
-    <div className="fixed top-0 left-0 h-screen bg-[#FFFFFF] border-r border-[#E2E8F0] w-64 shadow-md overflow-y-auto z-10">
-      <div className="p-6">
-        {/* Title Section */}
-        <h2 className="text-2xl font-bold text-[#1B365D] mb-8">
-          Academic Scheduler
-        </h2>
-
-        {/* Navigation */}
-        <nav className="space-y-2">
-          <Link
-            to="/lecHome"
-            className={`flex items-center py-3 px-4 rounded-lg text-[#1B365D] hover:bg-[#F5F7FA] hover:shadow-sm transition-all duration-300 ${
-              isActive("/lecHome")
-                ? "bg-[#1B365D] text-[#FFFFFF] hover:bg-[#1B365D]/90 font-semibold"
-                : "font-medium"
-            }`}
+    <div
+      className={`fixed top-0 left-0 h-screen bg-[#FFFFFF] border-r border-[#EDEFF2] shadow-lg transition-all duration-300 z-10 ${
+        isCollapsed ? "w-16" : "w-72"
+      }`}
+    >
+      {/* Header */}
+      <div className="flex items-center justify-between p-4 bg-gradient-to-r from-[#1B365D] to-[#2A4A7A] text-white shadow-md">
+        {!isCollapsed && (
+          <h2 className="text-xl font-semibold tracking-tight">Academic Scheduler</h2>
+        )}
+        <button
+          onClick={toggleSidebar}
+          className="p-1 rounded-full hover:bg-[#FFFFFF]/10 focus:outline-none"
+        >
+          <svg
+            className="h-5 w-5"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+            xmlns="http://www.w3.org/2000/svg"
           >
-            <div className="w-8 h-8 flex items-center justify-center mr-3">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-5 w-5"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                />
-              </svg>
-            </div>
-            Home
-          </Link>
-
-          <Link
-            to="/lecturers"
-            className={`flex items-center py-3 px-4 rounded-lg text-[#1B365D] hover:bg-[#F5F7FA] hover:shadow-sm transition-all duration-300 ${
-              isActive("/lecturers")
-                ? "bg-[#1B365D] text-[#FFFFFF] hover:bg-[#1B365D]/90 font-semibold"
-                : "font-medium"
-            }`}
-          >
-            <div className="w-8 h-8 flex items-center justify-center mr-3">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-5 w-5"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                />
-              </svg>
-            </div>
-            Lecturers
-          </Link>
-
-          <Link
-            to="/batches"
-            className={`flex items-center py-3 px-4 rounded-lg text-[#1B365D] hover:bg-[#F5F7FA] hover:shadow-sm transition-all duration-300 ${
-              isActive("/batches")
-                ? "bg-[#1B365D] text-[#FFFFFF] hover:bg-[#1B365D]/90 font-semibold"
-                : "font-medium"
-            }`}
-          >
-            <div className="w-8 h-8 flex items-center justify-center mr-3">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-5 w-5"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
-                />
-              </svg>
-            </div>
-            Batches
-          </Link>
-
-          <Link
-            to="/allocations"
-            className={`flex items-center py-3 px-4 rounded-lg text-[#1B365D] hover:bg-[#F5F7FA] hover:shadow-sm transition-all duration-300 ${
-              isActive("/allocations")
-                ? "bg-[#1B365D] text-[#FFFFFF] hover:bg-[#1B365D]/90 font-semibold"
-                : "font-medium"
-            }`}
-          >
-            <div className="w-8 h-8 flex items-center justify-center mr-3">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-5 w-5"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                />
-              </svg>
-            </div>
-            Allocations
-          </Link>
-
-          <Link
-            to="/PrintableReports"
-            className={`flex items-center py-3 px-4 rounded-lg text-[#1B365D] hover:bg-[#F5F7FA] hover:shadow-sm transition-all duration-300 ${
-              isActive("/PrintableReports")
-                ? "bg-[#1B365D] text-[#FFFFFF] hover:bg-[#1B365D]/90 font-semibold"
-                : "font-medium"
-            }`}
-          >
-            <div className="w-8 h-8 flex items-center justify-center mr-3">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-5 w-5"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
-                />
-              </svg>
-            </div>
-            Reports
-          </Link>
-
-          {/* Added Logout Navigation Item */}
-          <button
-            onClick={handleLogout}
-            className={`flex items-center py-3 px-4 rounded-lg text-[#1B365D] hover:bg-[#F5F7FA] hover:shadow-sm transition-all duration-300 w-full text-left ${
-              isActive("/LoginPage")
-                ? "bg-[#1B365D] text-[#FFFFFF] hover:bg-[#1B365D]/90 font-semibold"
-                : "font-medium"
-            }`}
-          >
-            <div className="w-8 h-8 flex items-center justify-center mr-3">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-5 w-5"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
-                />
-              </svg>
-            </div>
-            Logout
-          </button>
-        </nav>
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d={isCollapsed ? "M9 5h10M9 12h10M9 19h10" : "M4 6h16M4 12h16M4 18h16"}
+            />
+          </svg>
+        </button>
       </div>
+
+      {/* Navigation */}
+      <nav className="mt-6 space-y-1 px-2">
+        {navItems.map((item) => (
+          <Link
+            key={item.path}
+            to={item.path}
+            className={`flex items-center py-3 px-4 rounded-lg text-[#1B365D] transition-all duration-200 ${
+              isActive(item.path)
+                ? "bg-[#1B365D] text-white shadow-md"
+                : "hover:bg-[#F5F7FA] hover:text-[#1B365D]/90"
+            }`}
+            title={isCollapsed ? item.name : ""}
+          >
+            <div className="flex items-center justify-center w-8 h-8">
+              {item.icon}
+            </div>
+            {!isCollapsed && (
+              <span className={`ml-3 text-sm ${isActive(item.path) ? "font-semibold" : "font-medium"}`}>
+                {item.name}
+              </span>
+            )}
+          </Link>
+        ))}
+
+        {/* Logout Button */}
+        <button
+          onClick={handleLogout}
+          className={`flex items-center py-3 px-4 rounded-lg text-[#1B365D] transition-all duration-200 w-full ${
+            isActive("/LoginPage")
+              ? "bg-[#1B365D] text-white shadow-md"
+              : "hover:bg-[#F5F7FA] hover:text-[#1B365D]/90"
+          }`}
+          title={isCollapsed ? "Logout" : ""}
+        >
+          <div className="flex items-center justify-center w-8 h-8">
+            <LogOut className="h-5 w-5" />
+          </div>
+          {!isCollapsed && (
+            <span className={`ml-3 text-sm ${isActive("/LoginPage") ? "font-semibold" : "font-medium"}`}>
+              Logout
+            </span>
+          )}
+        </button>
+      </nav>
     </div>
   );
 }

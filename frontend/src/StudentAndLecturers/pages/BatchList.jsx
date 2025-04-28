@@ -10,11 +10,8 @@ export default function BatchList() {
   const [editingBatch, setEditingBatch] = useState(null);
   const [newBatch, setNewBatch] = useState({
     batchName: "",
+    batchNo: "BT001",
     intake: "Regular",
-    batchNoPrefix: "BT",
-    batchNo1: "",
-    batchNo2: "",
-    batchNo3: "",
     year: "",
     semester: "Semester1",
     department: "Information Technology",
@@ -24,7 +21,7 @@ export default function BatchList() {
     scheduleType: "Weekdays",
   });
   const [formErrors, setFormErrors] = useState({});
-  const [duplicateBatchNoError, setDuplicateBatchNoError] = useState("");
+  const [batchError, setBatchError] = useState(""); // Changed to more generic name
   const [filters, setFilters] = useState({
     department: "",
     scheduleType: "",
@@ -32,8 +29,16 @@ export default function BatchList() {
   });
   const [searchQuery, setSearchQuery] = useState("");
   const [sortOrder, setSortOrder] = useState("asc");
+  const [toast, setToast] = useState({ message: "", visible: false });
 
   const navigate = useNavigate();
+
+  const showToast = (message) => {
+    setToast({ message, visible: true });
+    setTimeout(() => {
+      setToast((prev) => ({ ...prev, visible: false }));
+    }, 3000);
+  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -42,6 +47,9 @@ export default function BatchList() {
         const allocationsRes = await axios.get("http://localhost:5000/api/allocations");
         setBatches(batchesRes.data);
         setAllocations(allocationsRes.data);
+        
+        const nextBatchNo = generateNextBatchNo(batchesRes.data);
+        setNewBatch(prev => ({ ...prev, batchNo: nextBatchNo }));
       } catch (error) {
         console.error("Error fetching data:", error);
       }
@@ -56,15 +64,16 @@ export default function BatchList() {
       "Business Studies": "BS",
     };
 
-    if (newBatch.department && newBatch.startDate) {
-      const year = new Date(newBatch.startDate).getFullYear().toString();
+    if (newBatch.department && newBatch.year && newBatch.semester) {
       const deptCode = deptMap[newBatch.department];
+      const yearNum = `Y${newBatch.year}`;
+      const semesterCode = newBatch.semester === "Semester1" ? "S1" : "S2";
       setNewBatch((prev) => ({
         ...prev,
-        batchName: `${deptCode}-${year}`,
+        batchName: `${deptCode} ${yearNum} ${semesterCode}`,
       }));
     }
-  }, [newBatch.department, newBatch.startDate]);
+  }, [newBatch.department, newBatch.year, newBatch.semester]);
 
   const formatDate = (dateString) => {
     if (!dateString) return "";
@@ -81,9 +90,6 @@ export default function BatchList() {
   const validateForm = () => {
     const errors = {};
     const requiredFields = [
-      "batchNo1",
-      "batchNo2",
-      "batchNo3",
       "year",
       "studentCount",
       "startDate",
@@ -99,16 +105,6 @@ export default function BatchList() {
         errors[field] = "This field is required";
       }
     });
-
-    if (newBatch.batchNo1 && !/^\d+$/.test(newBatch.batchNo1)) {
-      errors.batchNo1 = "Must be numbers only";
-    }
-    if (newBatch.batchNo2 && !/^\d+$/.test(newBatch.batchNo2)) {
-      errors.batchNo2 = "Must be numbers only";
-    }
-    if (newBatch.batchNo3 && !/^\d+$/.test(newBatch.batchNo3)) {
-      errors.batchNo3 = "Must be numbers only";
-    }
 
     if (
       newBatch.studentCount &&
@@ -129,34 +125,54 @@ export default function BatchList() {
     return Object.keys(errors).length === 0;
   };
 
+  const generateNextBatchNo = (existingBatches) => {
+    try {
+      if (!existingBatches || existingBatches.length === 0) {
+        return "BT001";
+      }
+      const lastBatch = existingBatches.sort((a, b) => 
+        b.batchNo.localeCompare(a.batchNo)
+      )[0];
+      const lastNum = lastBatch ? parseInt(lastBatch.batchNo.slice(2)) : 0;
+      const nextNum = lastNum + 1;
+      return `BT${nextNum.toString().padStart(3, '0')}`;
+    } catch (error) {
+      console.error("Error generating batch number:", error);
+      return "BT001";
+    }
+  };
+
   const handleSaveBatch = async () => {
     if (!validateForm()) return;
 
     try {
       const batchData = {
         ...newBatch,
-        batchNo: `${newBatch.batchNoPrefix}${newBatch.batchNo1}${newBatch.batchNo2}${newBatch.batchNo3}`,
+        year: parseInt(newBatch.year),
       };
 
-      setDuplicateBatchNoError("");
+      setBatchError("");
 
       if (editingBatch) {
         const res = await axios.put(`http://localhost:5000/api/batches/${editingBatch._id}`, batchData);
         setBatches((prevBatches) =>
           prevBatches.map((batch) => (batch._id === editingBatch._id ? res.data : batch))
         );
+        showToast("Batch updated successfully!");
       } else {
         const res = await axios.post("http://localhost:5000/api/batches", batchData);
         setBatches((prevBatches) => [...prevBatches, res.data]);
+        showToast("Batch created successfully!");
+        
+        const nextBatchNo = generateNextBatchNo([...batches, res.data]);
+        setNewBatch(prev => ({ ...prev, batchNo: nextBatchNo }));
       }
+
       setShowForm(false);
       setNewBatch({
         batchName: "",
+        batchNo: newBatch.batchNo,
         intake: "Regular",
-        batchNoPrefix: "BT",
-        batchNo1: "",
-        batchNo2: "",
-        batchNo3: "",
         year: "",
         semester: "Semester1",
         department: "Information Technology",
@@ -168,10 +184,12 @@ export default function BatchList() {
       setEditingBatch(null);
       setFormErrors({});
     } catch (err) {
-      if (err.response && err.response.data.message === "Batch ID already exists") {
-        setDuplicateBatchNoError("Batch ID already exists");
+      if (err.response && err.response.data && err.response.data.message) {
+        // Display the exact error message from the backend
+        setBatchError(err.response.data.message);
       } else {
-        console.log(err.response ? err.response.data : err);
+        console.error("Error saving batch:", err);
+        setBatchError("An unexpected error occurred while saving the batch");
       }
     }
   };
@@ -181,25 +199,20 @@ export default function BatchList() {
       await axios.delete(`http://localhost:5000/api/batches/${id}`);
       setBatches(batches.filter((batch) => batch._id !== id));
     } catch (err) {
-      console.log(err.response ? err.response.data : err);
+      console.error("Error deleting batch:", err);
     }
   };
 
   const handleEdit = (batch) => {
-    const batchNoParts = batch.batchNo.match(/BT(\d)(\d)(\d)/);
     setNewBatch({
       ...batch,
-      batchNoPrefix: "BT",
-      batchNo1: batchNoParts ? batchNoParts[1] : "",
-      batchNo2: batchNoParts ? batchNoParts[2] : "",
-      batchNo3: batchNoParts ? batchNoParts[3] : "",
       startDate: formatDateForInput(batch.startDate),
       endDate: formatDateForInput(batch.endDate),
       year: batch.year.toString(),
     });
     setEditingBatch(batch);
     setShowForm(true);
-    setDuplicateBatchNoError("");
+    setBatchError("");
   };
 
   const isBatchAllocated = (batchNo) => {
@@ -246,7 +259,7 @@ export default function BatchList() {
   };
 
   return (
-    <div className="min-h-screen p-8 bg-[#FFFFFF]">
+    <div className="min-h-screen p-8 bg-[#FFFFFF] relative">
       <style>
         {`
           @keyframes fadeIn {
@@ -263,6 +276,43 @@ export default function BatchList() {
           }
           .animate-blink {
             animation: blink 1s infinite;
+          }
+          @keyframes popIn {
+            0% { transform: translateX(100%) scale(0.8); opacity: 0; }
+            60% { transform: translateX(0) scale(1.05); opacity: 1; }
+            100% { transform: translateX(0) scale(1); opacity: 1; }
+          }
+          @keyframes popOut {
+            0% { transform: translateX(0) scale(1); opacity: 1; }
+            40% { transform: translateX(0) scale(1.05); opacity: 1; }
+            100% { transform: translateX(100%) scale(0.8); opacity: 0; }
+          }
+          .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 12px 20px;
+            background: linear-gradient(135deg, #1B365D 0%, #3B5A9A 100%);
+            color: #E6ECF5;
+            border-radius: 8px;
+            box-shadow: 0 6px 16px rgba(27, 54, 93, 0.4);
+            font-size: 0.95rem;
+            font-weight: 600;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+          }
+          .toast.show {
+            animation: popIn 0.5s ease-out forwards;
+          }
+          .toast.hide {
+            animation: popOut 0.5s ease-out forwards;
+          }
+          .toast-icon {
+            width: 20px;
+            height: 20px;
           }
         `}
       </style>
@@ -302,6 +352,7 @@ export default function BatchList() {
             onClick={() => {
               setShowForm(true);
               setEditingBatch(null);
+              setBatchError("");
             }}
             className="bg-[#1B365D] text-[#FFFFFF] px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-[#1B365D]/90"
           >
@@ -309,6 +360,15 @@ export default function BatchList() {
           </button>
         </div>
       </div>
+
+      {toast.visible && (
+        <div className={`toast ${toast.visible ? "show" : "hide"}`}>
+          <svg className="toast-icon" fill="none" stroke="#E6ECF5" viewBox="0 0 24 24" strokeWidth="2">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+          </svg>
+          {toast.message}
+        </div>
+      )}
 
       <div className="flex justify-between gap-4 mb-8">
         <input
@@ -578,8 +638,11 @@ export default function BatchList() {
                       value={newBatch.batchName}
                       readOnly
                       className="w-full p-2 border border-[#F5F7FA] rounded-lg bg-[#F5F7FA] text-[#1B365D] opacity-70"
-                      placeholder="Will be generated based on department and start date"
+                      placeholder="Will be generated based on dept, year, semester"
                     />
+                    {batchError && batchError.toLowerCase().includes("batch name") && (
+                      <p className="text-red-500 text-xs mt-1">{batchError}</p>
+                    )}
                   </div>
                   <div>
                     <label className="block text-sm font-medium mb-2 text-[#1B365D]">Intake *</label>
@@ -598,67 +661,36 @@ export default function BatchList() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium mb-2 text-[#1B365D]">Batch Number *</label>
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      value={newBatch.batchNoPrefix}
-                      readOnly
-                      className="w-16 p-2 border border-[#F5F7FA] rounded-lg bg-[#F5F7FA] text-[#1B365D] opacity-70 text-center"
-                    />
-                    <input
-                      type="text"
-                      value={newBatch.batchNo1}
-                      onChange={(e) => setNewBatch({ ...newBatch, batchNo1: e.target.value })}
-                      maxLength={1}
-                      className={`w-12 p-2 border border-[#F5F7FA] rounded-lg bg-[#F5F7FA] text-[#1B365D] text-center ${
-                        formErrors.batchNo1 ? "border-red-500" : ""
-                      }`}
-                      placeholder="0"
-                    />
-                    <input
-                      type="text"
-                      value={newBatch.batchNo2}
-                      onChange={(e) => setNewBatch({ ...newBatch, batchNo2: e.target.value })}
-                      maxLength={1}
-                      className={`w-12 p-2 border border-[#F5F7FA] rounded-lg bg-[#F5F7FA] text-[#1B365D] text-center ${
-                        formErrors.batchNo2 ? "border-red-500" : ""
-                      }`}
-                      placeholder="0"
-                    />
-                    <input
-                      type="text"
-                      value={newBatch.batchNo3}
-                      onChange={(e) => setNewBatch({ ...newBatch, batchNo3: e.target.value })}
-                      maxLength={1}
-                      className={`w-12 p-2 border border-[#F5F7FA] rounded-lg bg-[#F5F7FA] text-[#1B365D] text-center ${
-                        formErrors.batchNo3 ? "border-red-500" : ""
-                      }`}
-                      placeholder="0"
-                    />
-                  </div>
-                  {(formErrors.batchNo1 || formErrors.batchNo2 || formErrors.batchNo3) && (
-                    <p className="text-red-500 text-xs mt-1">
-                      {formErrors.batchNo1 || formErrors.batchNo2 || formErrors.batchNo3}
-                    </p>
-                  )}
-                  {duplicateBatchNoError && (
-                    <p className="text-red-500 text-xs mt-1">{duplicateBatchNoError}</p>
+                  <label className="block text-sm font-medium mb-2 text-[#1B365D]">
+                    Batch Number (Auto-generated)
+                  </label>
+                  <input
+                    type="text"
+                    value={newBatch.batchNo}
+                    readOnly
+                    className="w-full p-2 border border-[#F5F7FA] rounded-lg bg-[#F5F7FA] text-[#1B365D] opacity-70"
+                  />
+                  {batchError && batchError.toLowerCase().includes("batch id") && (
+                    <p className="text-red-500 text-xs mt-1">{batchError}</p>
                   )}
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium mb-2 text-[#1B365D]">Year *</label>
-                    <input
-                      type="number"
+                    <select
                       value={newBatch.year}
                       onChange={(e) => setNewBatch({ ...newBatch, year: e.target.value })}
                       className={`w-full p-2 border border-[#F5F7FA] rounded-lg bg-[#F5F7FA] text-[#1B365D] ${
                         formErrors.year ? "border-red-500" : ""
                       }`}
-                      placeholder="e.g., 2025"
-                    />
+                    >
+                      <option value="">Select Year</option>
+                      <option value="1">Year 1</option>
+                      <option value="2">Year 2</option>
+                      <option value="3">Year 3</option>
+                      <option value="4">Year 4</option>
+                    </select>
                     {formErrors.year && <p className="text-red-500 text-xs mt-1">{formErrors.year}</p>}
                   </div>
                   <div>
@@ -771,6 +803,12 @@ export default function BatchList() {
                     <p className="text-red-500 text-xs mt-1">{formErrors.scheduleType}</p>
                   )}
                 </div>
+
+                {/* Display general errors not related to batch name or ID */}
+                {batchError && !batchError.toLowerCase().includes("batch name") && 
+                 !batchError.toLowerCase().includes("batch id") && (
+                  <p className="text-red-500 text-xs mt-1">{batchError}</p>
+                )}
               </div>
             </div>
 
