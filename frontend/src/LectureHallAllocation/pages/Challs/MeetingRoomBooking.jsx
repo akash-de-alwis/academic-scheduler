@@ -3,6 +3,8 @@ import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { User, Calendar, BookOpen, Home, Users, ArrowLeft, LogOut, Clock } from "lucide-react";
 import { Link } from "react-router-dom";
+import { ToastContainer, toast } from "react-toastify"; // Import react-toastify
+import "react-toastify/dist/ReactToastify.css"; // Import the CSS
 
 export default function MeetingRoomBooking() {
   const [meetingRooms, setMeetingRooms] = useState([]);
@@ -138,7 +140,10 @@ export default function MeetingRoomBooking() {
 
     try {
       await axios.post("http://localhost:5000/api/bookings", formData);
-      alert("Booking submitted successfully! Status: Under Review");
+      toast.success("Booking submitted successfully! Status: Under Review", {
+        position: "top-right",
+        autoClose: 3000,
+      });
       setFormData({
         department: "",
         floor: "",
@@ -155,7 +160,10 @@ export default function MeetingRoomBooking() {
       navigate("/BookingManagement");
     } catch (err) {
       console.error(err.response ? err.response.data : err);
-      alert("Booking submission failed: " + (err.response?.data?.message || "Unknown error"));
+      toast.error("Booking submission failed: " + (err.response?.data?.message || "Unknown error"), {
+        position: "top-right",
+        autoClose: 5000,
+      });
     }
   };
 
@@ -546,6 +554,19 @@ export default function MeetingRoomBooking() {
           </form>
         </div>
       </main>
+
+      {/* Toast Container */}
+      <ToastContainer
+        position="top-right"
+        autoClose={5000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+      />
     </div>
   );
 }
