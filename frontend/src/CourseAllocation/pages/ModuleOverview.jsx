@@ -486,6 +486,8 @@
                   )}
                   <p className="text-xs text-gray-500 mt-1">Range: 1-100</p>
                 </div>
+
+                
               </div>
 
               <button
