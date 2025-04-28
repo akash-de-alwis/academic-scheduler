@@ -1,79 +1,73 @@
-Academic Scheduler
-A web application designed to help students manage their academic schedules, including course planning, assignment tracking, and deadline reminders. Integrated with Google Calendar API for seamless event synchronization and built with a modern, responsive interface.
-Table of Contents
+# Academic Scheduler
 
-Features
-Tech Stack
-Screenshots
-Installation
-Usage
-Contributing
-License
+A web application designed to help students manage their academic schedules, including course planning, assignment tracking, and deadline reminders. Integrated with calendar APIs for seamless organization and built with a modern tech stack for a responsive and intuitive user experience.
 
-Features
+## Features
+- **Course Planning**: Organize and view course schedules with ease.
+- **Assignment Tracking**: Keep track of assignments and their due dates.
+- **Deadline Reminders**: Receive timely notifications for upcoming deadlines.
+- **Calendar Integration**: Sync with Google Calendar for seamless event management.
+- **Responsive Design**: Accessible on both desktop and mobile devices.
 
-Course Planning: Organize and view course schedules with ease.
-Assignment Tracking: Track assignments and deadlines with reminders.
-Calendar Integration: Sync events with Google Calendar using the Google Calendar API.
-Responsive Design: User-friendly interface optimized for desktop and mobile devices.
-Real-Time Updates: Efficient state management for dynamic content updates.
+## Tech Stack
+- **Front-End**: React, JavaScript, Tailwind CSS
+- **Back-End**: Node.js, Express
+- **Database**: MongoDB
+- **APIs**: Google Calendar API, REST APIs
 
-Tech Stack
+## Screenshots
+![FireShot Capture 005 - Vite + React -  localhost](https://github.com/user-attachments/assets/ccf7c0c8-c573-4c43-aff2-cad7fd8d0aa0)
+*Dashboard showing course schedule and upcoming assignments*
 
-Frontend: React, JavaScript, Tailwind CSS
-Backend: Node.js, Express
-Database: MongoDB
-APIs: Google Calendar API, REST APIs
+![FireShot Capture 008 - Vite + React -  localhost](https://github.com/user-attachments/assets/cd3d8673-6397-4ca0-b114-aad3f9cfe7c2)
+*Assignment tracker with deadline reminders*
 
-Screenshots
-Dashboard View
-![FireShot Capture 005 - Vite + React -  localhost](https://github.com/user-attachments/assets/82797d39-bd87-473e-aec3-5e67a42590b3)
+## Installation
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/username/AcademicScheduler.git
+   ```
+2. Navigate to the project directory:
+   ```bash
+   cd AcademicScheduler
+   ```
+3. Install dependencies for both front-end and back-end:
+   ```bash
+   npm install
+   cd client && npm install
+   ```
+4. Set up environment variables:
+   - Create a `.env` file in the root directory.
+   - Add the following:
+     ```
+     MONGODB_URI=your_mongodb_connection_string
+     GOOGLE_API_KEY=your_google_api_key
+     ```
+5. Run the application:
+   ```bash
+   npm run dev
+   ```
+   - The back-end will run on `http://localhost:5000`.
+   - The front-end will run on `http://localhost:3000`.
 
-Overview of the academic scheduler dashboard showing course schedules and upcoming deadlines.
-![FireShot Capture 005 - Vite + React -  localhost](https://github.com/user-attachments/assets/82797d39-bd87-473e-aec3-5e67a42590b3)
+## Usage
+- Access the app via `http://localhost:3000` in your browser.
+- Log in or sign up to start managing your academic schedule.
+- Sync with Google Calendar to import or export events.
+- Add courses, assignments, and deadlines through the intuitive dashboard.
 
-Assignment Tracker
-Assignment tracking page with filters and deadline reminders.
-Installation
+## Project Duration
+March 2024 – April 2024
 
-Clone the repository:git clone https://github.com/username/AcademicScheduler.git
+## Role
+Full-Stack Developer
 
+## Contributing
+1. Fork the repository.
+2. Create a new branch (`git checkout -b feature-branch`).
+3. Commit your changes (`git commit -m 'Add new feature'`).
+4. Push to the branch (`git push origin feature-branch`).
+5. Open a Pull Request.
 
-Navigate to the project directory:cd AcademicScheduler
-
-
-Install dependencies for both frontend and backend:npm install
-cd client && npm install
-
-
-Set up environment variables:
-Create a .env file in the root directory.
-Add the following:MONGO_URI=your_mongodb_connection_string
-GOOGLE_CLIENT_ID=your_google_client_id
-GOOGLE_CLIENT_SECRET=your_google_client_secret
-
-
-
-
-Start the backend server:npm run server
-
-
-Start the frontend development server:cd client && npm start
-
-
-
-Usage
-
-Access the application at http://localhost:3000.
-Log in with Google to enable calendar synchronization.
-Add courses, assignments, and deadlines via the dashboard.
-View synced events on your Google Calendar.
-
-Contributing
-Contributions are welcome! Please follow these steps:
-
-Fork the repository.
-Create a new branch (git checkout -b feature/your-feature).
-Commit your changes (git commit -m 'Add your feature').
-Push to the branch (git push origin feature/your-feature).
-Open a pull request.
+## Contact
+For any questions or suggestions, feel free to reach out via [GitHub Issues](https://github.com/akash-de-alwis/AcademicScheduler/issues).
