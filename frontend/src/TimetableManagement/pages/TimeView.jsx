@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
 import { useLocation } from "react-router-dom";
+import { motion } from "framer-motion";
 
-export default function Timeview() {
+export default function TimeView() {
   const [timetable, setTimetable] = useState(null);
   const [loading, setLoading] = useState(true);
   const location = useLocation();
@@ -15,10 +16,7 @@ export default function Timeview() {
 
   const weekDays = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 
-  const timeToHour = (timeStr) => {
-    const [hours] = timeStr.split(":").map(Number);
-    return hours;
-  };
+  const timeToHour = (timeStr) => parseInt(timeStr.split(":")[0], 10);
 
   useEffect(() => {
     if (batch) {
@@ -29,7 +27,7 @@ export default function Timeview() {
   const fetchPublishedTimetable = async () => {
     try {
       const response = await axios.get("http://localhost:5000/api/timetable/published-timetable", {
-        params: { batch }
+        params: { batch },
       });
       setTimetable(response.data);
       setLoading(false);
@@ -94,40 +92,52 @@ export default function Timeview() {
 
   if (loading) {
     return (
-      <div className="min-h-screen p-8 bg-white flex items-center justify-center">
-        <p className="text-[#1B365D] text-lg">Loading timetable...</p>
+      <div className="min-h-screen p-8 bg-gradient-to-br from-gray-100 to-gray-50 flex items-center justify-center">
+        <motion.div
+          animate={{ rotate: 360 }}
+          transition={{ repeat: Infinity, duration: 1 }}
+          className="w-10 h-10 border-4 border-t-[#1B365D] border-gray-200 rounded-full"
+        />
       </div>
     );
   }
 
   if (!timetable || !timetable.schedules) {
     return (
-      <div className="min-h-screen p-8 bg-white flex items-center justify-center">
-        <p className="text-[#1B365D] text-lg">No timetable found for batch: {batch}</p>
+      <div className="min-h-screen p-8 bg-gradient-to-br from-gray-100 to-gray-50 flex items-center justify-center">
+        <p className="text-[#1B365D] text-lg font-semibold">No timetable found for batch: {batch}</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen p-8 bg-white">
-      <div className="mb-8">
-        <h2 className="text-2xl font-bold text-[#1B365D]">Published Timetable - Batch {batch}</h2>
-      </div>
+    <div className="min-h-screen p-8 bg-gradient-to-br from-gray-100 to-gray-50">
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        className="mb-8"
+      >
+        <h2 className="text-3xl font-bold text-[#1B365D] tracking-tight">Published Timetable - Batch {batch}</h2>
+      </motion.div>
 
-      <div className="overflow-x-auto">
-        <div className="min-w-[1200px]">
-          <table className="w-full border-collapse bg-[#F5F7FA] rounded-lg border-2 border-gray-300">
-            <thead>
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.2, duration: 0.5 }}
+        className="overflow-x-auto"
+      >
+        <div className="min-w-[1200px] shadow-xl rounded-xl overflow-hidden bg-white border border-gray-200">
+          <table className="w-full border-collapse">
+            <thead className="bg-gradient-to-r from-[#1B365D] to-[#2A4A7A] text-white">
               <tr>
-                <th className="p-4 font-medium text-[#1B365D] border-b-2 border-r-2 border-gray-300 text-left">
+                <th className="p-4 font-semibold text-left sticky left-0 z-20 bg-gradient-to-r from-[#1B365D] to-[#2A4A7A] border-b border-r border-[#2A4A7A]">
                   Time
                 </th>
                 {weekDays.map((day, index) => (
                   <th
                     key={day}
-                    className={`p-4 font-medium text-[#1B365D] text-center border-b-2 ${
-                      index < weekDays.length - 1 ? "border-r-2" : ""
-                    } border-gray-300`}
+                    className={`p-4 font-semibold text-center border-b ${index < weekDays.length - 1 ? "border-r" : ""} border-[#2A4A7A]`}
                   >
                     {day}
                   </th>
@@ -136,11 +146,12 @@ export default function Timeview() {
             </thead>
             <tbody>
               {timeSlots.map((time, timeIndex) => (
-                <tr key={`time-${time}`}>
+                <tr
+                  key={`time-${time}`}
+                  className={`transition-colors ${timeIndex % 2 === 0 ? "bg-gray-50" : "bg-white"}`}
+                >
                   <td
-                    className={`p-4 text-[#1B365D] border-r-2 ${
-                      timeIndex < timeSlots.length - 1 ? "border-b-2" : ""
-                    } border-gray-300`}
+                    className="p-4 text-[#1B365D] font-semibold text-sm sticky left-0 z-10 bg-inherit border-r border-b border-gray-200"
                   >
                     {time}
                   </td>
@@ -150,31 +161,32 @@ export default function Timeview() {
                     return (
                       <td
                         key={`${day}-${time}`}
-                        className={`p-2 ${
-                          dayIndex < weekDays.length - 1 ? "border-r-2" : ""
-                        } ${
-                          timeIndex < timeSlots.length - 1 ? "border-b-2" : ""
-                        } border-gray-300 align-top`}
+                        className={`p-3 border-b border-r border-gray-200 align-top`}
                         rowSpan={cell.isStart ? cell.rowSpan : 1}
                       >
                         {cell.isStart && cell.schedule && cell.subject && (
-                          <div className="bg-white rounded-lg p-3 h-full shadow-md border-l-4 border-[#1B365D]">
-                            <div className="font-medium text-[#1B365D] mb-1">
-                              {cell.subject.subjectName}
+                          <motion.div
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            transition={{ duration: 0.3 }}
+                            className="bg-gradient-to-br from-[#F9FAFB] to-[#E5E7EB] rounded-lg p-4 shadow-sm border-l-4 border-[#1B365D]"
+                          >
+                            <div className="flex justify-between items-start">
+                              <div className="font-bold text-[#1B365D] text-lg mb-2">{cell.subject.subjectName}</div>
+                              <span className="text-xs bg-[#1B365D] text-white px-2 py-1 rounded-full">
+                                {cell.subject.duration} hr{cell.subject.duration > 1 ? "s" : ""}
+                              </span>
                             </div>
-                            <div className="text-sm text-gray-600 mb-1">
-                              <span className="font-medium">Lecturer:</span> {cell.subject.lecturer}
+                            <div className="text-sm text-gray-800 mb-1">
+                              <span className="font-medium text-[#2A4A7A]">Lecturer:</span> {cell.subject.lecturer}
                             </div>
-                            <div className="text-sm text-gray-600 mb-1">
-                              <span className="font-medium">Room:</span> {cell.subject.room}
+                            <div className="text-sm text-gray-800 mb-1">
+                              <span className="font-medium text-[#2A4A7A]">Room:</span> {cell.subject.room}
                             </div>
-                            <div className="text-sm text-gray-600 mb-1">
-                              <span className="font-medium">Batch:</span> {cell.schedule.batch}
+                            <div className="text-sm text-gray-800 mb-3">
+                              <span className="font-medium text-[#2A4A7A]">Batch:</span> {cell.schedule.batch}
                             </div>
-                            <div className="text-sm text-gray-600 mb-2">
-                              <span className="font-medium">Duration:</span> {cell.subject.duration} hr(s)
-                            </div>
-                          </div>
+                          </motion.div>
                         )}
                       </td>
                     );
@@ -184,7 +196,7 @@ export default function Timeview() {
             </tbody>
           </table>
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 }
