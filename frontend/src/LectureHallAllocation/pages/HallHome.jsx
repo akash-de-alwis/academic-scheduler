@@ -113,6 +113,8 @@ const HallHome = () => {
       } catch (err) {
         console.error("Failed to fetch dashboard data:", err);
       }
+   
+   
     };
 
     fetchData();
