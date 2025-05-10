@@ -1,9 +1,10 @@
-import { Link, useLocation } from "react-router-dom";
-import { Home, Building, Calendar, Users, AlertTriangle } from "lucide-react";
+import { Link, useLocation, useNavigate } from "react-router-dom"; // Added useNavigate
+import { Home, Building, Calendar, Users, AlertTriangle, LogOut } from "lucide-react"; // Added LogOut icon
 import { useState } from "react";
 
 export default function HallSidebar() {
   const location = useLocation();
+  const navigate = useNavigate(); // Added navigate hook
   const [isCollapsed, setIsCollapsed] = useState(false);
 
   const isActive = (path) => {
@@ -20,6 +21,11 @@ export default function HallSidebar() {
 
   const toggleSidebar = () => {
     setIsCollapsed(!isCollapsed);
+  };
+
+  const handleLogout = () => {
+    // Add any logout logic here (e.g., clearing local storage, auth tokens)
+    navigate("/LoginPage"); // Navigate to login page
   };
 
   return (
@@ -55,28 +61,44 @@ export default function HallSidebar() {
       </div>
 
       {/* Navigation */}
-      <nav className="mt-6 space-y-1 px-2">
-        {navItems.map((item) => (
-          <Link
-            key={item.path}
-            to={item.path}
-            className={`flex items-center py-3 px-4 rounded-lg text-[#1B365D] transition-all duration-200 ${
-              isActive(item.path)
-                ? "bg-[#1B365D] text-white shadow-md"
-                : "hover:bg-[#F5F7FA] hover:text-[#1B365D]/90"
-            }`}
-            title={isCollapsed ? item.name : ""}
-          >
-            <div className="flex items-center justify-center w-8 h-8">
-              {item.icon}
-            </div>
-            {!isCollapsed && (
-              <span className={`ml-3 text-sm ${isActive(item.path) ? "font-semibold" : "font-medium"}`}>
-                {item.name}
-              </span>
-            )}
-          </Link>
-        ))}
+      <nav className="mt-6 space-y-1 px-2 flex flex-col h-[calc(100%-5rem)]"> {/* Added flex and height calculation */}
+        <div className="flex-1"> {/* Wrapper for main nav items */}
+          {navItems.map((item) => (
+            <Link
+              key={item.path}
+              to={item.path}
+              className={`flex items-center py-3 px-4 rounded-lg text-[#1B365D] transition-all duration-200 ${
+                isActive(item.path)
+                  ? "bg-[#1B365D] text-white shadow-md"
+                  : "hover:bg-[#F5F7FA] hover:text-[#1B365D]/90"
+              }`}
+              title={isCollapsed ? item.name : ""}
+            >
+              <div className="flex items-center justify-center w-8 h-8">
+                {item.icon}
+              </div>
+              {!isCollapsed && (
+                <span className={`ml-3 text-sm ${isActive(item.path) ? "font-semibold" : "font-medium"}`}>
+                  {item.name}
+                </span>
+              )}
+            </Link>
+          ))}
+        </div>
+
+        {/* Logout Button */}
+        <button
+          onClick={handleLogout}
+          className="flex items-center py-3 px-4 rounded-lg text-[#1B365D] hover:bg-[#F5F7FA] hover:text-[#1B365D]/90 transition-all duration-200"
+          title={isCollapsed ? "Logout" : ""}
+        >
+          <div className="flex items-center justify-center w-8 h-8">
+            <LogOut className="h-5 w-5" />
+          </div>
+          {!isCollapsed && (
+            <span className="ml-3 text-sm font-medium">Logout</span>
+          )}
+        </button>
       </nav>
     </div>
   );

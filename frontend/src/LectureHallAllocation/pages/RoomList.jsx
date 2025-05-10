@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
+import { ToastContainer, toast } from "react-toastify"; // Import react-toastify
+import "react-toastify/dist/ReactToastify.css"; // Import the CSS
 
 export default function RoomList() {
   const [rooms, setRooms] = useState([]);
@@ -82,7 +84,6 @@ export default function RoomList() {
   const validateForm = () => {
     const newErrors = {};
 
-    // Room ID validation
     if (!newRoom.LID.trim()) {
       newErrors.LID = "Room ID is required";
     } else if (!/^L\d{3}$/.test(newRoom.LID)) {
@@ -91,17 +92,14 @@ export default function RoomList() {
       newErrors.LID = "Room ID already exists";
     }
 
-    // Hall Type validation
     if (!["Lecturer Hall", "Laboratory", "Meeting Room"].includes(newRoom.hallType)) {
       newErrors.hallType = "Please select a valid hall type";
     }
 
-    // Department validation
     if (!["Computer Faculty", "Engineer Faculty", "Business Faculty"].includes(newRoom.department)) {
       newErrors.department = "Please select a valid department";
     }
 
-    // Floor validation
     if (!newRoom.floor.trim()) {
       newErrors.floor = "Floor is required";
     } else if (!/^-?[0-9]+$/.test(newRoom.floor)) {
@@ -113,7 +111,6 @@ export default function RoomList() {
       }
     }
 
-    // Total Seats validation
     if (!newRoom.totalSeats) {
       newErrors.totalSeats = "Total Seats is required";
     } else if (isNaN(newRoom.totalSeats) || newRoom.totalSeats <= 0) {
@@ -124,7 +121,26 @@ export default function RoomList() {
       newErrors.totalSeats = "Total Seats must be a whole number";
     }
 
-    // Total Computers validation (for Laboratory)
+    if (newRoom.hallType === "Lecturer Hall") {
+      const seats = Number(newRoom.totalSeats);
+      if (newRoom.massHall && (seats <= 50 || seats > 150)) {
+        newErrors.totalSeats = "Mass Hall must have between 51 and 150 seats";
+      }
+      if (newRoom.generalHall && (seats <= 20 || seats > 50)) {
+        newErrors.totalSeats = "General Hall must have between 21 and 50 seats";
+      }
+      if (newRoom.miniHall && (seats <= 10 || seats > 20)) {
+        newErrors.totalSeats = "Mini Hall must have between 10 and 20 seats";
+      }
+
+      const hallCategories = newRoom.massHall + newRoom.generalHall + newRoom.miniHall;
+      if (hallCategories === 0) {
+        newErrors.hallCategory = "Please select a hall category";
+      } else if (hallCategories > 1) {
+        newErrors.hallCategory = "Please select only one hall category";
+      }
+    }
+
     if (newRoom.hallType === "Laboratory") {
       if (!newRoom.totalComputers) {
         newErrors.totalComputers = "Total Computers is required for Laboratories";
@@ -139,22 +155,16 @@ export default function RoomList() {
       }
     }
 
-    // Lecturer Hall category validation
-    if (newRoom.hallType === "Lecturer Hall") {
-      const hallCategories = newRoom.massHall + newRoom.generalHall + newRoom.miniHall;
-      if (hallCategories === 0) {
-        newErrors.hallCategory = "Please select a hall category";
-      } else if (hallCategories > 1) {
-        newErrors.hallCategory = "Please select only one hall category";
-      }
-    }
-
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   const handleSaveRoom = async () => {
     if (!validateForm()) {
+      toast.error("Please fix the errors in the form before saving", {
+        position: "top-right",
+        autoClose: 3000,
+      });
       return;
     }
 
@@ -164,15 +174,27 @@ export default function RoomList() {
         const updatedRooms = rooms.map((room) => (room._id === editingRoom._id ? res.data : room));
         setRooms(updatedRooms);
         setFilteredRooms(applyFilters(updatedRooms, searchTerm, hallTypeFilter));
+        toast.success("Room updated successfully!", {
+          position: "top-right",
+          autoClose: 3000,
+        });
       } else {
         const res = await axios.post("http://localhost:5000/api/rooms", newRoom);
         const updatedRooms = [...rooms, res.data];
         setRooms(updatedRooms);
         setFilteredRooms(applyFilters(updatedRooms, searchTerm, hallTypeFilter));
+        toast.success("Room created successfully!", {
+          position: "top-right",
+          autoClose: 3000,
+        });
       }
       resetForm();
     } catch (err) {
       console.error(err.response ? err.response.data : err);
+      toast.error("Failed to save room: " + (err.response?.data?.message || "Unknown error"), {
+        position: "top-right",
+        autoClose: 5000,
+      });
     }
   };
 
@@ -182,8 +204,16 @@ export default function RoomList() {
       const updatedRooms = rooms.filter((room) => room._id !== id);
       setRooms(updatedRooms);
       setFilteredRooms(applyFilters(updatedRooms, searchTerm, hallTypeFilter));
+      toast.success("Room deleted successfully!", {
+        position: "top-right",
+        autoClose: 3000,
+      });
     } catch (err) {
       console.error(err.response ? err.response.data : err);
+      toast.error("Failed to delete room: " + (err.response?.data?.message || "Unknown error"), {
+        position: "top-right",
+        autoClose: 5000,
+      });
     }
   };
 
@@ -346,7 +376,7 @@ export default function RoomList() {
                   className={`w-full p-2 border rounded-lg ${
                     errors.LID ? 'border-red-500' : 'border-[#1B365D]'
                   } bg-[#F5F7FA] text-[#1B365D] font-medium cursor-not-allowed ring-2 ring-[#1B365D]/20`}
-                  disabled={true} // Always disabled since editingRoom can't change LID
+                  disabled={true}
                 />
                 {errors.LID && <p className="text-red-500 text-xs mt-1">{errors.LID}</p>}
                 {!editingRoom && <p className="text-gray-500 text-xs mt-1">Room ID is auto-generated</p>}
@@ -465,6 +495,19 @@ export default function RoomList() {
           </div>
         </div>
       )}
+
+      {/* Toast Container */}
+      <ToastContainer
+        position="top-right"
+        autoClose={5000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+      />
     </div>
   );
 }
