@@ -53,7 +53,7 @@ const MainHomePage = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
           {/* Module 1: Course & Subject Management */}
           <Link
-            to="/course-management"
+            to="/subjectHome"
             className="bg-[#F5F7FA] p-6 rounded-xl shadow-md hover:shadow-xl hover:-translate-y-2 transition-all duration-300"
           >
             <div className="w-12 h-12 bg-[#1B365D] text-white rounded-full flex items-center justify-center mb-4">
