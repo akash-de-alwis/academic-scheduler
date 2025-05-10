@@ -7,12 +7,16 @@ export default function SubSidebar() {
     return location.pathname === path;
   };
 
+  const handleLogout = () => {
+    localStorage.removeItem("token"); // Clear token on logout
+  };
+
   return (
     <div className="fixed top-0 left-0 h-screen bg-[#FFFFFF] border-r border-[#E2E8F0] w-64 shadow-md overflow-y-auto z-10">
-      <div className="p-6">
+      <div className="p-6 flex flex-col h-full">
         <h2 className="text-2xl font-bold text-[#1B365D] mb-8">Academic Scheduler</h2>
         
-        <nav className="space-y-2">
+        <nav className="space-y-2 flex-1">
           <Link
             to="/SubjectHome"
             className={`flex items-center py-3 px-4 rounded-lg text-[#1B365D] hover:bg-[#F5F7FA] hover:shadow-sm transition-all duration-300 ${
@@ -58,7 +62,7 @@ export default function SubSidebar() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
               </svg>
             </div>
-            Overview
+            Overview & Report
           </Link>
           
           <Link
@@ -74,9 +78,23 @@ export default function SubSidebar() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
             </div>
-            Reports
+            Subject Reports
           </Link>
         </nav>
+
+        {/* Logout Button as Link */}
+        <Link
+          to="http://localhost:5173/"
+          onClick={handleLogout}
+          className="flex items-center py-3 px-4 rounded-lg text-[#1B365D] hover:bg-[#F5F7FA] hover:shadow-sm transition-all duration-300 font-medium w-full mt-4"
+        >
+          <div className="w-8 h-8 flex items-center justify-center mr-3">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+            </svg>
+          </div>
+          Logout
+        </Link>
       </div>
     </div>
   );

@@ -153,7 +153,7 @@ export default function BookingHistory() {
                   <td colSpan="8" className="p-5 text-center text-gray-500 font-medium">
                     No past bookings found
                   </td>
-                </tr>
+                  </tr>
               )}
             </tbody>
           </table>

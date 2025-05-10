@@ -14,7 +14,6 @@ import {
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 
-// Register Chart.js components
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 
 export default function HallIssues() {
@@ -27,16 +26,6 @@ export default function HallIssues() {
   const [sortBy, setSortBy] = useState("urgency");
   const [showChart, setShowChart] = useState(false);
   const [showReport, setShowReport] = useState(false);
-
-  const allIssueOptions = [
-    "A/C malfunctions",
-    "Uncomfortable seating",
-    "Non-functional PCs",
-    "Projector/TV issues",
-    "Insufficient seats",
-    "Sound/electrical",
-    "Other issues",
-  ];
 
   useEffect(() => {
     fetchIssues();
@@ -133,29 +122,29 @@ export default function HallIssues() {
     }
   };
 
-  // Chart Data
   const getChartData = () => {
     const issueCounts = {};
-    allIssueOptions.forEach((issue) => (issueCounts[issue] = 0));
     filteredIssues.forEach((issue) => {
       issue.issues.forEach((singleIssue) => {
-        const mappedIssue = allIssueOptions.find((opt) => singleIssue.includes(opt.split(" ")[0])) || "Other issues";
-        issueCounts[mappedIssue] += 1;
+        issueCounts[singleIssue] = (issueCounts[singleIssue] || 0) + 1;
       });
     });
 
+    const uniqueIssues = Object.keys(issueCounts);
+    const issueFrequencies = Object.values(issueCounts);
+
     return {
-      labels: allIssueOptions,
+      labels: uniqueIssues.length > 0 ? uniqueIssues : ["No Issues Reported"],
       datasets: [
         {
           label: "Number of Issues",
-          data: allIssueOptions.map((issue) => issueCounts[issue]),
+          data: uniqueIssues.length > 0 ? issueFrequencies : [0],
           backgroundColor: "rgba(27, 54, 93, 0.8)",
           borderColor: "#1B365D",
           borderWidth: 1,
           borderRadius: 4,
-          barThickness: 60,
-          maxBarThickness: 70,
+          barThickness: uniqueIssues.length > 15 ? 30 : uniqueIssues.length > 10 ? 40 : 60,
+          maxBarThickness: 60,
         },
       ],
     };
@@ -165,29 +154,14 @@ export default function HallIssues() {
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
-      legend: {
-        position: "top",
-        labels: { color: "#1B365D", font: { size: 14, weight: "bold" } },
-      },
-      title: {
-        display: true,
-        text: "Facility Issues Overview",
-        color: "#1B365D",
-        font: { size: 18, weight: "bold" },
-        padding: { top: 10, bottom: 20 },
-      },
-      tooltip: {
-        backgroundColor: "#1B365D",
-        titleColor: "#FFFFFF",
-        bodyColor: "#FFFFFF",
-        borderColor: "#EDEFF2",
-        borderWidth: 1,
-      },
+      legend: { position: "top", labels: { color: "#1B365D", font: { size: 14, weight: "bold" } } },
+      title: { display: true, text: "Facility Issues Distribution", color: "#1B365D", font: { size: 18, weight: "bold" }, padding: { top: 10, bottom: 20 } },
+      tooltip: { backgroundColor: "#1B365D", titleColor: "#FFFFFF", bodyColor: "#FFFFFF", borderColor: "#EDEFF2", borderWidth: 1 },
     },
     scales: {
       x: {
         title: { display: true, text: "Issue Types", color: "#1B365D", font: { size: 14, weight: "bold" } },
-        ticks: { color: "#1B365D", font: { size: 12 }, maxRotation: 45, minRotation: 45 },
+        ticks: { color: "#1B365D", font: { size: 10 }, maxRotation: 90, minRotation: 45, autoSkip: false, padding: 5 },
         grid: { display: false },
       },
       y: {
@@ -201,11 +175,9 @@ export default function HallIssues() {
 
   const handleViewChart = () => setShowChart(true);
   const closeChart = () => setShowChart(false);
-
   const handleGenerateReport = () => setShowReport(true);
   const closeReport = () => setShowReport(false);
 
-  // Report Data
   const getReportData = () => {
     const totalIssues = filteredIssues.length;
     const statusBreakdown = {
@@ -224,27 +196,156 @@ export default function HallIssues() {
 
   const { totalIssues, statusBreakdown, urgencyBreakdown, generatedDateTime } = getReportData();
 
-  // Download Report as PDF
   const downloadReport = () => {
-    const reportContent = document.querySelector(".report-content");
+    const pdf = new jsPDF("p", "mm", "a4");
+    const width = pdf.internal.pageSize.getWidth();
+    const height = pdf.internal.pageSize.getHeight();
+    const margin = 15;
+    const contentWidth = width - 2 * margin;
+    let yPosition = margin;
+    let pageNumber = 1;
 
-    html2canvas(reportContent, { scale: 2, useCORS: true }).then((canvas) => {
-      const imgData = canvas.toDataURL("image/png");
-      const pdf = new jsPDF("p", "mm", "a4");
-      const imgWidth = 210; // A4 width in mm
-      const pageHeight = 297; // A4 height in mm
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
-      let heightLeft = imgHeight;
-      let position = 0;
+    // Function to add page number
+    const addPageNumber = () => {
+      pdf.setFontSize(8);
+      pdf.setTextColor(80, 80, 80);
+      pdf.text(`Page ${pageNumber}`, width - margin - 10, height - 8, { align: "right" });
+    };
 
-      pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
-      heightLeft -= pageHeight;
-
-      while (heightLeft >= 0) {
-        position = heightLeft - imgHeight;
+    // Function to check and add new page if needed
+    const checkPageBreak = (requiredHeight) => {
+      if (yPosition + requiredHeight > height - margin - 15) {
+        addPageNumber();
         pdf.addPage();
-        pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
-        heightLeft -= pageHeight;
+        pageNumber++;
+        yPosition = margin;
+      }
+    };
+
+    // Header Design
+    pdf.setFillColor(27, 54, 93);
+    pdf.rect(0, 0, width, 30, "F");
+    pdf.setTextColor(255, 255, 255);
+    pdf.setFontSize(20);
+    pdf.setFont("helvetica", "bold");
+    pdf.text("Facility Issues Report", margin, 20);
+    
+    // Date stamp
+    pdf.setFontSize(10);
+    pdf.setFont("helvetica", "normal");
+    pdf.text(`Generated: ${new Date().toLocaleString()}`, width - margin, 20, { align: "right" });
+
+    yPosition += 40;
+
+    // Section Header Styling Function
+    const addSectionHeader = (title) => {
+      checkPageBreak(20);
+      pdf.setFillColor(240, 245, 250);
+      pdf.rect(margin, yPosition - 4, contentWidth, 12, "F");
+      pdf.setTextColor(27, 54, 93);
+      pdf.setFontSize(14);
+      pdf.setFont("helvetica", "bold");
+      pdf.text(title, margin + 5, yPosition + 4);
+      yPosition += 15;
+    };
+
+    // Summary Section
+    addSectionHeader("Summary");
+    
+    pdf.setFontSize(11);
+    pdf.setTextColor(0, 0, 0);
+    pdf.setFont("helvetica", "normal");
+    
+    // Summary Boxes
+    pdf.setFillColor(245, 247, 250);
+    pdf.rect(margin, yPosition, contentWidth/2 - 5, 40, "F");
+    pdf.text("Total Issues Reported", margin + 5, yPosition + 10);
+    pdf.setFontSize(16);
+    pdf.setFont("helvetica", "bold");
+    pdf.text(`${totalIssues}`, margin + 5, yPosition + 25);
+    
+    pdf.setFontSize(11);
+    pdf.setFont("helvetica", "normal");
+    pdf.setFillColor(245, 247, 250);
+    pdf.rect(margin + contentWidth/2 + 5, yPosition, contentWidth/2 - 5, 40, "F");
+    pdf.text("Status Breakdown", margin + contentWidth/2 + 10, yPosition + 10);
+    pdf.text(`Pending: ${statusBreakdown.Pending}`, margin + contentWidth/2 + 10, yPosition + 20);
+    pdf.text(`Resolved: ${statusBreakdown.Resolved}`, margin + contentWidth/2 + 10, yPosition + 30);
+    
+    yPosition += 50;
+    
+    pdf.setFillColor(245, 247, 250);
+    pdf.rect(margin, yPosition, contentWidth, 30, "F");
+    pdf.text("Urgency Breakdown", margin + 5, yPosition + 10);
+    pdf.text(`Urgent: ${urgencyBreakdown.Urgent}  |  Medium: ${urgencyBreakdown.Medium}  |  Low: ${urgencyBreakdown.Low}`, 
+      margin + 5, yPosition + 20);
+    yPosition += 40;
+
+    // Issues Distribution Chart
+    addSectionHeader("Issues Distribution Chart");
+    
+    const chartElement = document.querySelector(".chart-container");
+    html2canvas(chartElement, { scale: 2 }).then((canvas) => {
+      const imgData = canvas.toDataURL("image/png");
+      const imgHeight = (canvas.height * contentWidth) / canvas.width;
+      const maxChartHeight = 120;
+
+      pdf.addImage(imgData, "PNG", margin, yPosition, contentWidth, Math.min(imgHeight, maxChartHeight));
+      yPosition += Math.min(imgHeight, maxChartHeight) + 20;
+
+      // Detailed Issues List
+      addSectionHeader("Detailed Issues List");
+
+      // Table Header
+      pdf.setFillColor(27, 54, 93);
+      pdf.rect(margin, yPosition, contentWidth, 10, "F");
+      pdf.setFontSize(10);
+      pdf.setFont("helvetica", "bold");
+      pdf.setTextColor(255, 255, 255);
+      pdf.text("Room", margin + 2, yPosition + 7);
+      pdf.text("Facility", margin + 20, yPosition + 7);
+     // pdf.text("Dept", margin + 55, yPosition + 7);
+      pdf.text("Issues", margin + 50, yPosition + 7);
+      pdf.text("Urgency", margin + 110, yPosition + 7);
+      pdf.text("Status", margin + 135, yPosition + 7);
+      pdf.text("Date", margin + 160, yPosition + 7);
+      yPosition += 12;
+
+      // Table Content
+      pdf.setFont("helvetica", "normal");
+      pdf.setTextColor(0, 0, 0);
+      pdf.setFontSize(9);
+      filteredIssues.forEach((issue, index) => {
+        const { issues: issueItems, otherDescription } = formatIssues(issue.issues, issue.description);
+        const issueText = issueItems.length > 0 ? issueItems.join(", ") : `Other: ${otherDescription}`;
+        const lines = pdf.splitTextToSize(issueText, 50);
+        const rowHeight = Math.max(6, lines.length * 5);
+
+        checkPageBreak(rowHeight + 2);
+        
+        pdf.setFillColor(index % 2 === 0 ? 245 : 255, 247, 250);
+        pdf.rect(margin, yPosition - 2, contentWidth, rowHeight + 2, "F");
+        
+        pdf.text(issue.roomId, margin + 2, yPosition + 3);
+        pdf.text(issue.facilityType.slice(0, 15) + (issue.facilityType.length > 15 ? "..." : ""), margin + 20, yPosition + 3);
+       // pdf.text(issue.department.slice(0, 15) + (issue.department.length > 15 ? "..." : ""), margin + 55, yPosition + 3);
+        lines.forEach((line, index) => {
+          pdf.text(line, margin + 50, yPosition + 3 + (index * 5));
+        });
+        pdf.text(issue.urgency, margin + 110, yPosition + 3);
+        pdf.text(issue.status, margin + 135, yPosition + 3);
+        // Modified date format to show 2-digit year
+        const date = new Date(issue.reportedDate);
+        const formattedDate = `${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear()}`;
+        pdf.text(formattedDate, margin + 160, yPosition + 3);
+        
+        yPosition += rowHeight + 2;
+      });
+
+      // Add page numbers to all pages
+      for (let i = 1; i <= pageNumber; i++) {
+        pdf.setPage(i);
+        addPageNumber();
       }
 
       pdf.save("Facility_Issues_Report.pdf");
@@ -255,12 +356,10 @@ export default function HallIssues() {
 
   return (
     <div className="min-h-screen p-8 bg-[#FFFFFF]">
-      {/* Page Header */}
       <div className="flex justify-between items-center mb-8">
         <h2 className="text-2xl font-bold text-[#1B365D]">Reported Facility Issues</h2>
       </div>
 
-      {/* Filters and Search */}
       <div className="flex justify-between gap-4 mb-8">
         <input
           type="text"
@@ -301,7 +400,6 @@ export default function HallIssues() {
         </div>
       </div>
 
-      {/* Issues List */}
       <div className="space-y-4">
         {filteredIssues.length === 0 ? (
           <p className="text-[#1B365D] text-center">No issues match the current filters.</p>
@@ -391,7 +489,6 @@ export default function HallIssues() {
         )}
       </div>
 
-      {/* Buttons */}
       <div className="mt-8 flex justify-center gap-4">
         <button
           onClick={handleViewChart}
@@ -409,25 +506,23 @@ export default function HallIssues() {
         </button>
       </div>
 
-      {/* Chart Modal */}
       {showChart && (
         <div className="fixed inset-0 bg-[#1B365D]/30 backdrop-blur-sm flex justify-center items-center">
-          <div className="bg-[#FFFFFF] p-6 rounded-xl shadow-lg w-[1000px] relative border border-[#EDEFF2]">
+          <div className="bg-[#FFFFFF] p-6 rounded-xl shadow-lg w-[1200px] relative border border-[#EDEFF2]">
             <button onClick={closeChart} className="absolute top-4 right-4 text-[#1B365D] hover:text-[#1B365D]/70 text-lg">
               ✕
             </button>
             <h3 className="text-xl font-bold text-[#1B365D] mb-6">Issues Distribution</h3>
-            <div className="h-[450px]">
+            <div className="h-[500px]">
               <Bar data={getChartData()} options={chartOptions} />
             </div>
           </div>
         </div>
       )}
 
-      {/* Report Modal */}
       {showReport && (
         <div className="fixed inset-0 bg-[#1B365D]/30 backdrop-blur-sm flex justify-center items-center">
-          <div className="bg-[#FFFFFF] p-8 rounded-xl w-[1000px] max-h-[90vh] overflow-y-auto relative shadow-xl border border-[#EDEFF2]">
+          <div className="bg-[#FFFFFF] p-8 rounded-xl w-[1200px] max-h-[90vh] overflow-y-auto relative shadow-xl border border-[#EDEFF2]">
             <button onClick={closeReport} className="absolute top-1 right-2 text-[#1B365D] hover:text-[#1B365D]/70 text-lg">
               ✕
             </button>
@@ -439,7 +534,6 @@ export default function HallIssues() {
               <Download className="w-5 h-5" />
             </button>
             <div className="report-content">
-              {/* Report Header */}
               <header className="bg-gradient-to-r from-[#1B365D] to-[#2A4A7A] text-white p-6 rounded-t-xl shadow-md mb-8">
                 <div className="flex items-center justify-center gap-3">
                   <FileText className="w-8 h-8" />
@@ -447,7 +541,6 @@ export default function HallIssues() {
                 </div>
               </header>
 
-              {/* Summary Section */}
               <section className="mb-8 bg-white p-6 rounded-lg shadow-md border border-[#EDEFF2]">
                 <h2 className="text-xl font-semibold text-[#1B365D] mb-4 flex items-center">
                   <CheckCircle className="w-5 h-5 mr-2" /> Summary
@@ -473,17 +566,15 @@ export default function HallIssues() {
                 </div>
               </section>
 
-              {/* Chart Section */}
               <section className="mb-8 bg-white p-6 rounded-lg shadow-md border border-[#EDEFF2]">
                 <h2 className="text-xl font-semibold text-[#1B365D] mb-4 flex items-center">
                   <BarChart2 className="w-5 h-5 mr-2" /> Issues Distribution Chart
                 </h2>
-                <div className="h-[400px] w-full">
+                <div className="h-[500px] w-full chart-container">
                   <Bar data={getChartData()} options={chartOptions} />
                 </div>
               </section>
 
-              {/* Detailed List Section */}
               <section className="mb-8 bg-white p-6 rounded-lg shadow-md border border-[#EDEFF2]">
                 <h2 className="text-xl font-semibold text-[#1B365D] mb-4 flex items-center">
                   <AlertCircle className="w-5 h-5 mr-2" /> Detailed Issues List
@@ -525,11 +616,6 @@ export default function HallIssues() {
                   </table>
                 </div>
               </section>
-
-              {/* Generated Date and Time */}
-              <footer className="text-center text-[#1B365D] text-sm bg-[#F5F7FA] py-3 rounded-b-lg shadow-inner">
-                Generated on: <span className="font-semibold">{generatedDateTime}</span>
-              </footer>
             </div>
           </div>
         </div>

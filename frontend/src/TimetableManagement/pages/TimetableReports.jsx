@@ -578,6 +578,8 @@ export default function TimetableReports() {
               className="bg-gradient-to-r from-[#1B365D] to-[#2A4A7A] text-white px-6 py-2 rounded-lg flex items-center gap-2 hover:from-[#1B365D]/90 hover:to-[#2A4A7A]/90 shadow-lg hover:shadow-xl transition-all"
             >
               <Download className="w-5 h-5" />
+
+              
               Export CSV
             </button>
           </motion.div>
