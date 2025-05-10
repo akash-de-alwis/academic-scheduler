@@ -210,6 +210,19 @@ export default function Allocations() {
       if (saveData.subjects.some((s) => !s.subjectName))
         throw new Error("All subjects must be selected");
 
+      // Check for duplicate subject-lecturer combinations
+      const subjectLecturerPairs = new Set();
+      for (const subject of saveData.subjects) {
+        if (!subject.lecturerId) continue; // Skip if no lecturer is assigned
+        const pair = `${subject.subjectId}-${subject.lecturerId}`;
+        if (subjectLecturerPairs.has(pair)) {
+          throw new Error(
+            `The subject "${subject.subjectName}" is already assigned to lecturer "${subject.lecturerName}" in this allocation.`
+          );
+        }
+        subjectLecturerPairs.add(pair);
+      }
+
       setBatchError("");
       setLecturerErrors({});
       setSuggestedLecturers({});
@@ -240,6 +253,8 @@ export default function Allocations() {
         setBatchError("Please select a batch");
       } else if (err.message === "All subjects must be selected") {
         setBatchError("Please ensure all subjects are selected");
+      } else if (err.message.includes("already assigned to lecturer")) {
+        setBatchError(err.message);
       } else if (err.response?.data.message === "This batch is already allocated") {
         setBatchError("This batch is already allocated");
       } else if (err.response?.data.message.includes("Lecturer")) {
@@ -270,8 +285,23 @@ export default function Allocations() {
             }));
           }
         }
+      } else if (
+        err.response?.data.message?.includes("subjects") &&
+        err.response?.data.message?.includes("lecturerName") &&
+        err.response?.data.message?.includes("lecturerId")
+      ) {
+        // Handle Mongoose validation error for missing lecturerName and lecturerId
+        const subjectIndex = parseInt(
+          err.response.data.message.match(/subjects\.(\d+)\./)?.[1] || "0",
+          10
+        );
+        setLecturerErrors((prev) => ({
+          ...prev,
+          [subjectIndex]: "Lecturer name and ID are required for this subject.",
+        }));
       } else {
         console.log(err.response ? err.response.data : err);
+        setBatchError("An unexpected error occurred. Please try again.");
       }
     }
   };
@@ -348,6 +378,15 @@ export default function Allocations() {
   const filteredLecturers = selectedBatchSchedule
     ? lecturers.filter((lecturer) => lecturer.scheduleType === selectedBatchSchedule)
     : lecturers;
+
+  // Function to get available subjects excluding already selected ones
+  const getAvailableSubjects = (currentIndex) => {
+    const selectedSubjectIds = newAllocation.subjects
+      .filter((_, i) => i !== currentIndex) // Exclude the current field's subject
+      .map((s) => s.subjectId)
+      .filter((id) => id); // Filter out empty or undefined IDs
+    return subjects.filter((subject) => !selectedSubjectIds.includes(subject.subjectID));
+  };
 
   return (
     <>
@@ -801,7 +840,7 @@ export default function Allocations() {
                           aria-label={`Select subject ${index + 1}`}
                         >
                           <option value="">Choose a subject</option>
-                          {subjects.map((subject) => (
+                          {getAvailableSubjects(index).map((subject) => (
                             <option key={subject._id} value={subject.subjectName}>
                               {subject.subjectName}
                             </option>
