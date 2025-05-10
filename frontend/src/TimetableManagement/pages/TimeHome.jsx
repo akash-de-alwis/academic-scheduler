@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Calendar, Clock, BookOpen, AlertCircle, Plus, Eye, Wrench } from "lucide-react";
+import { Calendar, Clock, BookOpen, AlertCircle, Plus, Eye, Wrench, RefreshCw } from "lucide-react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 
@@ -23,42 +23,41 @@ const CardContent = ({ className, children }) => (
 const TimeHome = () => {
   const [schedules, setSchedules] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const navigate = useNavigate();
 
-  useEffect(() => {
-    const fetchSchedules = async () => {
-      try {
-        const res = await axios.get("http://localhost:5000/api/timetable");
-        const updatedSchedules = res.data.map((schedule) => ({
-          ...schedule,
-          subjects: schedule.subjects.map((sub) => ({
-            ...sub,
-            duration: sub.duration || "1",
-          })),
-        }));
-        setSchedules(updatedSchedules);
-        setLoading(false);
-      } catch (err) {
-        console.error("Error fetching timetables:", err.response ? err.response.data : err.message);
-        setLoading(false);
-      }
-    };
+  const fetchSchedules = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const res = await axios.get("http://localhost:5000/api/timetable");
+      const updatedSchedules = res.data.map((schedule) => ({
+        ...schedule,
+        subjects: schedule.subjects.map((sub) => ({
+          ...sub,
+          duration: sub.duration || "1",
+        })),
+      }));
+      setSchedules(updatedSchedules);
+      setLoading(false);
+    } catch (err) {
+      console.error("Error fetching timetables:", err.response ? err.response.data : err.message);
+      setError(err.response ? err.response.data.message : "Failed to fetch schedules");
+      setLoading(false);
+    }
+  };
 
+  useEffect(() => {
     fetchSchedules();
   }, []);
 
-  // Calculate Statistics
   const getStats = () => {
-    // Total Schedules
     const totalSchedules = schedules.length;
-
-    // Total Hours Scheduled
     const totalHours = schedules.reduce(
       (sum, s) => sum + s.subjects.reduce((subSum, sub) => subSum + parseInt(sub.duration || "1"), 0),
       0
     );
 
-    // Weekly Schedules (current week)
     const today = new Date();
     const startOfWeek = new Date(today.setDate(today.getDate() - today.getDay() + (today.getDay() === 0 ? -6 : 1)));
     const endOfWeek = new Date(startOfWeek);
@@ -71,21 +70,27 @@ const TimeHome = () => {
       })
     ).length;
 
-    // Conflicts (simplified: same room, same time, same date)
+    // Detect Conflicts
     const conflicts = [];
     const timeRoomMap = {};
     schedules.forEach((s) => {
       s.subjects.forEach((sub) => {
         const key = `${sub.date}-${sub.time}-${sub.room}`;
         if (timeRoomMap[key]) {
-          conflicts.push({ schedule1: timeRoomMap[key], schedule2: s, subject: sub });
+          conflicts.push({
+            schedule1: timeRoomMap[key],
+            schedule2: s,
+            subject1: timeRoomMap[key].subjects.find(
+              (existingSub) => `${existingSub.date}-${existingSub.time}-${existingSub.room}` === key
+            ),
+            subject2: sub,
+          });
         } else {
           timeRoomMap[key] = s;
         }
       });
     });
 
-    // Upcoming Classes (next 3)
     const upcomingClasses = schedules
       .flatMap((s) => s.subjects.map((sub) => ({ ...sub, batch: s.batch })))
       .filter((sub) => new Date(`${sub.date} ${sub.time}`) >= new Date())
@@ -100,10 +105,20 @@ const TimeHome = () => {
         date: sub.date,
       }));
 
-    return { totalSchedules, totalHours, weeklySchedules, conflicts: conflicts.length, upcomingClasses };
+    return { totalSchedules, totalHours, weeklySchedules, conflicts, upcomingClasses };
   };
 
   const stats = getStats();
+
+  const handleRefresh = () => {
+    fetchSchedules();
+  };
+
+  const handleResolveConflicts = () => {
+    if (stats.conflicts.length > 0) {
+      navigate("/TimeConflicts", { state: { conflicts: stats.conflicts, schedules } });
+    }
+  };
 
   if (loading) {
     return (
@@ -113,16 +128,38 @@ const TimeHome = () => {
     );
   }
 
+  if (error) {
+    return (
+      <div className="min-h-screen p-8 bg-white flex items-center justify-center flex-col gap-4">
+        <p className="text-red-500 text-lg">Error: {error}</p>
+        <button
+          onClick={handleRefresh}
+          className="flex items-center gap-2 bg-[#1B365D] text-white px-4 py-2 rounded-lg hover:bg-[#152c4d]"
+        >
+          <RefreshCw className="h-5 w-5" />
+          Retry
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen">
       <div className="p-8">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-[#1B365D]">Timetable Management Dashboard</h1>
-          <p className="text-gray-600">Overview of scheduling and resource allocation</p>
+        <div className="mb-8 flex justify-between items-center">
+          <div>
+            <h1 className="text-3xl font-bold text-[#1B365D]">Timetable Management Dashboard</h1>
+            <p className="text-gray-600">Overview of scheduling and resource allocation</p>
+          </div>
+          <button
+            onClick={handleRefresh}
+            className="flex items-center gap-2 bg-[#1B365D] text-white px-4 py-2 rounded-lg hover:bg-[#152c4d]"
+          >
+            <RefreshCw className="h-5 w-5" />
+            Refresh
+          </button>
         </div>
 
-        {/* Statistics Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <Card className="bg-[#F5F7FA]">
             <CardHeader className="flex flex-row items-center justify-between">
@@ -163,38 +200,43 @@ const TimeHome = () => {
               <AlertCircle className="h-5 w-5 text-red-500" />
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-red-500">{stats.conflicts}</div>
+              <div className="text-3xl font-bold text-red-500">{stats.conflicts.length}</div>
               <p className="text-gray-600 text-sm">Needs resolution</p>
             </CardContent>
           </Card>
         </div>
 
-        {/* Action Buttons */}
+        
+
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <button
-            onClick={() => navigate("/timetable-list")} // Assuming route to TimetableList
+            onClick={() => navigate("/TimetableList")}
             className="flex items-center justify-center gap-2 bg-[#1B365D] text-white p-4 rounded-lg hover:bg-[#152c4d] transition-colors"
           >
             <Plus className="h-5 w-5" />
             Add New Schedule
           </button>
           <button
-            onClick={() => navigate("/timetable-view")} // Assuming route to view timetables
+            onClick={() => navigate("/TimetableReports")}
             className="flex items-center justify-center gap-2 bg-[#1B365D] text-white p-4 rounded-lg hover:bg-[#152c4d] transition-colors"
           >
             <Eye className="h-5 w-5" />
-            View Timetables
+            View Reports
           </button>
           <button
-            onClick={() => navigate("/resolve-conflicts")} // Placeholder route
-            className="flex items-center justify-center gap-2 bg-[#1B365D] text-white p-4 rounded-lg hover:bg-[#152c4d] transition-colors"
+            onClick={handleResolveConflicts}
+            disabled={stats.conflicts.length === 0}
+            className={`flex items-center justify-center gap-2 p-4 rounded-lg transition-colors ${
+              stats.conflicts.length > 0
+                ? "bg-[#1B365D] text-white hover:bg-[#152c4d]"
+                : "bg-gray-300 text-gray-500 cursor-not-allowed"
+            }`}
           >
             <Wrench className="h-5 w-5" />
             Resolve Conflicts
           </button>
         </div>
 
-        {/* Upcoming Classes */}
         <Card className="bg-white">
           <CardHeader>
             <CardTitle className="text-[#1B365D] text-xl">Upcoming Classes</CardTitle>

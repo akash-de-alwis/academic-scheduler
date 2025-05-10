@@ -331,6 +331,8 @@ export default function Allocations() {
     }
   };
 
+  
+
   const handleSaveSettings = async () => {
     try {
       await axios.post("http://localhost:5000/api/settings/max-workload", { maxWorkload: tempMaxWorkload });

@@ -179,7 +179,7 @@ export default function StaffDashboard() {
       title: "Teaching Schedule",
       description: "View your class timetable",
       icon: <Calendar className="w-6 h-6" />,
-      path: "/timetable",
+      path: "/TimeHome",
       stats: `${modulesData.timetabling.classes} Classes • ${modulesData.timetabling.rooms} Rooms`,
     },
     {
